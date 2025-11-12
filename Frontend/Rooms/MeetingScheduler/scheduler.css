@@ -1,0 +1,232 @@
+@import url("https://fonts.googleapis.com/css2?family=Rubik:wght@400;600&display=swap");
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "Rubik", sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  /* No background here */
+}
+
+/* Blurred background image for the page */
+.bg-blur-image {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  background: url("../../images/timer.jpg") no-repeat center center/cover;
+  filter: blur(5px) brightness(0.75);
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+}
+
+/* Solid animated gradient card for main scheduler area */
+.scheduler-wrapper.animated-gradient-bg {
+  background: linear-gradient(120deg, #fff, #ffe3f1, #e1d5f2, #daf3ff);
+  background-size: 400% 400%;
+  animation: dreamyBackground 15s ease infinite;
+  margin: 60px 0 0 0;
+  border-radius: 20px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.1);
+  max-width: 900px;
+  width: 95vw;
+  padding: 0 0 40px 0;
+  z-index: 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+@keyframes dreamyBackground {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Top Bar */
+.top-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #333;
+  margin-bottom: 30px;
+  width: 100%;
+  max-width: 800px;
+  flex-wrap: wrap;
+  background: transparent;
+  padding: 36px 36px 0 36px;
+}
+
+.top-bar h1 {
+  font-size: 26px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gradient-icon {
+  font-size: 30px;
+  background: linear-gradient(45deg, #ff4081, #7c4dff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.dashboard {
+  background-color: #ffffffee;
+  padding: 30px;
+  border-radius: 16px;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 800px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-top: 10px;
+}
+
+.dashboard h2 {
+  font-size: 22px;
+  margin-bottom: 10px;
+}
+
+.entry {
+  padding: 14px 16px;
+  background: #f7f7f7;
+  border-left: 5px solid #7c4dff;
+  border-radius: 6px;
+  font-size: 15px;
+}
+
+.summary-section {
+  margin-top: 20px;
+  font-size: 16px;
+}
+
+.highlight {
+  font-weight: bold;
+  color: #6a1b9a;
+  margin-top: 10px;
+}
+
+.submit-btn {
+  background-color: #ec407a;
+  color: white;
+  font-weight: bold;
+  border: none;
+  padding: 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+  transition: background-color 0.3s ease;
+}
+
+.submit-btn:hover {
+  background-color: #d81b60;
+}
+
+label {
+  font-size: 14px;
+  margin-bottom: 6px;
+  display: block;
+}
+
+select {
+  font-size: 16px;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  width: 100%;
+  max-width: 400px;
+}
+
+/* Responsive design */
+@media (max-width: 900px) {
+  .scheduler-wrapper.animated-gradient-bg {
+    max-width: 99vw;
+    padding: 0 0 30px 0;
+  }
+  .dashboard {
+    padding: 16px 4vw;
+    max-width: 97vw;
+  }
+  .top-bar {
+    padding: 16px 6vw 0 6vw;
+  }
+  .top-bar h1 {
+    font-size: 20px;
+  }
+  .dashboard h2 {
+    font-size: 18px;
+  }
+}
+.edit-btn {
+  margin-top: 1rem;
+  padding: 12px 20px;
+  font-size: 16px;
+  font-weight: 500;
+  border: none;
+  border-radius: 8px;
+  background-color: #ec407a;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.edit-btn:hover {
+  background-color: #d81b60;
+}
+
+.exit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #722fbb;
+  transition: color 0.3s ease;
+}
+
+.exit .material-icons {
+  font-size: 24px;
+}
+
+.exit:hover {
+  color: #4a148c;
+}
+
+
+
+.modal-location-input {
+  width: 100%;
+  margin: 1rem 0;
+  padding: 12px;
+  font-size: 15px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}

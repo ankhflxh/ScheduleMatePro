@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Meeting Scheduler</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./scheduler.css" />
+    <link rel="icon" type="image/png" href="../Images/favicon.png">
+  </head>
+  <body>
+    <div class="bg-blur-image"></div>
+
+    <div class="scheduler-wrapper animated-gradient-bg">
+      <header class="top-bar">
+        <h1>
+          <span class="material-icons gradient-icon">event</span>
+          Meeting Scheduler
+        </h1>
+      </header>
+
+      <div class="exit" id="exit-btn">
+        <span class="material-icons">logout</span> Exit
+      </div>
+
+      <section class="dashboard">
+        <h2>Submitted Availabilities</h2>
+        <div id="entries"></div>
+
+        <div id="summary" class="summary-section">
+          <div id="suggested-time"></div>
+          <div id="suggested-locations"></div>
+        </div>
+
+        <div class="btn-group">
+          <button
+            id="editAvailabilityBtn"
+            class="edit-btn"
+            style="display: none"
+          >
+            <span class="material-icons">edit</span>
+            Edit Your Availability
+          </button>
+        </div>
+      </section>
+    </div>
+    <script defer src="./scheduler.js"></script>
+  </body>
+</html>

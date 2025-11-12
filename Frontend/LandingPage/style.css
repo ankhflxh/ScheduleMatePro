@@ -1,0 +1,98 @@
+@import url("https://fonts.googleapis.com/css2?family=Rubik:wght@400;600;800&display=swap");
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  font-family: "Rubik", Arial, sans-serif;
+  background: url("../images/landing.jpg") no-repeat center center fixed;
+  background-size: cover;
+  position: relative;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: inherit;
+  filter: blur(8px) brightness(0.72);
+  z-index: 0;
+}
+
+.landing-loading {
+  min-height: 100vh;
+  min-width: 100vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+}
+
+.landing-message {
+  background: rgba(
+    246,
+    240,
+    255,
+    0.96
+  ); /* lighter purple, close to screenshot */
+  color: #431a85;
+  border-radius: 2.2rem;
+  padding: 48px 50px 36px 50px;
+  box-shadow: 0 8px 36px 0 rgba(181, 120, 255, 0.14);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 390px;
+  max-width: 410px;
+  min-height: 360px;
+  max-height: 410px;
+}
+
+.slotify-title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #8c38e7;
+  letter-spacing: 1.5px;
+  text-align: center;
+  margin-bottom: 36px;
+  line-height: 1.1;
+}
+
+.typewriter-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 100%;
+  min-height: 80px; /* creates space at the bottom */
+}
+
+.typewriter-message {
+  font-size: 1.22rem;
+  color: #7b42bb;
+  font-weight: 500;
+  text-align: center;
+  line-height: 1.45;
+  margin-bottom: 6px;
+  min-height: 1.7em;
+  letter-spacing: 0.3px;
+  width: 100%;
+  max-width: 90%;
+}
+
+@media (max-width: 600px) {
+  .landing-message {
+    padding: 32px 12px 28px 12px;
+    min-width: 90vw;
+    max-width: 96vw;
+  }
+  .slotify-title {
+    font-size: 2rem;
+  }
+  .typewriter-message {
+    font-size: 1rem;
+  }
+}

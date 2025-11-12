@@ -1,0 +1,222 @@
+@import url("https://fonts.googleapis.com/css2?family=Rubik:wght@400;600;800&display=swap");
+
+body {
+  min-height: 100vh;
+  font-family: "Rubik", Arial, sans-serif;
+  margin: 0;
+  /* No background here; it's on .bg-blur-image */
+}
+
+.bg-blur-image {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  background: url("../../images/settings.jpg") no-repeat center center/cover;
+  filter: blur(5px) brightness(0.75);
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+}
+
+/* Solid animated gradient card */
+.settings-panel.animated-gradient-bg {
+  background: linear-gradient(120deg, #fff, #ffe3f1, #e1d5f2, #daf3ff);
+  background-size: 400% 400%;
+  animation: dreamyBackground 15s ease infinite;
+  border-radius: 22px;
+  box-shadow: 0 8px 36px 0 rgba(181, 120, 255, 0.13);
+  max-width: 430px;
+  margin: 60px auto 0 auto;
+  padding: 0 0 34px 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes dreamyBackground {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.top-bar {
+  display: flex;
+  align-items: center;
+  padding: 24px 36px 0 36px;
+  background: transparent;
+  color: #722fbb;
+  font-size: 1.2rem;
+}
+
+.top-bar h1 {
+  margin: 0 auto 0 18px;
+  font-size: 1.55rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.exit {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 600;
+  color: #722fbb;
+  gap: 7px;
+  font-size: 1.05rem;
+}
+
+main {
+  padding: 0 38px 0 38px;
+  display: flex;
+  flex-direction: column;
+}
+
+main h2 {
+  font-size: 1.45rem;
+  color: #722fbb;
+  font-weight: 700;
+  margin: 28px 0 20px 0;
+}
+
+.setting-item {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-bottom: 26px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e3d3fa;
+}
+
+.theme-toggle-btn {
+  background: linear-gradient(90deg, #722fbb, #ec407a 90%);
+  color: #fff;
+  border: none;
+  border-radius: 9px;
+  padding: 10px 28px;
+  font-size: 1.04rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(236, 64, 122, 0.09);
+  transition: background 0.2s, transform 0.1s;
+}
+
+.theme-toggle-btn:hover {
+  background: linear-gradient(90deg, #ec407a, #722fbb 90%);
+  transform: translateY(-1px) scale(1.04);
+}
+
+@media (max-width: 600px) {
+  .settings-panel.animated-gradient-bg {
+    padding: 0 8px 16px 8px;
+    max-width: 97vw;
+  }
+  .top-bar {
+    padding: 10px 7vw 0 7vw;
+    font-size: 1rem;
+  }
+  main {
+    padding: 0 10px 0 10px;
+  }
+}
+
+/* Modal styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(41, 32, 84, 0.23);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+}
+.modal {
+  background: #fff;
+  padding: 30px 38px 22px 38px;
+  border-radius: 18px;
+  box-shadow: 0 6px 32px rgba(123, 73, 202, 0.13);
+  min-width: 310px;
+  max-width: 92vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.modal-title {
+  font-size: 1.35rem;
+  color: #a047e7;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+.modal-body {
+  color: #432c63;
+  font-size: 1.08rem;
+  margin-bottom: 24px;
+  text-align: center;
+}
+.modal-actions {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+}
+.modal-btn {
+  background: linear-gradient(90deg, #722fbb, #ec407a 90%);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  padding: 10px 26px;
+  font-size: 1.03rem;
+  cursor: pointer;
+  transition: background 0.18s, transform 0.11s;
+}
+.modal-btn.logout {
+  background: linear-gradient(90deg, #f44336, #e57373 90%);
+}
+.modal-btn:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px) scale(1.04);
+}
+
+body.dark-theme {
+  background-color: #121212;
+  color: #eeeeee;
+}
+
+body.dark-theme .settings-panel {
+  background: #1f1f1f;
+}
+
+body.dark-theme .modal {
+  background: #2b2b2b;
+  color: white;
+}
+
+body.dark-theme .highlight-bar,
+body.dark-theme .modal-input,
+body.dark-theme .setting-item {
+  background-color: #292929 !important;
+  color: #f0f0f0;
+}
+
+#participantsList {
+  padding-left: 0;
+  margin-top: 10px;
+}
+
+#participantsList li {
+  list-style: none;
+  font-size: 1.05rem;
+  margin: 6px 0;
+  padding-left: 8px;
+  text-align: left;
+}

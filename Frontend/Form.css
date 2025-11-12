@@ -1,0 +1,271 @@
+@import url("https://fonts.googleapis.com/css2?family=Rubik:wght@400;600&display=swap");
+
+body {
+  font-family: "Rubik", Arial, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* No background here—handled by .bg-blur-image */
+}
+
+/* Blurred background image for the whole viewport */
+.bg-blur-image {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url("images/loginandregister.jpg") no-repeat center center/cover;
+  filter: blur(5px) brightness(0.75);
+  z-index: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+}
+
+/* Animated solid gradient for the auth card */
+.auth-container {
+  background: linear-gradient(120deg, #fff, #ffe3f1, #e1d5f2, #daf3ff);
+  background-size: 400% 400%;
+  animation: dreamyBackground 15s ease infinite;
+  padding: 40px 32px;
+  border-radius: 22px;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.16);
+  width: 350px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes dreamyBackground {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.auth-title {
+  font-size: 2rem;
+  font-weight: 600;
+  color: #722fbb;
+  margin-bottom: 20px;
+  letter-spacing: 1px;
+}
+
+.auth-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.auth-form input {
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1.5px solid #d3bffa;
+  font-size: 1rem;
+  outline: none;
+  background: #f6f3fa;
+  transition: border 0.2s;
+}
+
+.auth-form input:focus {
+  border-color: #a181fa;
+  background: #f3eaff;
+}
+
+.auth-button {
+  margin-top: 10px;
+  background: linear-gradient(90deg, #722fbb, #ec407a 90%);
+  color: #fff;
+  font-weight: 600;
+  border: none;
+  border-radius: 10px;
+  padding: 13px 0;
+  font-size: 1.1rem;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(236, 64, 122, 0.08);
+  transition: background 0.2s, transform 0.1s;
+}
+
+.auth-button:hover {
+  background: linear-gradient(90deg, #ec407a, #722fbb 90%);
+  transform: translateY(-2px) scale(1.03);
+}
+
+.auth-link {
+  display: block;
+  margin: 12px 0 0 0;
+  text-align: center;
+  color: #7e57c2;
+  text-decoration: none;
+  font-size: 0.98rem;
+  transition: color 0.18s;
+}
+
+.auth-link:hover {
+  color: #ec407a;
+  text-decoration: underline;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .auth-container {
+    padding: 22px 7vw;
+    width: 97vw;
+    min-width: unset;
+  }
+}
+
+.error {
+  color: #e53935;
+  font-size: 0.96em;
+  margin-top: -10px;
+  margin-bottom: 6px;
+  min-height: 1.2em;
+  display: block;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(41, 32, 84, 0.23);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+}
+.modal {
+  background: #fff;
+  padding: 30px 38px 22px 38px;
+  border-radius: 18px;
+  box-shadow: 0 6px 32px rgba(123, 73, 202, 0.13);
+  min-width: 320px;
+  max-width: 92vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.modal-title {
+  font-size: 1.3rem;
+  color: #a047e7;
+  font-weight: 700;
+  margin-bottom: 14px;
+}
+.modal-body {
+  color: #432c63;
+  font-size: 1.08rem;
+  margin-bottom: 22px;
+  text-align: center;
+}
+.modal-actions {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+}
+.modal-btn {
+  background: linear-gradient(90deg, #722fbb, #ec407a 90%);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  padding: 11px 32px;
+  font-size: 1.08rem;
+  cursor: pointer;
+  transition: background 0.18s, transform 0.11s;
+}
+.modal-btn:hover {
+  filter: brightness(1.09);
+  transform: translateY(-1px) scale(1.04);
+}
+
+.input-error {
+  outline: 2px solid #e53935;
+}
+.error {
+  display: block;
+  color: #e53935;
+  font-size: 0.9rem;
+  margin-top: 0.35rem;
+}
+.alert {
+  display: none;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fde7e7;
+  color: #8b1d1d;
+  font-weight: 600;
+}
+.alert.show {
+  display: block;
+}
+
+/* Tiny, clean modal */
+.sm-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+}
+.sm-modal {
+  background: rgb(255, 255, 255);
+  max-width: 28rem;
+  width: 90%;
+  padding: 1.25rem 1.5rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+.sm-modal h2 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.25rem;
+}
+.sm-modal p {
+  margin: 0 0 1rem 0;
+  line-height: 1.4;
+}
+.sm-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+.sm-actions button {
+  padding: 0.6rem 1rem;
+  border: 0;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+#sm-go-login {
+  background: rgb(16, 90, 228);
+  color: white;
+}
+#sm-close {
+  background: rgb(233, 233, 233);
+}
+
+/* Absolutely hide anything with the HTML hidden attribute */
+[hidden] {
+  display: none !important;
+}
+
+.alert.success {
+  display: block;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #d4edda; /* light green background */
+  color: #155724; /* dark green text */
+  font-weight: 600;
+  border-left: 4px solid #28a745; /* accent bar */
+}

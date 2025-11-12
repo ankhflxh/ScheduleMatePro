@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Schedule Mate</title>
+    <link rel="stylesheet" href="./style.css" />
+    <link rel="icon" type="image/png" href="/Images/favicon.png" />
+  </head> 
+  <body>
+    <div class="landing-loading">
+      <div class="landing-message">
+        <div class="slotify-title">Schedule Mate</div>
+        <div class="typewriter-wrapper">
+          <div class="typewriter-message" id="typewriter"></div>
+        </div>
+      </div>
+    </div>
+    <script>
+      const message =
+        "Making scheduling and collaboration effortless for students...";
+      const typewriter = document.getElementById("typewriter");
+      let i = 0;
+
+      function typeWriter() {
+        if (i < message.length) {
+          typewriter.innerHTML += message.charAt(i);
+          i++;
+          setTimeout(typeWriter, 60);
+        } else {
+          setTimeout(() => {
+            // go straight to login page
+            window.location.href = "/LoginPage/login.html";
+          }, 900);
+        }
+      }
+      typeWriter();
+    </script>
+    <script src="./index.js" defer></script>
+  </body>
+</html>
