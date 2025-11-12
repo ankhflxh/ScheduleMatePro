@@ -14,7 +14,7 @@ body {
   right: 0;
   bottom: 0;
   z-index: 0;
-  background: url("../../images/settings.jpg") no-repeat center center/cover;
+  background: url("../../Images/settings.jpg") no-repeat center center/cover;
   filter: blur(5px) brightness(0.75);
   width: 100vw;
   height: 100vh;
