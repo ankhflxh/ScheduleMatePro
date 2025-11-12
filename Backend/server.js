@@ -16,7 +16,7 @@ app.use(cors());
 app.use(express.json());
 
 // serve the whole Frontend folder
-app.use(express.static(path.join(__dirname, "../Frontend")));
+app.use(express.static(path.join(__dirname, "/../Frontend")));
 
 // API routes
 app.use("/api/auth", authRoutes);
