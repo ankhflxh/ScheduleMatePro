@@ -5,7 +5,7 @@ const errorMessageBox = document.querySelector("#registerErrorMessage");
 const errorOkBtn = document.querySelector("#registerErrorOk");
 
 // ✅ correct base URL
-const API_BASE = "http://localhost:5000";
+const API_BASE = "";
 
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
