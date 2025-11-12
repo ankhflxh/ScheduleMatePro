@@ -1,26 +1,44 @@
 <!DOCTYPE html>
 <html lang="en">
+   
   <head>
+       
     <meta charset="UTF-8" />
+       
     <title>Register</title>
+       
     <link rel="stylesheet" href="/Form.css" />
+       
     <link rel="icon" type="image/png" href="/Images/favicon.png" />
+     
   </head>
+   
   <body>
-    <!-- background blur (same as login) -->
+           
     <section class="bg-blur-image"></section>
 
+       
     <section class="auth-container">
+           
       <section class="auth-title">Create Account</section>
 
-      <!-- banner for messages -->
-      <section
-        id="registerBanner"
-        class="alert"
-        style="display: none"
-      ></section>
+                 
+      <section id="registerBanner" class="alert" style="display: none">
+                <span id="countdownTimer"></span>        
+        <button
+          id="resendLinkBtn"
+          class="auth-button"
+          disabled
+          style="display: none"
+        >
+                                Resend Verification Link                
+        </button>
+             
+      </section>
 
+           
       <form class="auth-form" id="registerForm">
+               
         <input
           type="text"
           id="username"
@@ -28,6 +46,7 @@
           required
           autocomplete="username"
         />
+               
         <input
           type="email"
           id="email"
@@ -35,6 +54,7 @@
           required
           autocomplete="email"
         />
+               
         <input
           type="password"
           id="password"
@@ -42,33 +62,54 @@
           required
           autocomplete="new-password"
         />
+               
+        <input
+          type="password"
+          id="confirmPassword"
+          placeholder="Confirm Password"
+          required
+          autocomplete="new-password"
+        />
+               
         <button type="submit" class="auth-button" id="registerBtn">
-          Register
+                    Register        
         </button>
+             
       </form>
 
+           
       <a href="/LoginPage/login.html" class="auth-link">
-        Already have an account? Login
+                Already have an account? Login      
       </a>
+         
     </section>
 
-    <!-- error modal (optional like login) -->
+           
     <section
       id="registerErrorModal"
       class="modal-overlay"
       style="display: none"
     >
+           
       <section class="modal">
+               
         <section class="modal-title" style="color: #e53935">
-          Registration Failed
+                    Registration Failed        
         </section>
+               
         <section class="modal-body" id="registerErrorMessage"></section>
+               
         <section class="modal-actions">
-          <button id="registerErrorOk" class="modal-btn">OK</button>
+                    <button id="registerErrorOk" class="modal-btn">OK</button>  
+               
         </section>
+             
       </section>
+         
     </section>
 
+       
     <script src="/RegisterPage/register.js" defer></script>
+     
   </body>
 </html>
