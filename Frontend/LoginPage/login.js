@@ -101,7 +101,7 @@ els.form?.addEventListener("submit", async (ev) => {
     if (data?.token) localStorage.setItem("sm_token", data.token);
     if (data?.user) localStorage.setItem("sm_user", JSON.stringify(data.user));
     sessionStorage.setItem("justLoggedIn", "1");
-    window.location.href = "/app/Dashboard/dashboard.html";
+    window.location.href = "/Dashboard/dashboard.html";
   } catch (e) {
     console.error("[login] network error:", e);
     showBanner("Network error. Please try again.", "error");
