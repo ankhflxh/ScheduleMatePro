@@ -24,7 +24,7 @@ app.use("/api/rooms", roomRoutes);
 app.use("/api/availability", availabilityRoutes);
 app.use("/api/meetings", meetingRoutes);
 app.use("/api/users", authRoutes);
-
+app.use("/api", authRoutes);
 // landing page (root)
 app.get("/", (req, res) => {
   res.redirect("/LandingPage/index.html");
