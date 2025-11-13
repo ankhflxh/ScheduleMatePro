@@ -4,25 +4,19 @@ const errorModal = document.querySelector("#registerErrorModal");
 const errorMessageBox = document.querySelector("#registerErrorMessage");
 const errorOkBtn = document.querySelector("#registerErrorOk");
 
-// Get the new elements from the banner
-const resendBtn = document.querySelector("#resendLinkBtn");
-const timerDisplay = document.querySelector("#countdownTimer");
+// The original button/timer elements in register.html are now IGNORED
+// in favor of dynamically created ones to prevent DOM detachment issues.
+// We keep a reference to the email input for the resend function.
+const emailInput = document.querySelector("#email");
 
-const API_BASE = "";
+const API_BASE = ""; // Same-origin, no base URL needed
 
 // --- HELPER FUNCTIONS ---
 
-function showBanner(text, type = "info") {
-  // Reset banner display for a new message
-  banner.className = `alert alert-${type}`;
-  banner.textContent = text;
-  banner.style.display = "block";
-
-  // Hide the resend elements unless we are in the post-registration state
-  resendBtn.style.display = "none";
-  timerDisplay.textContent = "";
-}
-
+/**
+ * Shows the registration error modal.
+ * @param {string} text - The error message to display.
+ */
 function showErrorModal(text) {
   if (!errorModal) {
     alert(text);
@@ -32,72 +26,55 @@ function showErrorModal(text) {
   errorModal.style.display = "flex";
 }
 
-// --- CLIENT-SIDE VALIDATION ---
-
+/**
+ * Client-side validation. Returns true if valid, false otherwise (and shows banner message).
+ */
 const validateForm = (username, password, confirmPassword) => {
+  // Clear any old banner messages first
+  banner.style.display = "none";
+
   // 1. Username: at least 8 characters
   if (username.length < 8) {
-    showBanner("Username must be at least 8 characters long.");
+    banner.className = `alert`;
+    banner.textContent = "Username must be at least 8 characters long.";
+    banner.style.display = "block";
     return false;
   }
 
   // 2. Password: at least 8 characters
   if (password.length < 8) {
-    showBanner("Password must be at least 8 characters long.");
+    banner.className = `alert`;
+    banner.textContent = "Password must be at least 8 characters long.";
+    banner.style.display = "block";
     return false;
   }
 
-  // 3. Password: at least 1 special character (non-alphanumeric/non-space)
-  // The regex /[^\w\s]/ checks for anything that is NOT a word character (a-z, A-Z, 0-9, _) AND NOT a space.
+  // 3. Password: at least 1 special character
   const specialCharRegex = /[^\w\s]/;
   if (!specialCharRegex.test(password)) {
-    showBanner(
-      "Password must contain at least one special character (e.g., !, @, #)."
-    );
+    banner.className = `alert`;
+    banner.textContent =
+      "Password must contain at least one special character (e.g., !, @, #).";
+    banner.style.display = "block";
     return false;
   }
 
   // 4. Confirm Password Match
   if (password !== confirmPassword) {
-    showBanner("Passwords do not match.");
+    banner.className = `alert`;
+    banner.textContent = "Passwords do not match.";
+    banner.style.display = "block";
     return false;
   }
 
-  // All checks passed
   return true;
 };
 
-// --- RESEND TIMER LOGIC ---
-
-function startResendTimer(duration) {
-  let timer = duration;
-  resendBtn.style.display = "block"; // Show the button
-  resendBtn.disabled = true; // Ensure it's disabled
-
-  const interval = setInterval(() => {
-    timerDisplay.textContent = `(Resend available in ${timer}s)`;
-    timer--;
-
-    if (timer < 0) {
-      clearInterval(interval);
-      timerDisplay.textContent = "Verification link ready to resend.";
-      resendBtn.disabled = false; // Enable the button
-    }
-  }, 1000);
-}
-
-// --- EVENT LISTENERS ---
-
-// Listener for OK button on the modal
-if (errorOkBtn) {
-  errorOkBtn.addEventListener("click", () => {
-    errorModal.style.display = "none";
-  });
-}
-
-// Listener for Resend button
-resendBtn.addEventListener("click", async () => {
-  const email = document.querySelector("#email").value.trim();
+/**
+ * Logic to handle the resend button click event.
+ */
+const resendButtonClickHandler = async (resendBtn, timerDisplay) => {
+  const email = emailInput.value.trim();
 
   resendBtn.disabled = true;
   timerDisplay.textContent = "Sending...";
@@ -112,31 +89,64 @@ resendBtn.addEventListener("click", async () => {
     const data = await res.json().catch(() => ({}));
 
     if (res.ok) {
-      showBanner(
-        "New verification email sent! Please check your inbox.",
-        "success"
-      );
-      startResendTimer(10);
+      // Success response for resend
+      timerDisplay.innerHTML = `<div>New verification email sent!</div>`;
+      startResendTimer(10, resendBtn, timerDisplay); // Shorter timer for resend
     } else {
-      showBanner(
-        data.error || "Failed to resend link. Please try again.",
-        "error"
-      );
-      startResendTimer(10);
+      // Error response for resend
+      timerDisplay.innerHTML = `<div>${
+        data.error || "Failed to resend link."
+      }</div>`;
+      startResendTimer(10, resendBtn, timerDisplay);
     }
   } catch (err) {
-    showBanner("Network error while resending link.", "error");
-    startResendTimer(10);
+    timerDisplay.innerHTML = "Network error while resending link.";
+    startResendTimer(10, resendBtn, timerDisplay);
   }
-});
+};
 
-// Listener for Form Submission (Merged logic)
+/**
+ * Starts the countdown timer for the resend button.
+ * @param {number} duration - The starting duration in seconds.
+ * @param {HTMLElement} resendButton - The dynamically created button element.
+ * @param {HTMLElement} timerElement - The dynamically created timer span element.
+ */
+function startResendTimer(duration, resendButton, timerElement) {
+  let timer = duration;
+  resendButton.disabled = true; // Ensure it's disabled
+
+  const interval = setInterval(() => {
+    timerElement.textContent = `(Resend available in ${timer}s)`;
+    timer--;
+
+    if (timer < 0) {
+      clearInterval(interval);
+      timerElement.textContent = "Verification link ready to resend.";
+      resendButton.disabled = false; // Enable the button
+
+      // Re-attach the click handler to the newly enabled button
+      resendButton.onclick = () =>
+        resendButtonClickHandler(resendButton, timerElement);
+    }
+  }, 1000);
+}
+
+// --- EVENT LISTENERS ---
+
+// Listener for OK button on the modal
+if (errorOkBtn) {
+  errorOkBtn.addEventListener("click", () => {
+    errorModal.style.display = "none";
+  });
+}
+
+// Listener for Form Submission (The main logic block)
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
 
   // 1. Get ALL input values
   const username = document.querySelector("#username").value.trim();
-  const email = document.querySelector("#email").value.trim();
+  const email = emailInput.value.trim(); // Use global reference for email
   const password = document.querySelector("#password").value.trim();
   const confirmPassword = document
     .querySelector("#confirmPassword")
@@ -144,7 +154,7 @@ form.addEventListener("submit", async (e) => {
 
   // 2. Client-side validation check
   if (!validateForm(username, password, confirmPassword)) {
-    return; // Stop submission if validation fails (message is shown in showBanner)
+    return;
   }
 
   // Disable button during submission
@@ -162,31 +172,42 @@ form.addEventListener("submit", async (e) => {
     const data = await res.json().catch(() => ({}));
 
     if (res.ok && data.message === "verification_sent") {
-      // Success: Show the message and start the timer UI
+      // --- SUCCESS UI UPDATE (The FIX) ---
+
+      // 1. Set the banner class
       banner.className = `alert alert-success`;
+
+      // 2. Define the COMPLETE new structure and overwrite innerHTML
       banner.innerHTML = `
-                <div>Registration received. Please check your email to verify.</div>
-                <span id="countdownTimer"></span>
-            `;
-      // Re-select timerDisplay now that the innerHTML has changed
-      const updatedTimerDisplay = document.querySelector("#countdownTimer");
+          <div>Registration received. Please check your email to verify.</div>
+          <span id="dynamicTimerDisplay"></span>
+          <button id="dynamicResendBtn" class="auth-button" disabled>
+              Resend Verification Link
+          </button>
+      `;
+      banner.style.display = "block"; // Ensure the banner is visible
 
-      // Re-append button elements if they were removed (or just show them)
-      resendBtn.style.display = "block";
+      // 3. Select the newly created elements from the DOM
+      const dynamicResendBtn = document.querySelector("#dynamicResendBtn");
+      const dynamicTimerDisplay = document.querySelector(
+        "#dynamicTimerDisplay"
+      );
 
-      startResendTimer(30); // Start timer (using 30s as a realistic default)
+      // 4. Start the timer with the new elements
+      startResendTimer(30, dynamicResendBtn, dynamicTimerDisplay);
 
       form.reset();
     } else {
       // Server Error: Use the specific error message from the backend
       showErrorModal(
-        data.error || "Registration failed. Please check your inputs."
+        data.error ||
+          "Registration failed. Please check your inputs and try again."
       );
     }
   } catch (err) {
     console.error("Network Error:", err);
     showErrorModal(
-      "A network error occurred. Make sure the server is running."
+      "A network error occurred. Ensure the backend server is running and accessible."
     );
   } finally {
     registerBtn.disabled = false;
