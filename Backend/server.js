@@ -16,13 +16,14 @@ app.use(cors());
 app.use(express.json());
 
 // serve the whole Frontend folder
-app.use(express.static(path.join(__dirname, '..', 'Frontend')));
+app.use(express.static(path.join(__dirname, "..", "Frontend")));
 
 // API routes
 app.use("/api/auth", authRoutes);
 app.use("/api/rooms", roomRoutes);
 app.use("/api/availability", availabilityRoutes);
 app.use("/api/meetings", meetingRoutes);
+app.use("/api/users", authRoutes);
 
 // landing page (root)
 app.get("/", (req, res) => {
