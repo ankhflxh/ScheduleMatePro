@@ -3,130 +3,37 @@ const express = require("express");
 const router = express.Router();
 const pool = require("../db");
 const crypto = require("crypto");
-// REMOVE: const nodemailer = require("nodemailer");
 require("dotenv").config();
 
 // ADD: Import and configure SendGrid
 const sgMail = require("@sendgrid/mail");
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
-// POST /api/auth/register
-// Updated POST /api/auth/register in auth.js
+// --- HELPER FUNCTIONS AND MIDDLEWARE ---
 
-router.post("/register", async (req, res) => {
-  // ... (rest of setup)
-  const { username, email, password } = req.body;
-  const token = crypto.randomBytes(32).toString("hex");
-  const expires = new Date(Date.now() + 1000 * 60 * 30);
-
-  try {
-    // 1) create user
-    await pool.query(
-      `INSERT INTO users (username, email, password_hash, is_verified, verification_token, verification_expires)
-             VALUES ($1, $2, $3, FALSE, $4, $5)`,
-      [username, email, password, token, expires]
-    );
-
-    // 2) build verify link
-    const verifyLink = `${process.env.APP_BASE_URL}/api/auth/verify?token=${token}`;
-    
-    res.json({ message: "verification_sent" });
-    const msg = {
-      to: email,
-      from: process.env.EMAIL_USER,
-      subject: "Verify Your New Account for ScheduleMate Pro",
-      text: `Hello ${username}, please verify your email here: ${verifyLink}`,
-      html: `<strong>Hello ${username}, please click <a href="${verifyLink}">here</a> to verify your account.</strong>`,
-    };
-
-    sgMail.send(msg).catch((emailErr) => {
-      // Log the error but don't hold up the response
-      console.error("SENDGRID EMAIL ERROR:", emailErr);
-    });
-  } catch (err) {
-    // ... (Error handling for duplicate user, server crash, etc.)
-    console.error("REGISTER ERROR:", err);
-
-    if (err.code === "23505") {
-      // ... (Duplicate key errors)
-    }
-
-    // If an error occurred BEFORE res.json was sent, this handles it:
-    if (!res.headersSent) {
-      res.status(400).json({ error: "Registration failed. Please try again." });
-    }
-  }
-});
-
-// --- FIX: Add the GET /api/auth/verify route ---
-router.get("/verify", async (req, res) => {
-  const { token } = req.query;
-
-  try {
-    // 1. Find the user with the token and check if it's expired
-    const result = await pool.query(
-      `SELECT * FROM users
-       WHERE verification_token = $1 AND verification_expires > NOW()`,
-      [token]
-    );
-
-    const user = result.rows[0];
-
-    if (!user) {
-      // Token is invalid or expired
-      return res.redirect(
-        `${
-          process.env.APP_BASE_URL
-        }/LoginPage/login.html?error=${encodeURIComponent(
-          "Verification link is invalid or expired. Please request a new one."
-        )}`
-      );
-    }
-
-    // 2. Mark the user as verified and clear the token
-    await pool.query(
-      `UPDATE users
-       SET is_verified = TRUE, verification_token = NULL, verification_expires = NULL
-       WHERE id = $1`,
-      [user.id]
-    );
-
-    // 3. Success: Redirect to login page with a success message
-    res.redirect(`${process.env.APP_BASE_URL}/LoginPage/login.html?verified=1`);
-  } catch (err) {
-    console.error("VERIFY ERROR:", err);
-    res.redirect(
-      `${
-        process.env.APP_BASE_URL
-      }/LoginPage/login.html?error=${encodeURIComponent(
-        "An unexpected error occurred during verification."
-      )}`
-    );
-  }
-});
-
-// Add a simple token generation (replace with JWT in production)
+// Simple token generation (replace with JWT in production)
 const generateToken = (id) => {
-  // NOTE: In a real app, this should be a JWT token, not just the ID.
-  // For now, we'll use a simple base64 encoding of the ID for demonstration.
   return Buffer.from(String(id)).toString("base64");
 };
 
 // Middleware to find user by simple token (for /api/users/me)
 const authenticateToken = async (req, res, next) => {
-  const token = req.cookies.sm_auth_token || req.headers["x-auth-token"];
+  // Use header first, then check cookies/query/body (as per dashboard.js fix)
+  const token =
+    req.headers["x-auth-token"] ||
+    req.cookies.sm_auth_token ||
+    req.query.token ||
+    req.body.token;
+
   if (!token) {
-    // Check if the token is passed in the body (as used by some frontends)
-    const storedToken = req.body.token || req.query.token;
-    if (!storedToken)
-      return res.status(401).json({ message: "Authentication required" });
+    return res
+      .status(401)
+      .json({ message: "Authentication required (No token provided)" });
   }
 
   try {
-    // For this simple example, we decode the base64 token to get the user ID
-    const userId = Number(
-      Buffer.from(token || storedToken, "base64").toString("ascii")
-    );
+    // Decode the base64 token to get the user ID
+    const userId = Number(Buffer.from(token, "base64").toString("ascii"));
 
     // Check for user existence
     const result = await pool.query(
@@ -141,13 +48,115 @@ const authenticateToken = async (req, res, next) => {
     next();
   } catch (err) {
     console.error("Token Authentication Error:", err);
+    // Return 403 for invalid token format (prevents 500)
     return res.status(403).json({ message: "Invalid token format" });
   }
 };
 
 // ----------------------------------------------------
-// 1. POST /api/login
+// ROUTES
 // ----------------------------------------------------
+
+// POST /api/auth/register
+router.post("/register", async (req, res) => {
+  const { username, email, password } = req.body;
+  const token = crypto.randomBytes(32).toString("hex");
+  const expires = new Date(Date.now() + 1000 * 60 * 30); // 30 mins
+
+  try {
+    // 1) create user as NOT verified
+    await pool.query(
+      `INSERT INTO users (username, email, password_hash, is_verified, verification_token, verification_expires)
+       VALUES ($1, $2, $3, FALSE, $4, $5)`,
+      [username, email, password, token, expires]
+    );
+
+    // 2) ***IMMEDIATELY SEND SUCCESS RESPONSE***
+    res.json({ message: "verification_sent" });
+  } catch (err) {
+    // 3) Error handling for duplicate key or DB insert failure
+    console.error("REGISTER ERROR:", err);
+    if (err.code === "23505") {
+      if (err.constraint === "users_username_key") {
+        return res
+          .status(400)
+          .json({ error: "The username you entered is already taken." });
+      }
+      if (err.constraint === "users_email_key") {
+        return res
+          .status(400)
+          .json({ error: "That email address is already registered." });
+      }
+    }
+    // Only send 400 status if no response was sent yet
+    if (!res.headersSent) {
+      res.status(400).json({ error: "Registration failed. Please try again." });
+    }
+    return;
+  }
+
+  // 4) ***SEND EMAIL OUTSIDE OF THE MAIN TRY/CATCH (Non-blocking)***
+  try {
+    const verifyLink = `${process.env.APP_BASE_URL}/api/auth/verify?token=${token}`;
+    const msg = {
+      to: email,
+      from: process.env.EMAIL_USER,
+      subject: "Verify Your New Account for ScheduleMate Pro",
+      text: `Hello ${username}, please verify your email here: ${verifyLink}`,
+      html: `<strong>Hello ${username}, please click <a href="${verifyLink}">here</a> to verify your account.</strong>`,
+    };
+    sgMail.send(msg).catch((emailErr) => {
+      console.error("SENDGRID ASYNC ERROR:", emailErr);
+    });
+  } catch (emailError) {
+    console.error("Email preparation error:", emailError);
+  }
+});
+
+// GET /api/auth/verify
+router.get("/verify", async (req, res) => {
+  const { token } = req.query;
+
+  try {
+    const result = await pool.query(
+      `SELECT * FROM users
+       WHERE verification_token = $1 AND verification_expires > NOW()`,
+      [token]
+    );
+
+    const user = result.rows[0];
+
+    if (!user) {
+      return res.redirect(
+        `${
+          process.env.APP_BASE_URL
+        }/LoginPage/login.html?error=${encodeURIComponent(
+          "Verification link is invalid or expired. Please request a new one."
+        )}`
+      );
+    }
+
+    await pool.query(
+      `UPDATE users
+       SET is_verified = TRUE, verification_token = NULL, verification_expires = NULL
+       WHERE id = $1`,
+      [user.id]
+    );
+
+    res.redirect(`${process.env.APP_BASE_URL}/LoginPage/login.html?verified=1`);
+  } catch (err) {
+    console.error("VERIFY ERROR:", err);
+    res.redirect(
+      `${
+        process.env.APP_BASE_URL
+      }/LoginPage/login.html?error=${encodeURIComponent(
+        "An unexpected error occurred during verification."
+      )}`
+    );
+  }
+});
+
+// POST /api/login
 router.post("/login", async (req, res) => {
   const { identifier, password } = req.body; // identifier can be username or email
 
@@ -164,6 +173,7 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ message: "Invalid username or password." });
     }
 
+    // WARNING: Plain text password comparison!
     if (user.password_hash !== password) {
       return res.status(400).json({ message: "Invalid username or password." });
     }
@@ -190,9 +200,7 @@ router.post("/login", async (req, res) => {
   }
 });
 
-// ----------------------------------------------------
-// 2. GET /api/users/me (using middleware for simplicity)
-// ----------------------------------------------------
+// GET /api/users/me
 router.get("/me", authenticateToken, (req, res) => {
   // req.user is set by the authenticateToken middleware
   res.json({
@@ -203,9 +211,7 @@ router.get("/me", authenticateToken, (req, res) => {
   });
 });
 
-// ----------------------------------------------------
-// 3. POST /api/auth/resend-verification
-// ----------------------------------------------------
+// POST /api/auth/resend-verification
 router.post("/resend-verification", async (req, res) => {
   const { email } = req.body;
 
@@ -234,9 +240,10 @@ router.post("/resend-verification", async (req, res) => {
       [newToken, newExpires, user.id]
     );
 
-    const verifyLink = `${process.env.APP_BASE_URL}/api/auth/verify?token=${newToken}`;
+    res.json({ message: "Verification link successfully resent." });
 
-    // Send the new email (same logic as register)
+    // Send email non-blocking
+    const verifyLink = `${process.env.APP_BASE_URL}/api/auth/verify?token=${newToken}`;
     const msg = {
       to: email,
       from: process.env.EMAIL_USER,
@@ -245,12 +252,15 @@ router.post("/resend-verification", async (req, res) => {
       html: `<strong>Hello ${user.username}, please click <a href="${verifyLink}">here</a> to verify your account.</strong>`,
     };
 
-    await sgMail.send(msg);
-
-    res.json({ message: "Verification link successfully resent." });
+    sgMail.send(msg).catch((emailErr) => {
+      console.error("RESEND EMAIL ASYNC ERROR:", emailErr);
+    });
   } catch (err) {
     console.error("RESEND ERROR:", err);
-    res.status(500).json({ error: "Failed to resend verification link." });
+    // Send error response if headers were not sent by the res.json above
+    if (!res.headersSent) {
+      res.status(500).json({ error: "Failed to resend verification link." });
+    }
   }
 });
 
