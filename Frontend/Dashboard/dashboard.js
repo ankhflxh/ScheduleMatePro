@@ -31,45 +31,71 @@ roomNameInput.addEventListener("input", () => {
 });
 
 // Load current user, rooms, and confirmed meetings
-fetch("/api/users/me", { credentials: "include" })
-  .then((res) => res.json())
-  .then((user) => {
-    const username = user.user_username || user.username || "";
-    const userId = user.user_id || user.id;
+// --- FIX: Add token retrieval and robust fetch handling ---
+const token = localStorage.getItem("sm_token");
 
-    if (!userId || !username) {
-      welcomeModalTitle.textContent = "Session expired. Please log in again.";
-      welcomeModalBody.textContent = "";
-      welcomeModal.style.display = "flex";
-      if (welcomeModalOk) {
-        welcomeModalOk.onclick = () => {
-          welcomeModal.style.display = "none";
-          window.location.href = "/loginpage/login.html";
-        };
-      }
-      return;
-    }
-    if (sessionStorage.getItem("justLoggedIn") === "true") {
-      welcomeModalTitle.textContent = `Welcome back to Slotify, ${username}!`;
-      welcomeModalBody.textContent = "";
-      welcomeModal.style.display = "flex";
-      sessionStorage.removeItem("justLoggedIn");
-    }
-
-    window.SLOTIFY_USER_ID = userId;
-    loadRooms(userId);
-    loadMeetings(userId);
-  })
-  .catch((err) => {
-    console.error("Error loading user info:", err);
-    welcomeModalTitle.textContent = "Session expired. Please log in again.";
-    welcomeModalBody.textContent = "";
-    welcomeModal.style.display = "flex";
+if (!token) {
+  welcomeModalTitle.textContent = "Session expired. Please log in again.";
+  welcomeModalBody.textContent = "";
+  welcomeModal.style.display = "flex";
+  if (welcomeModalOk) {
     welcomeModalOk.onclick = () => {
       welcomeModal.style.display = "none";
       window.location.href = "/loginpage/login.html";
     };
-  });
+  }
+} else {
+  // Fetch user info using the stored token
+  fetch("/api/users/me", {
+    method: "GET",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Auth-Token": token, // Passing the token
+    },
+  })
+    .then((res) => {
+      // Check for unauthorized or forbidden status from middleware
+      if (res.status === 401 || res.status === 403) {
+        throw new Error("Session expired or invalid token.");
+      }
+      return res.json();
+    })
+    .then((user) => {
+      const username = user.user_username || user.username || "";
+      const userId = user.user_id || user.id;
+
+      if (!userId || !username) {
+        throw new Error("User data incomplete.");
+      }
+
+      if (sessionStorage.getItem("justLoggedIn") === "1") {
+        welcomeModalTitle.textContent = `Welcome back to Slotify, ${username}!`;
+        welcomeModalBody.textContent = "";
+        welcomeModal.style.display = "flex";
+        sessionStorage.removeItem("justLoggedIn");
+      }
+
+      window.SLOTIFY_USER_ID = userId;
+      loadRooms(userId);
+      loadMeetings(userId);
+      // loadUpcomingMeetings(userId); // Assuming this is called later or implemented below
+    })
+    .catch((err) => {
+      console.error("Error loading user info:", err);
+      welcomeModalTitle.textContent = "Session expired. Please log in again.";
+      welcomeModalBody.textContent = "";
+      welcomeModal.style.display = "flex";
+      welcomeModalOk.onclick = () => {
+        welcomeModal.style.display = "none";
+        // Clear token to force proper login
+        localStorage.removeItem("sm_token");
+        window.location.href = "/loginpage/login.html";
+      };
+    });
+}
+// --- END FIX ---
+
 function loadUpcomingMeetings(userId) {
   fetch(`/meeting/upcoming/${userId}`, { credentials: "include" })
     .then((res) => res.json())
@@ -251,6 +277,8 @@ window.closeLogoutModal = function () {
 
 window.confirmLogout = function () {
   logoutModal.style.display = "none";
+  // --- FIX: Clear token on logout ---
+  localStorage.removeItem("sm_token");
   logoutSuccessModal.style.display = "flex";
   setTimeout(() => {
     window.location.href = "../../landingpage/index.html";
