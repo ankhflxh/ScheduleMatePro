@@ -30,11 +30,11 @@ roomNameInput.addEventListener("input", () => {
   roomNameError.style.display = "none";
 });
 
-// Load current user, rooms, and confirmed meetings
-// --- FIX: Add token retrieval and robust fetch handling ---
+// --- CORE AUTHENTICATION AND DATA LOADING ---
 const token = localStorage.getItem("sm_token");
 
 if (!token) {
+  // Show session expired modal and force login if no token is found
   welcomeModalTitle.textContent = "Session expired. Please log in again.";
   welcomeModalBody.textContent = "";
   welcomeModal.style.display = "flex";
@@ -51,11 +51,11 @@ if (!token) {
     credentials: "include",
     headers: {
       "Content-Type": "application/json",
-      "X-Auth-Token": token, // Passing the token
+      "X-Auth-Token": token, // Passing the authentication token
     },
   })
     .then((res) => {
-      // Check for unauthorized or forbidden status from middleware
+      // Check for unauthorized or forbidden status (401/403)
       if (res.status === 401 || res.status === 403) {
         throw new Error("Session expired or invalid token.");
       }
@@ -69,17 +69,29 @@ if (!token) {
         throw new Error("User data incomplete.");
       }
 
+      // --- PERSONALIZED WELCOME MESSAGE LOGIC ---
       if (sessionStorage.getItem("justLoggedIn") === "1") {
-        welcomeModalTitle.textContent = `Welcome back to Slotify, ${username}!`;
+        const firstVisitDone = localStorage.getItem("firstVisitDone");
+
+        if (!firstVisitDone) {
+          // SCENARIO 1: First ever login after verification
+          welcomeModalTitle.textContent = `Welcome to ScheduleMatePro, ${username}!`;
+          localStorage.setItem("firstVisitDone", "true"); // Set permanent flag
+        } else {
+          // SCENARIO 2: Regular return login
+          welcomeModalTitle.textContent = `Welcome back to ScheduleMate, ${username}!`;
+        }
+
         welcomeModalBody.textContent = "";
         welcomeModal.style.display = "flex";
-        sessionStorage.removeItem("justLoggedIn");
+        sessionStorage.removeItem("justLoggedIn"); // Clear temporary flag
       }
+      // --- END WELCOME MESSAGE LOGIC ---
 
       window.SLOTIFY_USER_ID = userId;
       loadRooms(userId);
       loadMeetings(userId);
-      // loadUpcomingMeetings(userId); // Assuming this is called later or implemented below
+      // Removed: loadUpcomingMeetings(userId);
     })
     .catch((err) => {
       console.error("Error loading user info:", err);
@@ -88,14 +100,14 @@ if (!token) {
       welcomeModal.style.display = "flex";
       welcomeModalOk.onclick = () => {
         welcomeModal.style.display = "none";
-        // Clear token to force proper login
         localStorage.removeItem("sm_token");
         window.location.href = "/loginpage/login.html";
       };
     });
 }
-// --- END FIX ---
+// --- END CORE AUTHENTICATION AND DATA LOADING ---
 
+// Note: loadUpcomingMeetings is kept here but is no longer called in the main flow.
 function loadUpcomingMeetings(userId) {
   fetch(`/meeting/upcoming/${userId}`, { credentials: "include" })
     .then((res) => res.json())
@@ -117,6 +129,9 @@ function loadUpcomingMeetings(userId) {
         `;
         container.appendChild(div);
       });
+    })
+    .catch((err) => {
+      console.warn("Failed to load upcoming meetings:", err);
     });
 }
 
@@ -127,10 +142,14 @@ function loadRooms(userId) {
       roomsContainer.innerHTML = "";
 
       if (!rooms || rooms.length === 0) {
-        noRoomsMsg.style.display = "block";
+        // --- FIX: When EMPTY, HIDE the rooms container and SHOW the message ---
+        roomsContainer.style.display = "none";
+        noRoomsMsg.style.display = "flex"; // Use 'flex' for the empty state wrapper
         return;
       }
 
+      // --- FIX: When DATA EXISTS, SHOW the rooms container and HIDE the message ---
+      roomsContainer.style.display = "grid"; // Restore 'grid' display mode
       noRoomsMsg.style.display = "none";
 
       rooms.forEach((room) => {
@@ -138,13 +157,16 @@ function loadRooms(userId) {
         card.classList.add("card");
         card.classList.add("room-card");
 
+        const roomId = room.room_id || room.id;
+        const roomName = room.room_name || room.name;
+
         card.innerHTML = `
-          <h3>${room.room_name}</h3>
+          <h3>${roomName}</h3>
           <div class="room-actions">
-            <button class="submit-btn" onclick="window.location.href='/rooms/enterRooms/enterRooms.html?roomId=${room.room_id}'">
+            <button class="submit-btn" onclick="window.location.href='/rooms/enterRooms/enterRooms.html?roomId=${roomId}'">
               <span class="material-icons">meeting_room</span> Enter
             </button>
-            <button class="submit-btn delete-room-btn" data-room-id="${room.room_id}">
+            <button class="submit-btn delete-room-btn" data-room-id="${roomId}">
               <span class="material-icons">delete</span> Delete
             </button>
           </div>
@@ -164,11 +186,16 @@ function loadMeetings(userId) {
     .then((meetings) => {
       meetingsList.innerHTML = "";
       if (!meetings.length) {
-        noMeetingsMsg.style.display = "block";
+        // --- FIX: When EMPTY, HIDE the meetings container and SHOW the message ---
+        meetingsList.style.display = "none";
+        noMeetingsMsg.style.display = "flex";
         return;
       }
 
+      // --- FIX: When DATA EXISTS, SHOW the meetings container and HIDE the message ---
+      meetingsList.style.display = "flex"; // Restore original list display mode
       noMeetingsMsg.style.display = "none";
+
       meetings.forEach((m) => {
         const li = document.createElement("li");
         li.innerHTML = `
@@ -200,12 +227,15 @@ createForm.addEventListener("submit", (e) => {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ roomName: name }),
+    body: JSON.stringify({
+      name: name,
+      creatorId: window.SLOTIFY_USER_ID,
+    }),
   })
     .then((res) => res.json())
     .then((room) => {
       roomCreatedModalTitle.textContent = "Room created successfully!";
-      roomCreatedModalBody.textContent = `Room "${room.room_name}" has been created.`;
+      roomCreatedModalBody.textContent = `Room "${room.name}" has been created.`;
       roomCreatedModal.style.display = "flex";
       if (roomCreatedModalOk) {
         roomCreatedModalOk.onclick = () => {
@@ -232,7 +262,7 @@ joinForm.addEventListener("submit", (e) => {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ inviteCode: code }),
+    body: JSON.stringify({ inviteCode: code, userId: window.SLOTIFY_USER_ID }),
   })
     .then((res) => {
       if (!res.ok) {
@@ -277,7 +307,7 @@ window.closeLogoutModal = function () {
 
 window.confirmLogout = function () {
   logoutModal.style.display = "none";
-  // --- FIX: Clear token on logout ---
+  // Clear token on logout
   localStorage.removeItem("sm_token");
   logoutSuccessModal.style.display = "flex";
   setTimeout(() => {

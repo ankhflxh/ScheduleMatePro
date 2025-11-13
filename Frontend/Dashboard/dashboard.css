@@ -58,6 +58,7 @@ body {
   margin-bottom: 35px;
   display: flex;
   align-items: center;
+  justify-content: space-between; /* Added to space the title and logout button */
   gap: 12px;
 }
 
@@ -124,59 +125,6 @@ body {
 }
 
 .meeting-list li {
-  /* Start: Original Design (kept exactly as Augustine styled) */
-  /* ... (Original CSS pasted above is assumed included here) ... */
-
-  /* Additions for validation + dark theme (non-destructive) */
-
-  body.dark-theme {
-    background-color: #121212;
-    color: #eeeeee;
-  }
-
-  body.dark-theme .dashboard-wrapper,
-  body.dark-theme .card,
-  body.dark-theme .form-block,
-  body.dark-theme .modal {
-    background-color: #1f1f1f;
-    color: #f5f5f5;
-  }
-
-  body.dark-theme .submit-btn,
-  body.dark-theme .modal-btn {
-    background: linear-gradient(90deg, #9c27b0, #e91e63);
-    color: white;
-  }
-
-  .modal-input {
-    width: 100%;
-    padding: 10px;
-    margin: 6px 0;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    font-size: 16px;
-  }
-
-  .auth-form input {
-    width: 100%;
-    padding: 10px;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    margin-top: 10px;
-  }
-
-  .auth-form input:focus {
-    border-color: #7c4dff;
-    outline: none;
-  }
-
-  .error {
-    color: #e53935;
-    font-size: 0.9rem;
-    margin-top: 4px;
-    display: block;
-  }
-
   background-color: #fefefe;
   padding: 14px 18px;
   border-radius: 10px;
@@ -250,6 +198,8 @@ input[type="text"] {
   }
 }
 
+/* --- Modals and Overlays (Condensed for readability) --- */
+
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -306,193 +256,12 @@ input[type="text"] {
   transform: translateY(-1px) scale(1.04);
 }
 
-/* Additions to existing dashboard.css (merged for convenience) */
-
-/* Core Layout Enhancements */
-body.dark-theme {
-  background-color: #121212;
-  color: #eeeeee;
-}
-
-body.dark-theme .dashboard-wrapper,
-body.dark-theme .card,
-body.dark-theme .form-block,
-body.dark-theme .modal {
-  background-color: #1f1f1f;
-  color: #f5f5f5;
-}
-
-body.dark-theme .submit-btn,
-body.dark-theme .modal-btn {
-  background: linear-gradient(90deg, #9c27b0, #e91e63);
-  color: white;
-}
-
-.modal {
-  background: white;
-  padding: 20px;
-  max-width: 400px;
-  margin: auto;
-  border-radius: 10px;
-  box-shadow: 0 0 12px rgba(0, 0, 0, 0.2);
-}
-
-.modal-title {
-  font-weight: bold;
-  font-size: 1.25rem;
-  margin-bottom: 10px;
-  color: inherit;
-}
-
-.modal-body {
-  margin-bottom: 15px;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.modal-btn {
-  flex: 1;
-  padding: 10px;
-  border: none;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.modal-btn.cancel {
-  background: #ccc;
-}
-
-#openSettings {
-  font-size: 24px;
-  cursor: pointer;
-  margin-left: auto;
-  color: #7c4dff;
-}
-
-.card .btn-group {
-  display: flex;
-  gap: 10px;
-  margin-top: 12px;
-}
-
-.card .btn-group .submit-btn {
-  flex: 1;
-}
-
-.logout-btn {
-  margin-left: auto;
-  padding: 6px 12px;
-  font-size: 14px;
-  border: none;
-  background-color: #ff4d4f;
-  color: white;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.3s;
-}
-
-.logout-btn:hover {
-  background-color: #e63946;
-}
-
+/* Delete Modal Styling */
 .modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  height: 100vh;
-  width: 100vw;
-  background: rgba(0, 0, 0, 0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1001;
-}
-
-.modal-box {
-  background: white;
-  padding: 24px;
-  border-radius: 10px;
-  text-align: center;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-  max-width: 300px;
-  width: 90%;
-}
-
-.modal-actions {
-  margin-top: 20px;
-  display: flex;
-  justify-content: space-around;
-}
-
-.modal-actions .yes-btn {
-  background-color: #43aa8b;
-  color: white;
-  border: none;
-  padding: 8px 14px;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.modal-actions .cancel-btn {
-  background-color: #ccc;
-  color: #333;
-  border: none;
-  padding: 8px 14px;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-/* Gradient Logout Button */
-.styled-logout-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  background: linear-gradient(45deg, #f44336, #e57373);
-  color: white;
-  font-weight: 600;
-  border: none;
-  border-radius: 12px;
-  cursor: pointer;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
-  font-size: 16px;
-  transition: background 0.3s ease;
-}
-
-.styled-logout-btn:hover {
-  background: linear-gradient(45deg, #d32f2f, #ef5350);
-}
-
-.top-bar {
-  margin-bottom: 35px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.room-actions {
-  display: flex;
-  gap: 12px;
-  margin-top: 12px;
-}
-
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  height: 100vh;
-  width: 100vw;
   background: rgba(0, 0, 0, 0.4);
   display: none;
   justify-content: center;
   align-items: center;
-  z-index: 1001;
 }
 
 .modal-box {
@@ -536,34 +305,67 @@ body.dark-theme .modal-btn {
   font-weight: 600;
   cursor: pointer;
 }
-.upcoming-meetings {
-  background: #f3e5f5;
-  padding: 20px;
-  border-radius: 12px;
-  margin-top: 30px;
-}
 
-.upcoming-meetings h2 {
-  font-size: 18px;
-  margin-bottom: 10px;
+/* Gradient Logout Button */
+.styled-logout-btn {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #6a1b9a;
+  padding: 10px 20px;
+  background: linear-gradient(45deg, #f44336, #e57373);
+  color: white;
+  font-weight: 600;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+  font-size: 16px;
+  transition: background 0.3s ease;
 }
 
-.upcoming-item {
-  background: #fff;
-  padding: 14px;
-  border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-  margin-bottom: 10px;
-  font-size: 15px;
+.styled-logout-btn:hover {
+  background: linear-gradient(45deg, #d32f2f, #ef5350);
+}
+
+.room-actions {
   display: flex;
-  gap: 10px;
-  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
 }
 
-.upcoming-item .material-icons {
-  color: #6a1b9a;
+/* Styling for the Empty State / Zero State Containers */
+.empty-state-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 40px 0; /* Add padding for visual separation */
+  min-height: 250px; /* Ensure space even when empty */
+}
+
+.empty-illustration {
+  /* Set a fixed size for the Lottie animation */
+  width: 250px;
+  height: 250px;
+  margin-bottom: 15px;
+  pointer-events: none; /* Prevents interference with clicks */
+}
+
+.empty-msg {
+  font-style: normal !important; /* Override default italic */
+  color: #333;
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+
+.empty-msg-secondary {
+  font-size: 14px;
+  color: #777;
+}
+
+/* Ensure the main content containers reset the height when content loads */
+#my-rooms,
+#my-meetings {
+  min-height: 200px;
 }

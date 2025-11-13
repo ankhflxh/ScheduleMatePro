@@ -4,7 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dashboard</title>
-    <!-- Fonts & Icons -->
     <link
       href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;600&display=swap"
       rel="stylesheet"
@@ -13,26 +12,19 @@
       href="https://fonts.googleapis.com/icon?family=Material+Icons"
       rel="stylesheet"
     />
-    <!-- Styles -->
     <link rel="stylesheet" href="./dashboard.css" />
-    <link rel="icon" type="image/png" href="../Images/favicon.png">
+    <link rel="icon" type="image/png" href="../Images/favicon.png" />
+    <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
   </head>
   <body>
-    <!-- Blurred background image slot -->
     <div class="bg-blur-image"></div>
 
-    <!-- Main animated card -->
     <div class="dashboard-wrapper animated-gradient-bg">
       <header class="top-bar">
         <h1>
-          <span class="material-icons gradient-icon">dashboard</span> 
+          <span class="material-icons gradient-icon">dashboard</span>
+          ScheduleMatePro Dashboard
         </h1>
-        <section class="upcoming-meetings">
-          <h2><span class="material-icons">event</span> Upcoming Meetings</h2>
-          <div id="upcomingContainer">
-            <!-- JS will populate here -->
-          </div>
-        </section>
 
         <button id="logout-button" class="styled-logout-btn">
           <span class="material-icons">logout</span> Logout
@@ -42,17 +34,49 @@
       <section class="section">
         <h2>My Rooms</h2>
         <div id="my-rooms" class="card-grid"></div>
-        <p id="no-rooms-message" class="empty-msg" style="display: none">
-          You have no rooms yet.
-        </p>
+        <div
+          id="no-rooms-message"
+          class="empty-state-wrapper"
+          style="display: none"
+        >
+          <lottie-player
+            src="../NoRooms.json"
+            background="transparent"
+            speed="1"
+            loop
+            autoplay
+            class="empty-illustration"
+          >
+          </lottie-player>
+          <p class="empty-msg">You have no rooms yet.</p>
+          <p class="empty-msg-secondary">
+            Create or join a room below to get started!
+          </p>
+        </div>
       </section>
 
       <section class="section">
         <h2>My Upcoming Meetings</h2>
         <ul id="my-meetings" class="meeting-list"></ul>
-        <p id="no-meetings-message" class="empty-msg" style="display: none">
-          No upcoming meetings.
-        </p>
+        <div
+          id="no-meetings-message"
+          class="empty-state-wrapper"
+          style="display: none"
+        >
+          <lottie-player
+            src="../NoMeetings.json"
+            background="transparent"
+            speed="1"
+            loop
+            autoplay
+            class="empty-illustration"
+          >
+          </lottie-player>
+          <p class="empty-msg">No upcoming meetings scheduled.</p>
+          <p class="empty-msg-secondary">
+            Submit your availability in a room to help schedule a meeting.
+          </p>
+        </div>
       </section>
 
       <section class="section actions">
@@ -65,7 +89,6 @@
               placeholder="Room Name"
               required
             />
-            <!-- ✅ Moved the error span here -->
             <span
               class="error"
               id="roomNameError"
@@ -99,7 +122,6 @@
       </section>
     </div>
 
-    <!-- Welcome Modal -->
     <div id="welcomeModal" class="modal-overlay" style="display: none">
       <div class="modal">
         <div class="modal-title" id="welcomeModalTitle"></div>
@@ -110,7 +132,6 @@
       </div>
     </div>
 
-    <!-- Room Created Modal -->
     <div id="roomCreatedModal" class="modal-overlay" style="display: none">
       <div class="modal">
         <div class="modal-title" id="roomCreatedModalTitle"></div>
@@ -121,7 +142,6 @@
       </div>
     </div>
 
-    <!-- Logout Confirmation Modal -->
     <div id="logoutModal" class="modal-overlay" style="display: none">
       <div class="modal-box">
         <p>Are you sure you want to log out?</p>
@@ -134,14 +154,12 @@
       </div>
     </div>
 
-    <!-- Logout Success Modal -->
     <div id="logoutSuccessModal" class="modal-overlay" style="display: none">
       <div class="modal-box">
         <p>Logout successful</p>
       </div>
     </div>
 
-    <!-- Confirmation Modal -->
     <div id="deleteRoomModal" class="modal-overlay" style="display: none">
       <div class="modal-box">
         <p>Are you sure you want to delete this room from your dashboard?</p>
@@ -154,14 +172,12 @@
       </div>
     </div>
 
-    <!-- Success Modal -->
     <div id="deleteSuccessModal" class="modal-overlay" style="display: none">
       <div class="modal-box">
         <p>Room deleted successfully</p>
       </div>
     </div>
 
-    <!-- JavaScript -->
     <script defer src="./dashboard.js"></script>
   </body>
 </html>
