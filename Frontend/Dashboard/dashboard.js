@@ -154,7 +154,7 @@ function loadRooms(userId) {
         // --- LOTTIE CALL FOR NO ROOMS ---
         loadLottieAnimation(
           "#no-rooms-message lottie-player",
-          "../NoRooms.json"
+          "/NoRooms.json" // <-- CHANGE PATH HERE: Use root-relative path
         );
         return;
       }
