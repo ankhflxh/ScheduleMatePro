@@ -281,4 +281,7 @@ router.post("/resend-verification", async (req, res) => {
   }
 });
 
-module.exports = router;
+module.exports = {
+  router: router,
+  authenticateToken: authenticateToken, // Export the middleware function
+};
