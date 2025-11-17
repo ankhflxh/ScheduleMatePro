@@ -32,7 +32,7 @@ roomNameInput.addEventListener("input", () => {
   roomNameError.style.display = "none";
 });
 
-// --- LOTTIE PROGRAMMATIC LOADER (FIX) ---
+// --- LOTTIE PROGRAMMATIC LOADER ---
 function loadLottieAnimation(playerSelector, jsonPath) {
   const player = document.querySelector(playerSelector);
   if (!player) return;
@@ -151,10 +151,10 @@ function loadRooms(userId) {
       if (!rooms || rooms.length === 0) {
         roomsContainer.style.display = "none";
         noRoomsMsg.style.display = "flex";
-        // --- LOTTIE CALL FOR NO ROOMS ---
+        // --- LOTTIE CALL FOR NO ROOMS: Use correct relative path ---
         loadLottieAnimation(
           "#no-rooms-message lottie-player",
-          "/NoRooms.json" // <-- CHANGE PATH HERE: Use root-relative path
+          "../NoRooms.json"
         );
         return;
       }
@@ -198,7 +198,7 @@ function loadMeetings(userId) {
       if (!meetings.length) {
         meetingsList.style.display = "none";
         noMeetingsMsg.style.display = "flex";
-        // --- LOTTIE CALL FOR NO MEETINGS ---
+        // --- LOTTIE CALL FOR NO MEETINGS: Use correct relative path ---
         loadLottieAnimation(
           "#no-meetings-message lottie-player",
           "../NoMeetings.json"
@@ -236,7 +236,8 @@ createForm.addEventListener("submit", (e) => {
   }
   roomNameError.style.display = "none";
 
-  const simpleCode = name.toLowerCase().replace(/[^a-z0-9]/g, "");
+  // ❌ REMOVED: Code generation is now handled by the secure backend.
+  // const simpleCode = name.toLowerCase().replace(/[^a-z0-9]/g, "");
 
   fetch("/api/rooms", {
     method: "POST",
@@ -244,22 +245,23 @@ createForm.addEventListener("submit", (e) => {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       name: name,
-      code: simpleCode,
-      // SECURITY FIX: creatorId REMOVED. Backend now uses ID from JWT (req.user.id).
+      // ❌ REMOVED: code: simpleCode,
+      // ❌ REMOVED: creatorId: window.SLOTIFY_USER_ID,
     }),
   })
     .then((res) => {
       if (!res.ok) {
-        // Check for explicit error responses (e.g., 409 from duplicate code)
+        // Display the server's specific error message if available
         return res.json().then((err) => {
-          throw new Error(err.message || "Failed to create room.");
+          throw new Error(err.error || err.message || "Failed to create room.");
         });
       }
       return res.json();
     })
     .then((room) => {
       roomCreatedModalTitle.textContent = "Room created successfully!";
-      roomCreatedModalBody.textContent = `Room "${room.name}" has been created.`;
+      // Show the guaranteed unique code from the backend
+      roomCreatedModalBody.textContent = `Room "${room.name}" has been created. The unique code is: ${room.code}`;
       roomCreatedModal.style.display = "flex";
       if (roomCreatedModalOk) {
         roomCreatedModalOk.onclick = () => {
@@ -288,12 +290,12 @@ joinForm.addEventListener("submit", (e) => {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ inviteCode: code }), // SECURITY FIX: userId REMOVED. Backend now uses ID from JWT.
+    body: JSON.stringify({ inviteCode: code }), // userId is no longer sent
   })
     .then((res) => {
       if (!res.ok) {
         return res.json().then((err) => {
-          throw new Error(err.message || "Failed to join room.");
+          throw new Error(err.error || err.message || "Failed to join room.");
         });
       }
       return res.json();
