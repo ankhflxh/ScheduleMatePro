@@ -239,13 +239,13 @@ createForm.addEventListener("submit", (e) => {
   const simpleCode = name.toLowerCase().replace(/[^a-z0-9]/g, "");
 
   fetch("/api/rooms", {
-    // NOTE: Changed from /api/rooms/create to /api/rooms (assuming backend uses the cleaner route /api/rooms)
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       name: name,
       code: simpleCode,
+      // SECURITY FIX: creatorId REMOVED. Backend now uses ID from JWT (req.user.id).
     }),
   })
     .then((res) => {
@@ -288,7 +288,7 @@ joinForm.addEventListener("submit", (e) => {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ inviteCode: code }), // REMOVED: userId is no longer sent
+    body: JSON.stringify({ inviteCode: code }), // SECURITY FIX: userId REMOVED. Backend now uses ID from JWT.
   })
     .then((res) => {
       if (!res.ok) {
@@ -335,6 +335,10 @@ window.confirmLogout = function () {
   logoutModal.style.display = "none";
   // Clear token on logout
   localStorage.removeItem("sm_token");
+
+  // FIX: Clear the persistent flag so re-created accounts see the "Welcome" message
+  localStorage.removeItem("firstVisitDone");
+
   logoutSuccessModal.style.display = "flex";
   setTimeout(() => {
     window.location.href = "../../landingpage/index.html";
