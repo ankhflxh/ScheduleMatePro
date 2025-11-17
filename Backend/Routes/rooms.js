@@ -11,10 +11,10 @@ async function generateUniqueRoomCode() {
 
   // Loop until a unique 6-character alphanumeric code is found
   while (exists) {
-    // Generate a random 6-character alphanumeric code
-    // Uses base36 (0-9, a-z)
+    // Generate a random 6-character alphanumeric code (uppercase alphanumeric)
     code = Math.random().toString(36).substring(2, 8).toUpperCase();
 
+    // Check database for code existence
     const result = await pool.query("SELECT code FROM rooms WHERE code = $1", [
       code,
     ]);
@@ -46,10 +46,10 @@ router.get("/me", authenticateToken, async (req, res) => {
 
 // POST /api/rooms (Room Creation)
 router.post("/", authenticateToken, async (req, res) => {
-  const { name } = req.body; // Only takes name from body
+  const { name } = req.body; // ONLY takes name from body
   const creatorId = req.user.id; // Securely get creator ID from JWT
 
-  // 1. Generate unique room code
+  // 1. Generate guaranteed unique code
   const uniqueCode = await generateUniqueRoomCode();
 
   try {
@@ -58,7 +58,7 @@ router.post("/", authenticateToken, async (req, res) => {
       `INSERT INTO rooms (name, code, creator_id)
        VALUES ($1, $2, $3)
        RETURNING *`,
-      [name, uniqueCode, creatorId]
+      [name, uniqueCode, creatorId] // Use the uniqueCode
     );
 
     const room = roomResult.rows[0];
@@ -74,7 +74,6 @@ router.post("/", authenticateToken, async (req, res) => {
     res.json(room);
   } catch (err) {
     console.error("ROOM CREATION ERROR:", err);
-    // Return a generic 500 status since the unique code generator should prevent 400 errors.
     res
       .status(500)
       .json({
