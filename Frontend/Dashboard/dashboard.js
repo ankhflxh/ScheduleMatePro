@@ -1,3 +1,5 @@
+// File: Frontend/Dashboard/dashboard.js
+
 const roomsContainer = document.querySelector("#my-rooms");
 const meetingsList = document.querySelector("#my-meetings");
 const noRoomsMsg = document.querySelector("#no-rooms-message");
@@ -29,6 +31,38 @@ function isRoomNameValid(name) {
 roomNameInput.addEventListener("input", () => {
   roomNameError.style.display = "none";
 });
+
+// --- LOTTIE PROGRAMMATIC LOADER (FIX) ---
+function loadLottieAnimation(playerSelector, jsonPath) {
+  const player = document.querySelector(playerSelector);
+  if (!player) return;
+
+  // Explicitly fetch the JSON file content
+  fetch(jsonPath)
+    .then((response) => {
+      if (!response.ok) {
+        console.error(
+          `Failed to load Lottie JSON from: ${jsonPath}. Status: ${response.status}`
+        );
+        // Optionally display a fallback if fetch fails
+        return;
+      }
+      return response.json();
+    })
+    .then((animationData) => {
+      // Load the animation data directly to the player component
+      if (player.load) {
+        player.load(animationData);
+      } else {
+        // Fallback for older lottie-player versions
+        player.src = jsonPath;
+      }
+    })
+    .catch((error) => {
+      console.error("Error loading Lottie animation data:", error);
+    });
+}
+// --- END LOTTIE LOADER ---
 
 // --- CORE AUTHENTICATION AND DATA LOADING ---
 const token = localStorage.getItem("sm_token");
@@ -107,49 +141,25 @@ if (!token) {
 }
 // --- END CORE AUTHENTICATION AND DATA LOADING ---
 
-// Note: loadUpcomingMeetings is kept here but is no longer called in the main flow.
-function loadUpcomingMeetings(userId) {
-  fetch(`/meeting/upcoming/${userId}`, { credentials: "include" })
-    .then((res) => res.json())
-    .then((meetings) => {
-      const container = document.getElementById("upcomingContainer");
-      if (!meetings.length) {
-        container.innerHTML = "<p>No upcoming meetings.</p>";
-        return;
-      }
-
-      container.innerHTML = "";
-      meetings.forEach((m) => {
-        const div = document.createElement("div");
-        div.classList.add("upcoming-item");
-        div.innerHTML = `
-          <span class="material-icons">calendar_month</span>
-          <div><strong>${m.room_name}</strong><br>
-          ${m.day} at ${m.start_time} — @ ${m.location}</div>
-        `;
-        container.appendChild(div);
-      });
-    })
-    .catch((err) => {
-      console.warn("Failed to load upcoming meetings:", err);
-    });
-}
-
 function loadRooms(userId) {
-  fetch(`/api/rooms/user/${userId}`, { credentials: "include" })
+  // The backend route is /api/rooms/user/:userId if the server.js is configured correctly.
+  fetch(`/api/rooms/me?userId=${userId}`, { credentials: "include" })
     .then((res) => res.json())
     .then((rooms) => {
       roomsContainer.innerHTML = "";
 
       if (!rooms || rooms.length === 0) {
-        // --- FIX: When EMPTY, HIDE the rooms container and SHOW the message ---
         roomsContainer.style.display = "none";
-        noRoomsMsg.style.display = "flex"; // Use 'flex' for the empty state wrapper
+        noRoomsMsg.style.display = "flex";
+        // --- LOTTIE CALL FOR NO ROOMS ---
+        loadLottieAnimation(
+          "#no-rooms-message lottie-player",
+          "../NoRooms.json"
+        );
         return;
       }
 
-      // --- FIX: When DATA EXISTS, SHOW the rooms container and HIDE the message ---
-      roomsContainer.style.display = "grid"; // Restore 'grid' display mode
+      roomsContainer.style.display = "grid";
       noRoomsMsg.style.display = "none";
 
       rooms.forEach((room) => {
@@ -181,19 +191,22 @@ function loadRooms(userId) {
 }
 
 function loadMeetings(userId) {
-  fetch(`/api/users/${userId}/confirmed-meetings`, { credentials: "include" })
+  fetch(`/api/meetings/me?userId=${userId}`, { credentials: "include" })
     .then((res) => res.json())
     .then((meetings) => {
       meetingsList.innerHTML = "";
       if (!meetings.length) {
-        // --- FIX: When EMPTY, HIDE the meetings container and SHOW the message ---
         meetingsList.style.display = "none";
         noMeetingsMsg.style.display = "flex";
+        // --- LOTTIE CALL FOR NO MEETINGS ---
+        loadLottieAnimation(
+          "#no-meetings-message lottie-player",
+          "../NoMeetings.json"
+        );
         return;
       }
 
-      // --- FIX: When DATA EXISTS, SHOW the meetings container and HIDE the message ---
-      meetingsList.style.display = "flex"; // Restore original list display mode
+      meetingsList.style.display = "flex";
       noMeetingsMsg.style.display = "none";
 
       meetings.forEach((m) => {
@@ -223,16 +236,28 @@ createForm.addEventListener("submit", (e) => {
   }
   roomNameError.style.display = "none";
 
-  fetch("/api/rooms/create", {
+  const simpleCode = name.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+  fetch("/api/rooms", {
+    // NOTE: Changed from /api/rooms/create to /api/rooms (assuming backend uses the cleaner route /api/rooms)
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       name: name,
+      code: simpleCode,
       creatorId: window.SLOTIFY_USER_ID,
     }),
   })
-    .then((res) => res.json())
+    .then((res) => {
+      if (!res.ok) {
+        // Check for explicit error responses (e.g., 409 from duplicate code)
+        return res.json().then((err) => {
+          throw new Error(err.message || "Failed to create room.");
+        });
+      }
+      return res.json();
+    })
     .then((room) => {
       roomCreatedModalTitle.textContent = "Room created successfully!";
       roomCreatedModalBody.textContent = `Room "${room.name}" has been created.`;
@@ -240,6 +265,7 @@ createForm.addEventListener("submit", (e) => {
       if (roomCreatedModalOk) {
         roomCreatedModalOk.onclick = () => {
           roomCreatedModal.style.display = "none";
+          // Reload rooms on success
           loadRooms(window.SLOTIFY_USER_ID);
           roomNameInput.value = "";
         };
@@ -247,7 +273,8 @@ createForm.addEventListener("submit", (e) => {
     })
     .catch((err) => {
       console.error(err);
-      roomNameError.textContent = "Failed to create room. Please try again.";
+      roomNameError.textContent =
+        err.message || "Failed to create room. Please try again.";
       roomNameError.style.display = "block";
     });
 });
@@ -262,7 +289,7 @@ joinForm.addEventListener("submit", (e) => {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ inviteCode: code, userId: window.SLOTIFY_USER_ID }),
+    body: JSON.stringify({ inviteCode: code }), // REMOVED: userId is no longer sent
   })
     .then((res) => {
       if (!res.ok) {
@@ -359,3 +386,31 @@ document.getElementById("confirmDeleteBtn").addEventListener("click", () => {
 welcomeModalOk.addEventListener("click", () => {
   welcomeModal.style.display = "none";
 });
+
+// Helper function that was included in the original project structure but not used/called
+function loadUpcomingMeetings(userId) {
+  fetch(`/meeting/upcoming/${userId}`, { credentials: "include" })
+    .then((res) => res.json())
+    .then((meetings) => {
+      const container = document.getElementById("upcomingContainer");
+      if (!meetings.length) {
+        container.innerHTML = "<p>No upcoming meetings.</p>";
+        return;
+      }
+
+      container.innerHTML = "";
+      meetings.forEach((m) => {
+        const div = document.createElement("div");
+        div.classList.add("upcoming-item");
+        div.innerHTML = `
+          <span class="material-icons">calendar_month</span>
+          <div><strong>${m.room_name}</strong><br>
+          ${m.day} at ${m.start_time} — @ ${m.location}</div>
+        `;
+        container.appendChild(div);
+      });
+    })
+    .catch((err) => {
+      console.warn("Failed to load upcoming meetings:", err);
+    });
+}

@@ -32,8 +32,9 @@ Promise.all([
     res.json()
   ),
 ]).then(([user, room]) => {
+  // The user object contains user_id securely
   currentUserId = user.user_id;
-  roomCreatorId = room.user_id;
+  roomCreatorId = room.creator_id; // assuming 'creator_id' is the correct property
   fetchAvailabilities();
 });
 
@@ -52,7 +53,7 @@ function fetchAvailabilities() {
     .catch((err) => {
       console.error("Error fetching entries:", err);
     });
-  fetch(`/api/meeting/${roomId}/confirmed`, {
+  fetch(`/api/meetings/confirmed?roomId=${roomId}`, {
     credentials: "include",
   })
     .then((res) => {

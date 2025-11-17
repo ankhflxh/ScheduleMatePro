@@ -5,25 +5,29 @@ const pool = require("../db");
 const crypto = require("crypto");
 require("dotenv").config();
 
-// ADD: Import and configure SendGrid
+// NEW SECURITY IMPORTS
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+
+// SendGrid setup (retained)
 const sgMail = require("@sendgrid/mail");
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
+// You MUST set this in your .env file
+const JWT_SECRET = process.env.JWT_SECRET || "your_insecure_default_secret";
+const SALT_ROUNDS = 10;
+
 // --- HELPER FUNCTIONS AND MIDDLEWARE ---
 
-// Simple token generation (replace with JWT in production)
+// REPLACED: JWT token generation
 const generateToken = (id) => {
-  return Buffer.from(String(id)).toString("base64");
+  return jwt.sign({ userId: id }, JWT_SECRET, { expiresIn: "7d" });
 };
 
-// Middleware to find user by simple token (for /api/users/me)
+// MODIFIED: Middleware to authenticate user via JWT
 const authenticateToken = async (req, res, next) => {
-  // Use header first, then check cookies/query/body (as per dashboard.js fix)
-  const token =
-    req.headers["x-auth-token"] ||
-    req.cookies.sm_auth_token ||
-    req.query.token ||
-    req.body.token;
+  // Check for 'X-Auth-Token' header (used by dashboard.js)
+  const token = req.headers["x-auth-token"] || req.cookies.sm_auth_token;
 
   if (!token) {
     return res
@@ -32,8 +36,9 @@ const authenticateToken = async (req, res, next) => {
   }
 
   try {
-    // Decode the base64 token to get the user ID
-    const userId = Number(Buffer.from(token, "base64").toString("ascii"));
+    // Verify the JWT signature and extract payload
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const userId = decoded.userId;
 
     // Check for user existence
     const result = await pool.query(
@@ -42,14 +47,14 @@ const authenticateToken = async (req, res, next) => {
     );
 
     if (result.rows.length === 0)
-      return res.status(403).json({ message: "Invalid token" });
+      return res.status(403).json({ message: "Invalid or unauthorized token" });
 
     req.user = result.rows[0];
     next();
   } catch (err) {
+    // Handles JWT errors (e.g., token expired, invalid signature)
     console.error("Token Authentication Error:", err);
-    // Return 403 for invalid token format (prevents 500)
-    return res.status(403).json({ message: "Invalid token format" });
+    return res.status(403).json({ message: "Invalid or expired token" });
   }
 };
 
@@ -60,15 +65,24 @@ const authenticateToken = async (req, res, next) => {
 // POST /api/auth/register
 router.post("/register", async (req, res) => {
   const { username, email, password } = req.body;
-  const token = crypto.randomBytes(32).toString("hex");
+  const verificationToken = crypto.randomBytes(32).toString("hex");
   const expires = new Date(Date.now() + 1000 * 60 * 30); // 30 mins
 
+  // NEW: HASH THE PASSWORD using bcrypt
+  let passwordHash;
   try {
-    // 1) create user as NOT verified
+    passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+  } catch (hashErr) {
+    console.error("BCRYPT HASH ERROR:", hashErr);
+    return res.status(500).json({ error: "Failed to process password." });
+  }
+
+  try {
+    // 1) create user as NOT verified, saving the HASH
     await pool.query(
       `INSERT INTO users (username, email, password_hash, is_verified, verification_token, verification_expires)
        VALUES ($1, $2, $3, FALSE, $4, $5)`,
-      [username, email, password, token, expires]
+      [username, email, passwordHash, verificationToken, expires]
     );
 
     // 2) ***IMMEDIATELY SEND SUCCESS RESPONSE***
@@ -76,6 +90,7 @@ router.post("/register", async (req, res) => {
   } catch (err) {
     // 3) Error handling for duplicate key or DB insert failure
     console.error("REGISTER ERROR:", err);
+    // ... (rest of duplicate key error handling is unchanged)
     if (err.code === "23505") {
       if (err.constraint === "users_username_key") {
         return res
@@ -97,7 +112,7 @@ router.post("/register", async (req, res) => {
 
   // 4) ***SEND EMAIL OUTSIDE OF THE MAIN TRY/CATCH (Non-blocking)***
   try {
-    const verifyLink = `${process.env.APP_BASE_URL}/api/auth/verify?token=${token}`;
+    const verifyLink = `${process.env.APP_BASE_URL}/api/auth/verify?token=${verificationToken}`;
     const msg = {
       to: email,
       from: process.env.EMAIL_USER,
@@ -113,7 +128,7 @@ router.post("/register", async (req, res) => {
   }
 });
 
-// GET /api/auth/verify
+// GET /api/auth/verify (remains UNCHANGED, uses verification_token, not JWT)
 router.get("/verify", async (req, res) => {
   const { token } = req.query;
 
@@ -173,8 +188,10 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ message: "Invalid username or password." });
     }
 
-    // WARNING: Plain text password comparison!
-    if (user.password_hash !== password) {
+    // NEW: HASHED PASSWORD COMPARISON
+    const passwordMatch = await bcrypt.compare(password, user.password_hash);
+
+    if (!passwordMatch) {
       return res.status(400).json({ message: "Invalid username or password." });
     }
 
@@ -185,7 +202,7 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    // Success: Generate and return token
+    // Success: Generate and return JWT
     const token = generateToken(user.id);
 
     // Frontend expects token and user info
@@ -200,7 +217,7 @@ router.post("/login", async (req, res) => {
   }
 });
 
-// GET /api/users/me
+// GET /api/users/me (unchanged logic, now using secure JWT)
 router.get("/me", authenticateToken, (req, res) => {
   // req.user is set by the authenticateToken middleware
   res.json({
@@ -211,7 +228,7 @@ router.get("/me", authenticateToken, (req, res) => {
   });
 });
 
-// POST /api/auth/resend-verification
+// POST /api/auth/resend-verification (remains UNCHANGED, uses verification_token)
 router.post("/resend-verification", async (req, res) => {
   const { email } = req.body;
 

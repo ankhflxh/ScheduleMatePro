@@ -1,8 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const pool = require("../db");
+const { authenticateToken } = require("./auth"); // Import the secure middleware
 
-// GET /api/availability/:roomId  → all members' availability
+// GET /api/availability/:roomId  → all members' availability (no auth needed, public view)
 router.get("/:roomId", async (req, res) => {
   const { roomId } = req.params;
   try {
@@ -20,10 +21,12 @@ router.get("/:roomId", async (req, res) => {
   }
 });
 
-// GET /api/availability/:roomId/me?userId=1
-router.get("/:roomId/me", async (req, res) => {
+// GET /api/availability/:roomId/me (No longer needs userId in query string)
+router.get("/:roomId/me", authenticateToken, async (req, res) => {
   const { roomId } = req.params;
-  const userId = req.query.userId;
+  // SECURE: Use authenticated ID, ignore req.query.userId
+  const userId = req.user.id;
+
   try {
     const result = await pool.query(
       `SELECT * FROM availability
@@ -31,6 +34,7 @@ router.get("/:roomId/me", async (req, res) => {
       [roomId, userId]
     );
     if (result.rows.length === 0) {
+      // Returning 404/empty is fine, the FE handles null
       return res.json(null);
     }
     res.json(result.rows[0]);
@@ -41,10 +45,19 @@ router.get("/:roomId/me", async (req, res) => {
 });
 
 // POST /api/availability/:roomId
-// body: { userId, day, start_time, end_time, location }
-router.post("/:roomId", async (req, res) => {
+// body: { day, start_time, end_time, location } - userId is now ignored from body
+router.post("/:roomId", authenticateToken, async (req, res) => {
   const { roomId } = req.params;
-  const { userId, day, start_time, end_time, location } = req.body;
+  const { day, start_time, end_time, location } = req.body;
+  // SECURE: Use authenticated ID, ignore req.body.userId
+  const userId = req.user.id;
+
+  // Basic validation (optional but recommended)
+  if (!day || !start_time || !end_time) {
+    return res
+      .status(400)
+      .json({ error: "Missing required availability fields." });
+  }
 
   try {
     // upsert style: try update first
