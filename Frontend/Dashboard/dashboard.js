@@ -246,7 +246,6 @@ createForm.addEventListener("submit", (e) => {
     body: JSON.stringify({
       name: name,
       code: simpleCode,
-      creatorId: window.SLOTIFY_USER_ID,
     }),
   })
     .then((res) => {
