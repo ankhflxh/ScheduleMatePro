@@ -3,7 +3,7 @@ const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 
-const authRoutes = require("./Routes/auth");
+const { router: authRoutes } = require("./Routes/auth");
 const roomRoutes = require("./Routes/rooms");
 const availabilityRoutes = require("./Routes/availability");
 const meetingRoutes = require("./Routes/meetings");
