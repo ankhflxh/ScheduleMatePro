@@ -289,11 +289,9 @@ router.patch(
       }
 
       if (roomCheck.rows[0].creator_id !== userId) {
-        return res
-          .status(403)
-          .json({
-            error: "Only the room creator can set scheduling preferences.",
-          });
+        return res.status(403).json({
+          error: "Only the room creator can set scheduling preferences.",
+        });
       }
 
       // 2. Validate inputs
