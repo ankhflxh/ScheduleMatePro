@@ -9,10 +9,11 @@ router.get("/me", authenticateToken, async (req, res) => {
   const userId = req.user.id;
   try {
     const result = await pool.query(
-      `SELECT m.*, r.name AS room_name
+      `SELECT m.*, r.name AS room_name, u.username AS confirmed_by_username
        FROM meetings m
        JOIN rooms r ON m.room_id = r.id
        JOIN room_members rm ON rm.room_id = r.id
+       JOIN users u ON m.confirmed_by = u.id -- 🟢 JOIN to get confirmer's username
        WHERE rm.user_id = $1
        ORDER BY m.created_at DESC`,
       [userId]

@@ -1,4 +1,4 @@
-// File: Frontend/Rooms/Availability/availability.js (Complete Update with Type Fix)
+// File: Frontend/Rooms/Availability/availability.js (Complete Update for Merged Form)
 
 const form = document.querySelector("#availability-form");
 const daySelect = document.querySelector("#day");
@@ -7,8 +7,7 @@ const endSelect = document.querySelector("#end_time");
 const locationInput = document.querySelector("#location");
 
 // New elements for Creator logic
-const creatorControls = document.getElementById("creatorControls");
-const preferenceForm = document.getElementById("preferenceForm");
+const creatorControls = document.getElementById("creatorControls"); // Now just a visibility wrapper
 const intervalSelect = document.getElementById("interval");
 const preferredDaySelect = document.getElementById("preferred_day"); // Day select in creator form
 const availabilityWrapper = document.getElementById("availabilityWrapper");
@@ -27,7 +26,36 @@ const urlParams = new URLSearchParams(window.location.search);
 const roomId = urlParams.get("roomId");
 const token = localStorage.getItem("sm_token");
 
+// 🟢 NEW CONSTANT: University Buildings List
+const UNIVERSITY_BUILDINGS = [
+  "Library",
+  "Future Technology Centre",
+  "Portland Building",
+  "Anglesea Building",
+  "Park Building",
+  "Eldon Building",
+  "Dennis Sciama",
+  "International College of Portsmouth",
+];
+
+// --- GLOBAL STATE ---
+let currentUserId = null;
+let roomCreatorId = null;
+let intervalSet = false;
+let daySet = false;
+
 // --- HELPER FUNCTIONS ---
+
+// Function to populate the location select dropdown
+function populateLocationSelect() {
+  // locationInput is the select element with id="location"
+  UNIVERSITY_BUILDINGS.forEach((building) => {
+    const option = document.createElement("option");
+    option.value = building;
+    option.textContent = building;
+    locationInput.appendChild(option);
+  });
+}
 
 // Function to generate time options for select fields
 function generateTimeOptions(interval) {
@@ -132,6 +160,8 @@ function showSuccessModal() {
 }
 
 async function initializeAvailabilityPage() {
+  populateLocationSelect(); // Populate the location dropdown on load
+
   try {
     // 1. Fetch User ID (needed for role check)
     const userRes = await fetch("/api/users/me", {
@@ -143,7 +173,7 @@ async function initializeAvailabilityPage() {
       return;
     }
     const userData = await userRes.json();
-    const currentUserId = userData.user_id;
+    currentUserId = userData.user_id;
 
     // 2. Fetch Room Data (needed for creator_id, interval, and day)
     const roomRes = await fetch(`/api/rooms/${roomId}`, {
@@ -158,53 +188,49 @@ async function initializeAvailabilityPage() {
     }
     const roomData = await roomRes.json();
 
-    // 🎯 FIX: Cast both IDs to string before comparison
+    // Fix: Cast both IDs to string before comparison
     const creatorIdStr = String(roomData.creator_id);
     const currentUserIdStr = String(currentUserId);
 
     const isCreator = creatorIdStr === currentUserIdStr; // Reliable comparison
 
-    const intervalSet = !!roomData.meeting_interval;
-    const daySet = !!roomData.meeting_day;
+    intervalSet = !!roomData.meeting_interval;
+    daySet = !!roomData.meeting_day;
 
-    // --- CREATOR LOGIC ---
+    // 🟢 NEW UX LOGIC: Show/Hide preference inputs, NO hiding of the whole form
     if (isCreator) {
-      creatorControls.style.display = "flex"; // Show creator form
-      availabilityWrapper.style.display = "none"; // Hide member form
+      creatorControls.style.display = "block"; // Show preference inputs
 
       // Pre-populate creator form if data exists
       if (intervalSet) intervalSelect.value = roomData.meeting_interval;
       if (daySet) preferredDaySelect.value = roomData.meeting_day;
-
-      preferenceForm.addEventListener("submit", handleCreatorSubmit);
+    } else {
+      creatorControls.style.display = "none"; // Hide preference inputs
     }
-    // --- MEMBER LOGIC ---
-    else {
-      creatorControls.style.display = "none"; // Hide creator form
-      availabilityWrapper.style.display = "block"; // Show member form wrapper
 
-      if (!intervalSet || !daySet) {
-        // Preferences NOT SET: Disable form
-        disabledOverlay.style.display = "flex";
-      } else {
-        // Preferences SET: Enable form and set constraints
-        disabledOverlay.style.display = "none";
+    // --- CONSTRAINED MEMBER / POST-SETUP CREATOR LOGIC ---
 
-        // 🟢 Constraint 1: Restrict Day Selection to Creator's Day
-        daySelect.innerHTML = `<option value="${roomData.meeting_day}">${roomData.meeting_day}</option>`;
-        daySelect.value = roomData.meeting_day;
-        daySelect.setAttribute("readonly", true);
-        daySelect.style.pointerEvents = "none"; // Visually disable it
+    if (!intervalSet || !daySet) {
+      // Preferences NOT SET: Disable availability submission
+      disabledOverlay.style.display = "flex";
+    } else {
+      // Preferences SET: Enable form and set constraints
+      disabledOverlay.style.display = "none";
 
-        // Store interval for time slot generation
-        availabilityWrapper.dataset.interval = roomData.meeting_interval;
+      // 🟢 Constraint 1: Restrict Day Selection to Creator's Day
+      daySelect.innerHTML = `<option value="${roomData.meeting_day}">${roomData.meeting_day}</option>`;
+      daySelect.value = roomData.meeting_day;
+      daySelect.setAttribute("readonly", true);
+      daySelect.style.pointerEvents = "none"; // Visually disable it
 
-        // 🟢 Constraint 2: Generate Time Slots based on interval
-        generateTimeOptions(roomData.meeting_interval);
+      // Store interval for time slot generation
+      availabilityWrapper.dataset.interval = roomData.meeting_interval;
 
-        // 3. Load existing availability (Edit Mode)
-        loadExistingAvailability(roomData.meeting_interval);
-      }
+      // 🟢 Constraint 2: Generate Time Slots based on interval
+      generateTimeOptions(roomData.meeting_interval);
+
+      // 3. Load existing availability (Edit Mode)
+      loadExistingAvailability(roomData.meeting_interval);
     }
   } catch (e) {
     console.error("Initialization failed:", e);
@@ -241,88 +267,125 @@ async function loadExistingAvailability(interval) {
 
 // --- SUBMIT HANDLERS ---
 
-async function handleCreatorSubmit(e) {
-  e.preventDefault();
-  const interval = parseInt(intervalSelect.value);
-  const day = preferredDaySelect.value;
+// ❌ REMOVED: handleCreatorSubmit is now merged into form.addEventListener("submit")
 
+async function submitCreatorPreferences(interval, day) {
   const res = await fetch(`/api/rooms/${roomId}/schedule-preference`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json", "X-Auth-Token": token },
     body: JSON.stringify({ interval, day }),
   });
 
-  if (res.ok) {
-    alert(
-      `Meeting preferences saved! Interval: ${interval}hr, Day: ${day}. Members can now enter availability.`
-    );
-    // Reload the page to switch to the member view (or update forms)
-    window.location.reload();
-  } else {
+  if (!res.ok) {
     const errorData = await res.json().catch(() => ({ error: "Server error" }));
     showError(
       "Failed to save preferences: " + (errorData.error || "Server error")
     );
+    return false;
   }
+  return true;
 }
 
-form.addEventListener("submit", (e) => {
+async function submitAvailability(day, start_time, end_time, location) {
+  const res = await fetch(`/api/availability/${roomId}`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json", "X-Auth-Token": token },
+    body: JSON.stringify({ day, start_time, end_time, location }),
+  });
+
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+
+    if (res.status === 403) {
+      showError(
+        errData.error || "Creator must set scheduling preferences first."
+      );
+    } else if (res.status === 401) {
+      showError("You are not logged in.");
+    } else {
+      showError(
+        "Server responded with error: " + (errData.error || "Unknown error")
+      );
+    }
+    return false;
+  }
+  return true;
+}
+
+form.addEventListener("submit", async (e) => {
   e.preventDefault();
 
-  // Perform client-side validation for time constraint
-  const interval = parseInt(availabilityWrapper.dataset.interval) || 1;
-  const durationMinutes = interval * 60;
-
+  // Get data from the *unified* form
   const day = daySelect.value;
   const start_time = startSelect.value;
   const end_time = endSelect.value;
   const location = locationInput.value;
 
-  // Simple check for time integrity
-  const start = new Date(`2000/01/01 ${start_time}`);
-  const end = new Date(`2000/01/01 ${end_time}`);
+  let success = false;
 
-  if ((end.getTime() - start.getTime()) / 60000 !== durationMinutes) {
-    // This should ideally not happen if generateTimeOptions worked, but is a safety check
-    showError(`Your selected time slot must be exactly ${interval} hour(s).`);
+  // 1. CREATOR LOGIC: SUBMIT PREFERENCES FIRST (if preferences have changed)
+  // Check if current user is creator AND if form values differ from initial state
+  const isCreator = String(roomData.creator_id) === String(currentUserId);
+
+  if (isCreator) {
+    const currentInterval = parseInt(intervalSelect.value);
+    const currentDay = preferredDaySelect.value;
+
+    // Note: For simplicity, we assume if the form is visible, the creator intends to save.
+    // We perform the PATCH request regardless of whether intervalSet/daySet are true.
+    if (currentInterval && currentDay) {
+      const prefSaved = await submitCreatorPreferences(
+        currentInterval,
+        currentDay
+      );
+      if (!prefSaved) return; // Halt if preference save failed
+
+      // Force state update to allow availability submission
+      intervalSet = true;
+      daySet = true;
+
+      // Reload constraints if they changed (not necessary if submission happens next, but good practice)
+      if (
+        roomData.meeting_interval !== currentInterval ||
+        roomData.meeting_day !== currentDay
+      ) {
+        // Update client-side constraints without full page reload
+        availabilityWrapper.dataset.interval = currentInterval;
+        // Re-run time slot generation based on new interval
+        generateTimeOptions(currentInterval);
+      }
+    }
+  }
+
+  // 2. AVAILABILITY LOGIC (Runs for everyone, including creator)
+  if (intervalSet && daySet) {
+    // Check if form is currently enabled (or just got enabled for creator)
+    // Re-validate against current constraints (ensures time validity)
+    const currentInterval = parseInt(availabilityWrapper.dataset.interval) || 1;
+    const durationMinutes = currentInterval * 60;
+
+    const start = new Date(`2000/01/01 ${start_time}`);
+    const end = new Date(`2000/01/01 ${end_time}`);
+
+    if ((end.getTime() - start.getTime()) / 60000 !== durationMinutes) {
+      showError(
+        `Your selected time slot must be exactly ${currentInterval} hour(s).`
+      );
+      return;
+    }
+
+    success = await submitAvailability(day, start_time, end_time, location);
+  } else {
+    showError(
+      "Meeting preferences must be set before submitting availability."
+    );
     return;
   }
 
-  fetch(`/api/availability/${roomId}`, {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json", "X-Auth-Token": token },
-    body: JSON.stringify({ day, start_time, end_time, location }),
-  })
-    .then(async (res) => {
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-
-        if (res.status === 403) {
-          // Handle the specific backend restriction error
-          showError(
-            errData.error || "Creator must set scheduling preferences first."
-          );
-        } else if (res.status === 401) {
-          showError("You are not logged in.");
-        } else {
-          showError(
-            "Server responded with error: " + (errData.error || "Unknown error")
-          );
-        }
-        throw new Error("Submit failed.");
-      }
-      return res.json();
-    })
-    .then(() => {
-      showSuccessModal();
-    })
-    .catch((err) => {
-      console.error("Submit error:", err);
-      if (err.message !== "Submit failed.") {
-        showError("Could not submit availability.");
-      }
-    });
+  if (success) {
+    showSuccessModal();
+  }
 });
 
 // Start the initialization process

@@ -220,8 +220,12 @@ function loadMeetings(userId) {
 
       meetings.forEach((m) => {
         const li = document.createElement("li");
+        // 🟢 FIX: Display the confirmed_by_username field from the backend.
+        // Assumes the backend returns 'confirmed_by_username' via JOIN.
+        const confirmedByName = m.confirmed_by_username || "User";
+
         li.innerHTML = `
-          <strong>${m.room_name}</strong><br>
+          <strong>${m.room_name}</strong> - Confirmed by: ${confirmedByName}<br> 
           ${m.day} @ ${m.time} — Location: ${m.location}
         `;
         meetingsList.appendChild(li);
