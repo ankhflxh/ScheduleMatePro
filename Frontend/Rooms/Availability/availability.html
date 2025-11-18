@@ -13,7 +13,7 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./availability.css" />
-    <link rel="icon" type="image/png" href="../Images/favicon.png">
+    <link rel="icon" type="image/png" href="../Images/favicon.png" />
   </head>
   <body>
     <div class="bg-blur-image"></div>
@@ -30,47 +30,73 @@
         </h1>
       </header>
 
-      <form id="availability-form" class="form-layout">
-        <input type="text" id="name" placeholder="Your Name" required />
+      <div id="creatorControls" class="form-layout" style="display: none">
+        <h2>Set Meeting Preferences</h2>
+        <form id="preferenceForm">
+          <label for="interval">Meeting Duration (Hours):</label>
+          <select id="interval" required>
+            <option value="">Select duration</option>
+            <option value="1">1 hour</option>
+            <option value="2">2 hours</option>
+            <option value="3">3 hours</option>
+          </select>
 
-        <select id="day" required>
-          <option value="">Select Day</option>
-          <option value="Monday">Monday</option>
-          <option value="Tuesday">Tuesday</option>
-          <option value="Wednesday">Wednesday</option>
-          <option value="Thursday">Thursday</option>
-          <option value="Friday">Friday</option>
-        </select>
-
-        <label for="start_time">Start Time:</label>
-        <select id="start_time" required>
-          <option value="">-- Select Start Time --</option>
-          <option value="10:00">10:00am</option>
-          <option value="12:00">12:00pm</option>
-          <option value="14:00">14:00pm</option>
-          <option value="16:00">16:00pm</option>
-          <option value="18:00">18:00pm</option>
-        </select>
-
-        <label for="end_time">End Time:</label>
-        <select id="end_time" required>
-          <option value="">-- Select End Time --</option>
-          <option value="12:00">12:00pm</option>
-          <option value="14:00">14:00pm</option>
-          <option value="16:00">16:00pm</option>
-          <option value="18:00">18:00pm</option>
-          <option value="20:00">20:00pm</option>
-        </select>
-
-        <input type="text" id="location" placeholder="Location" required />
-
-        <div class="btn-group">
-          <button type="submit" class="submit-btn">Submit Availability</button>
+          <label for="preferred_day">Preferred Day:</label>
+          <select id="preferred_day" required>
+            <option value="">Select day</option>
+            <option value="Monday">Monday</option>
+            <option value="Tuesday">Tuesday</option>
+            <option value="Wednesday">Wednesday</option>
+            <option value="Thursday">Thursday</option>
+            <option value="Friday">Friday</option>
+          </select>
+          <div class="btn-group">
+            <button type="submit" class="submit-btn">Save Preferences</button>
+          </div>
+        </form>
+      </div>
+      <div id="availabilityWrapper" class="form-layout">
+        <div
+          id="disabledOverlay"
+          class="availability-overlay"
+          style="display: none"
+        >
+          <p id="disabledMessage">
+            Booking will be made available when Creator selects interval and
+            day.
+          </p>
         </div>
-      </form>
+        <form id="availability-form">
+          <select id="day" required>
+            <option value="">Select Day</option>
+            <option value="Monday">Monday</option>
+            <option value="Tuesday">Tuesday</option>
+            <option value="Wednesday">Wednesday</option>
+            <option value="Thursday">Thursday</option>
+            <option value="Friday">Friday</option>
+          </select>
+
+          <label for="start_time">Start Time:</label>
+          <select id="start_time" required>
+            <option value="">-- Select Start Time --</option>
+          </select>
+
+          <label for="end_time">End Time:</label>
+          <select id="end_time" required>
+            <option value="">-- Select End Time --</option>
+          </select>
+
+          <input type="text" id="location" placeholder="Location" required />
+
+          <div class="btn-group">
+            <button type="submit" class="submit-btn">
+              Submit Availability
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
 
-    <!-- Error Modal -->
     <div id="errorModal" class="modal-overlay" style="display: none">
       <div class="modal">
         <div class="modal-title" style="color: #e53935">Error</div>
@@ -79,8 +105,7 @@
       </div>
     </div>
 
-    <!-- Success Modal -->
-    <div id="successModal" class="modal-overlay">
+    <div id="successModal" class="modal-overlay" style="display: none">
       <div class="modal-box">
         <p>
           ✅ Availability submitted!<br />Do you want to view it in the

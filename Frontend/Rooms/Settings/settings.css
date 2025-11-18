@@ -86,6 +86,7 @@ main h2 {
   margin: 28px 0 20px 0;
 }
 
+/* This is the base style applied to most setting wrappers, including the Participants UL */
 .setting-item {
   display: flex;
   align-items: center;
@@ -127,7 +128,7 @@ main h2 {
   }
 }
 
-/* Modal styles */
+/* Modal styles omitted for brevity */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -187,6 +188,7 @@ main h2 {
   transform: translateY(-1px) scale(1.04);
 }
 
+/* Dark Theme Styles */
 body.dark-theme {
   background-color: #121212;
   color: #eeeeee;
@@ -213,10 +215,44 @@ body.dark-theme .setting-item {
   margin-top: 10px;
 }
 
-#participantsList li {
-  list-style: none;
+/* 🟢 FIX: Override .setting-item rule applied to the UL to ensure vertical flow */
+#participantsList {
+  display: block;
+  /* The other styling rules like margin-bottom, padding-bottom, border-bottom 
+       are inherited from .setting-item and are fine for the UL container */
+}
+
+/* NEW CSS FOR ALIGNMENT */
+
+/* The actual list items (li) */
+.participant-item {
+  display: flex;
+  justify-content: space-between; /* Pushes the name and role to opposite ends */
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #e3d3fa; /* Light border separator */
   font-size: 1.05rem;
+  list-style: none; /* Ensure no default bullets */
   margin: 6px 0;
   padding-left: 8px;
   text-align: left;
+}
+
+.participant-role {
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.8em;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.role-creator {
+  background-color: #722fbb; /* Primary purple color */
+  color: #fff;
+}
+
+.role-member {
+  /* Hides role text for non-creators but maintains vertical spacing */
+  color: transparent;
 }

@@ -265,3 +265,40 @@ select {
 .exit:hover {
   color: #4a148c;
 }
+
+/* ---------------------------------------------------- */
+/* 🟢 NEW STYLES FOR AVAILABILITY CONSTRAINT FEATURE */
+/* ---------------------------------------------------- */
+
+/* Ensure the wrapper is position:relative for the absolute overlay to work */
+#availabilityWrapper {
+    position: relative;
+    /* The form-layout class provides the rest of the layout styling */
+}
+
+/* Styles for the overlay that blocks the member form */
+.availability-overlay {
+    position: absolute; /* Relative to #availabilityWrapper */
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10;
+    background: rgba(255, 255, 255, 0.9); /* Semi-transparent white/light background */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.availability-overlay p {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: #cc0000; /* Use a prominent color */
+    padding: 20px;
+    border: 2px dashed #f44336;
+    border-radius: 8px;
+    background: #fff8f8;
+}

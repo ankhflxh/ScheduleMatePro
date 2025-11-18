@@ -1,10 +1,15 @@
+const token = localStorage.getItem("sm_token");
 const roomId = new URLSearchParams(window.location.search).get("roomId");
 
 // Update the room name in the header
 const header = document.getElementById("room-header");
 
 if (roomId && header) {
-  fetch(`/api/rooms/${roomId}`, { credentials: "include" })
+  fetch(`/api/rooms/${roomId}`, {
+    credentials: "include",
+    // Added token for consistency and security best practice
+    headers: { "X-Auth-Token": token },
+  })
     .then((res) => {
       if (!res.ok) throw new Error("Room not found");
       return res.json();
@@ -15,7 +20,7 @@ if (roomId && header) {
       if (roomName) {
         header.innerHTML = `
           <span class="material-icons">meeting_room</span>
-          ${roomName} Dashboard
+          ${roomName} Hub
         `;
       }
     })
@@ -38,7 +43,11 @@ document.querySelectorAll(".menu-item").forEach((button) => {
 const confirmedDisplay = document.querySelector("#confirmed-meeting-info");
 
 if (roomId && confirmedDisplay) {
-  fetch(`/api/meetings/confirmed?roomId=${roomId}`, { credentials: "include" })
+  fetch(`/api/meetings/confirmed?roomId=${roomId}`, {
+    credentials: "include",
+    // REQUIRED: Added X-Auth-Token to authenticate the request
+    headers: { "X-Auth-Token": token },
+  })
     .then((res) => {
       // NOTE: Using res.json() will crash if server sends a 404 with no body.
       // A proper fix involves checking res.status first, but for now we rely on the catch.
