@@ -1,4 +1,4 @@
-// === ScheduleMate — Login (robust) ===
+// === ScheduleMate — Login ===
 const API_BASE = "";
 
 const els = {
@@ -9,6 +9,9 @@ const els = {
   alertBox: document.getElementById("loginAlert"),
   idError: document.getElementById("loginIdError"),
   pwdError: document.getElementById("loginPwdError"),
+  // New Elements
+  verifyModal: document.getElementById("verificationSuccessModal"),
+  verifyBtn: document.getElementById("verifyOkBtn"),
 };
 
 function showBanner(msg, type = "error") {
@@ -16,6 +19,7 @@ function showBanner(msg, type = "error") {
   els.alertBox.textContent = msg;
   els.alertBox.className = `alert ${type}`;
 }
+
 function clearFieldErrors() {
   if (els.idError) els.idError.textContent = "";
   if (els.pwdError) els.pwdError.textContent = "";
@@ -24,6 +28,7 @@ function clearFieldErrors() {
     els.alertBox.className = "alert";
   }
 }
+
 function setSubmitting(b) {
   if (!els.btn) return;
   els.btn.disabled = b;
@@ -31,7 +36,7 @@ function setSubmitting(b) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  // 1. Background Animation (zpunet icon)
+  // 1. Load Background Animation
   const bgContainer = document.getElementById("lottie-background");
   if (bgContainer && window.lottie) {
     window.lottie.loadAnimation({
@@ -39,39 +44,58 @@ document.addEventListener("DOMContentLoaded", () => {
       renderer: "svg",
       loop: true,
       autoplay: true,
-      path: "/Assets/zpunet icon.json", // Ensure this file exists in Assets
-      rendererSettings: {
-        preserveAspectRatio: "xMidYMid slice",
-      },
+      path: "/Assets/zpunet icon.json",
+      rendererSettings: { preserveAspectRatio: "xMidYMid slice" },
     });
   }
 
-  // 2. Handle URL Parameters (Verified/Error)
-  try {
-    const params = new URLSearchParams(window.location.search);
-    const verified = params.get("verified");
-    const errParam = params.get("error");
-    if (verified === "1") {
-      showBanner(
-        "Your email has been verified. You can now log in.",
-        "success"
-      );
-    } else if (errParam) {
-      try {
-        showBanner(decodeURIComponent(errParam), "error");
-      } catch {
-        showBanner(String(errParam), "error");
+  // 2. Handle URL Parameters (Verified Logic)
+  const params = new URLSearchParams(window.location.search);
+  const verified = params.get("verified");
+  const errParam = params.get("error");
+
+  if (verified === "1") {
+    // SHOW THE LOCK ANIMATION MODAL
+    if (els.verifyModal) {
+      els.verifyModal.style.display = "flex";
+
+      // Load the Lock Animation inside the modal
+      const lockContainer = document.getElementById("lottie-lock-animation");
+      if (lockContainer && window.lottie) {
+        window.lottie.loadAnimation({
+          container: lockContainer,
+          renderer: "svg",
+          loop: false, // Play once
+          autoplay: true,
+          path: "/Assets/Lock.json", // Ensure Lock.json is in Assets folder
+        });
       }
     }
-    ["verified", "error"].forEach((k) => params.delete(k));
-    const newQuery = params.toString();
-    const newUrl = window.location.pathname + (newQuery ? `?${newQuery}` : "");
-    window.history.replaceState({}, "", newUrl);
-  } catch (e) {
-    console.error("[login banner] error:", e);
+    // Fallback banner just in case
+    showBanner("Account verified successfully.", "success");
+  } else if (errParam) {
+    try {
+      showBanner(decodeURIComponent(errParam), "error");
+    } catch {
+      showBanner(String(errParam), "error");
+    }
   }
+
+  // Clean URL
+  ["verified", "error"].forEach((k) => params.delete(k));
+  const newQuery = params.toString();
+  const newUrl = window.location.pathname + (newQuery ? `?${newQuery}` : "");
+  window.history.replaceState({}, "", newUrl);
 });
 
+// Close verification modal
+if (els.verifyBtn) {
+  els.verifyBtn.onclick = () => {
+    els.verifyModal.style.display = "none";
+  };
+}
+
+// --- Login Submit Handler ---
 els.form?.addEventListener("submit", async (ev) => {
   ev.preventDefault();
   clearFieldErrors();
@@ -80,17 +104,14 @@ els.form?.addEventListener("submit", async (ev) => {
   const password = els.password?.value || "";
 
   if (!identifier || !password) {
-    if (!identifier && els.idError)
-      els.idError.textContent = "Enter email or username.";
-    if (!password && els.pwdError)
-      els.pwdError.textContent = "Enter your password.";
     showBanner("Email/username and password are required.", "error");
     return;
   }
 
   try {
     setSubmitting(true);
-    const res = await fetch(`${API_BASE}/api/login`, {
+    const res = await fetch(`${API_BASE}/api/auth/login`, {
+      // Ensure path matches server.js
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ identifier, password }),
@@ -99,10 +120,6 @@ els.form?.addEventListener("submit", async (ev) => {
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-      if (data?.errors) {
-        if (els.idError) els.idError.textContent = data.errors.identifier || "";
-        if (els.pwdError) els.pwdError.textContent = data.errors.password || "";
-      }
       showBanner(data?.message || "Login failed.", "error");
       return;
     }
@@ -118,5 +135,3 @@ els.form?.addEventListener("submit", async (ev) => {
     setSubmitting(false);
   }
 });
-
-console.log("[login.js] ready");
