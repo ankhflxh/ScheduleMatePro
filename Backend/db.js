@@ -9,9 +9,10 @@ const pool = new Pool({
       : false,
 });
 
+// FIX: Do not exit the process on error. Just log it.
 pool.on("error", (err) => {
   console.error("Unexpected PG error", err);
-  process.exit(-1);
+  // process.exit(-1); // REMOVED: This was killing your server
 });
 
 module.exports = pool;
