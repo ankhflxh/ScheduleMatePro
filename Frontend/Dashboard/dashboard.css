@@ -6,13 +6,18 @@
   --primary: #6b46c1;
   --primary-light: #805ad5;
   --primary-dark: #553c9a;
-  --accent: #d53f8c; /* Pink accent for "Create" */
+  --accent: #d53f8c; /* Pink accent */
   --bg-body: #f7f9fb;
+
+  /* Glassmorphism Variables */
   --glass-bg: rgba(255, 255, 255, 0.75);
   --glass-border: rgba(255, 255, 255, 0.4);
+
   --card-bg: #ffffff;
   --text-main: #2d3748;
   --text-muted: #718096;
+
+  /* Shadows */
   --shadow-soft: 0 8px 30px rgba(0, 0, 0, 0.05);
   --shadow-hover: 0 20px 40px rgba(107, 70, 193, 0.15);
 }
@@ -159,7 +164,7 @@ body {
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
-/* Room Grid */
+/* --- 🔴 CREATIVE ROOM GRID SECTION (UPDATED) --- */
 .section-title {
   font-size: 1.5rem;
   font-weight: 700;
@@ -167,27 +172,38 @@ body {
   margin-bottom: 1rem;
 }
 
-.rooms-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1.5rem;
+#my-rooms {
+  display: grid !important;
+  /* 'auto-fit' + minmax(320px) ensures cards stretch to fill the width */
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 25px;
+  width: 100%;
+  margin-top: 10px;
 }
 
 .room-card {
-  background: var(--card-bg);
-  border-radius: 20px;
-  padding: 1.5rem;
+  /* Subtle gradient for depth */
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 20px; /* Rounded creative look */
+  padding: 30px; /* Increased breathing room */
+
+  /* Soft shadow */
   box-shadow: var(--shadow-soft);
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-  border: 1px solid transparent;
+
+  /* Flex layout to push buttons to bottom */
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: 180px;
+  min-height: 220px; /* Taller card size */
+
+  /* Smooth animations */
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
 }
 
+/* The decorative colored top bar */
 .room-card::before {
   content: "";
   position: absolute;
@@ -196,49 +212,79 @@ body {
   width: 100%;
   height: 6px;
   background: linear-gradient(90deg, var(--primary), var(--accent));
+  opacity: 0.9;
 }
 
+/* Hover Effects */
 .room-card:hover {
   transform: translateY(-5px);
   box-shadow: var(--shadow-hover);
   border-color: var(--primary-light);
 }
 
+/* Typography */
 .room-name {
-  font-size: 1.25rem;
-  font-weight: 600;
+  font-size: 1.4rem;
+  font-weight: 700;
   color: var(--text-main);
-}
-.room-code {
-  font-size: 0.9rem;
-  color: var(--text-muted);
-  margin-top: 0.25rem;
+  margin-bottom: 8px;
 }
 
+.room-code {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  /* Pill shape style */
+  background: rgba(0, 0, 0, 0.04);
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-family: monospace;
+  border: 1px dashed #cbd5e0;
+}
+
+/* Action Buttons Area */
 .card-actions {
-  margin-top: auto;
+  margin-top: 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
+/* Updated "Enter Room" Button */
 .btn-enter {
-  color: var(--primary);
-  font-weight: 600;
   text-decoration: none;
-  display: flex;
+  background: var(--text-main);
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 8px;
+  transition: background 0.2s, transform 0.2s;
 }
+
+.btn-enter:hover {
+  background: var(--primary);
+  transform: translateX(3px); /* Slide effect on hover */
+}
+
+/* Delete Button */
 .btn-delete {
   background: transparent;
   border: none;
   color: #cbd5e0;
   cursor: pointer;
-  transition: color 0.2s;
+  padding: 8px;
+  border-radius: 50%;
+  transition: all 0.2s;
 }
+
 .btn-delete:hover {
+  background: #fff5f5;
   color: #fc8181;
+  transform: rotate(90deg); /* Rotate effect on hover */
 }
 
 /* --- Sidebar (Right Side - Meetings) --- */
@@ -261,6 +307,10 @@ body {
   margin-bottom: 1rem;
   border-left: 4px solid var(--primary);
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
+  transition: transform 0.2s;
+}
+.meeting-item:hover {
+  transform: translateX(5px);
 }
 
 .meeting-time {
@@ -291,6 +341,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+  grid-column: 1 / -1; /* Center in grid if empty */
 }
 
 .lottie-container {
@@ -324,7 +375,7 @@ body {
   }
 }
 
-/* --- Modal Styles (reused clean look) --- */
+/* --- Modal Styles --- */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -342,7 +393,20 @@ body {
   text-align: center;
   max-width: 400px;
   width: 90%;
+  animation: modalPop 0.3s ease-out;
 }
+
+@keyframes modalPop {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
 .modal-title {
   font-size: 1.25rem;
   font-weight: 700;

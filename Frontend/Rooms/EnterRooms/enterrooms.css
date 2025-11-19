@@ -1,3 +1,15 @@
+/* Frontend/Rooms/EnterRooms/enterrooms.css */
+
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap");
+
+:root {
+  --primary: #6366f1;
+  --dark-text: #1e293b;
+  --glass-surface: rgba(255, 255, 255, 0.75);
+  --glass-border: rgba(255, 255, 255, 0.9);
+  --card-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -5,216 +17,195 @@
 }
 
 body {
-  font-family: "Rubik", sans-serif;
-  min-height: 100vh;
+  font-family: "Outfit", sans-serif;
+  height: 100vh;
+  overflow: hidden;
   display: flex;
-  flex-direction: column;
+  justify-content: center;
   align-items: center;
-  justify-content: flex-start;
-  /* No background here; handled by .bg-blur-image */
+  background: #eef2ff;
 }
 
-/* Blurred background image for the whole page */
-.bg-blur-image {
+/* --- 1. BACKGROUND LAYER --- */
+.bg-layer {
   position: fixed;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
+  width: 100%;
+  height: 100%;
   z-index: 0;
-  background: url("../../Images/landing.jpg") no-repeat center center/cover;
-  filter: blur(5px) brightness(0.75);
-  width: 100vw;
-  height: 100vh;
   pointer-events: none;
 }
 
-/* Animated gradient for the dashboard/card (menu grid area) */
-.dashboard-menu-card.animated-gradient-bg {
-  background: linear-gradient(120deg, #fff, #ffe3f1, #e1d5f2, #daf3ff);
-  background-size: 400% 400%;
-  animation: dreamyBackground 15s ease infinite;
-  margin: 55px 0 0 0;
-  border-radius: 18px;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.1);
-  max-width: 900px;
-  width: 95vw;
-  padding: 0 0 50px 0;
-  z-index: 1;
+/* --- 2. MAIN GLASS WRAPPER --- */
+.glass-wrapper {
   position: relative;
-}
-
-@keyframes dreamyBackground {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
-}
-
-/* Top Bar */
-.top-bar {
+  z-index: 10;
+  width: 100%;
+  max-width: 550px;
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(0px);
+  padding: 2rem;
+  border-radius: 40px;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: transparent;
-  color: #722fbb;
-  padding: 24px 40px 0 40px;
-  border-radius: 18px 18px 0 0;
-  font-size: 1.2rem;
-  margin-bottom: 10px;
+  flex-direction: column;
+  gap: 2rem;
 }
 
-.top-bar h1 {
-  font-size: 24px;
-  font-weight: 600;
+/* --- 3. HEADER --- */
+.hub-header {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
-.exit {
+.back-pill {
+  align-self: flex-start;
+  background: white;
+  border: 1px solid #e2e8f0;
+  padding: 8px 16px;
+  border-radius: 30px;
   display: flex;
   align-items: center;
   gap: 8px;
-  cursor: pointer;
-  font-size: 14px;
-  color: #722fbb;
-}
-
-.exit .material-icons {
-  font-size: 24px;
-}
-
-/* Menu Layout */
-.menu-container {
-  flex: 1;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 24px;
-  padding: 40px 40px 10px 40px;
-}
-
-.menu-item {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  background-color: #ffffffcc;
-  border: none;
-  border-radius: 12px;
-  padding: 18px 22px;
-  font-size: 18px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-  text-align: left;
-}
-
-.menu-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.15);
-}
-
-.material-icons.gradient-icon {
-  font-size: 30px;
-  background: linear-gradient(45deg, #ff4081, #7c4dff);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.highlight-bar {
-  background-color: #f3e5f5;
-  color: #6a1b9a;
-  font-weight: 500;
-  padding: 10px 20px;
-  border-left: 6px solid #7c4dff;
-  margin: 15px 0;
-  border-radius: 8px;
-}
-
-/* Modal Styles */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(41, 32, 84, 0.23);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1001;
-}
-.modal {
-  background: #fff;
-  padding: 30px 38px 22px 38px;
-  border-radius: 18px;
-  box-shadow: 0 6px 32px rgba(123, 73, 202, 0.13);
-  min-width: 320px;
-  max-width: 92vw;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-.modal-title {
-  font-size: 1.35rem;
-  color: #a047e7;
-  font-weight: 700;
-  margin-bottom: 14px;
-}
-.modal-body {
-  width: 100%;
-  margin-bottom: 18px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-}
-.modal-input {
-  margin-top: 7px;
-  width: 100%;
-  padding: 12px 14px;
-  border-radius: 8px;
-  border: 1.4px solid #d3bffa;
-  font-size: 1rem;
-  background: #f6f3fa;
-  transition: border 0.18s;
-  outline: none;
-}
-.modal-actions {
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-  width: 100%;
-}
-.modal-btn {
-  background: linear-gradient(90deg, #722fbb, #ec407a 90%);
-  color: #fff;
-  border: none;
-  border-radius: 8px;
   font-weight: 600;
-  padding: 11px 22px;
-  font-size: 1.03rem;
+  color: #64748b;
   cursor: pointer;
-  transition: background 0.18s, transform 0.11s;
+  transition: all 0.2s ease;
 }
-.modal-btn.cancel {
-  background: #8883;
-  color: #6547a5;
-}
-.modal-btn:hover {
-  filter: brightness(1.08);
-  transform: translateY(-1px) scale(1.04);
+.back-pill:hover {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+  transform: translateX(-5px);
 }
 
-@media (max-width: 900px) {
-  .dashboard-menu-card.animated-gradient-bg {
-    max-width: 99vw;
-    padding: 0 0 30px 0;
+/* Removed .room-icon styles as it is deleted */
+
+.room-title-block {
+  /* Just standard block layout for text now */
+  display: block;
+}
+
+#room-header {
+  font-size: 2.5rem; /* Made slightly larger for impact */
+  font-weight: 800;
+  color: var(--dark-text);
+  letter-spacing: -1px;
+  line-height: 1.1;
+}
+
+/* --- 4. STATUS BANNER --- */
+.status-banner {
+  background: #10b981;
+  color: white;
+  padding: 1rem;
+  border-radius: 16px;
+  font-weight: 600;
+  box-shadow: 0 10px 20px rgba(16, 185, 129, 0.25);
+  animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes popIn {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
   }
-  .top-bar,
-  .menu-container {
-    padding: 12px 2vw 0 2vw;
+  to {
+    transform: scale(1);
+    opacity: 1;
   }
 }
+
+/* --- 5. ACTION MENU --- */
+.action-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.menu-card {
+  background: var(--glass-surface);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  padding: 1.5rem;
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: var(--card-shadow);
+  position: relative;
+  overflow: hidden;
+}
+
+.menu-card:hover {
+  transform: translateY(-4px) scale(1.02);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+/* Icons */
+.card-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 28px;
+  flex-shrink: 0;
+}
+.schedule-glow {
+  background: linear-gradient(135deg, #6366f1, #818cf8);
+  box-shadow: 0 8px 16px rgba(99, 102, 241, 0.3);
+}
+.avail-glow {
+  background: linear-gradient(135deg, #ec4899, #f472b6);
+  box-shadow: 0 8px 16px rgba(236, 72, 153, 0.3);
+}
+.settings-glow {
+  background: linear-gradient(135deg, #f59e0b, #fbbf24);
+  box-shadow: 0 8px 16px rgba(245, 158, 11, 0.3);
+}
+
+.card-content h2 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--dark-text);
+  margin-bottom: 4px;
+}
+.card-content p {
+  font-size: 0.9rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.arrow {
+  margin-left: auto;
+  color: #cbd5e1;
+  font-size: 1rem;
+  transition: transform 0.3s;
+}
+.menu-card:hover .arrow {
+  color: var(--primary);
+  transform: translateX(5px);
+}
+
+@media (max-width: 600px) {
+  .glass-wrapper {
+    width: 100%;
+    padding: 1.5rem;
+    border-radius: 0;
+    height: 100vh;
+    justify-content: center;
+  }
+  .menu-card {
+    padding: 1.25rem;
+  }
+}
+
+

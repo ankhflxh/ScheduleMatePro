@@ -2,54 +2,97 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Meeting Scheduler</title>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;600&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      href="https://fonts.googleapis.com/icon?family=Material+Icons"
-      rel="stylesheet"
-    />
-    <link rel="stylesheet" href="./scheduler.css" />
-    <link rel="icon" type="image/png" href="../Images/favicon.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Meeting Scheduler | ScheduleMate Pro</title>
+    
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="scheduler.css" />
+    <link rel="icon" type="image/png" href="../../Images/favicon.png" />
+    
+    <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
   </head>
   <body>
-    <div class="bg-blur-image"></div>
 
-    <div class="scheduler-wrapper animated-gradient-bg">
-      <header class="top-bar">
-        <h1>
-          <span class="material-icons gradient-icon">event</span>
-          Meeting Scheduler
-        </h1>
+    <div class="bg-layer">
+      <lottie-player src="../../Assets/bg.json" background="transparent" speed="1" style="width: 100%; height: 100%; opacity: 0.6;" loop autoplay></lottie-player>
+    </div>
+
+    <div class="scheduler-container">
+      
+      <header class="page-header">
+        <button onclick="window.location.href='../EnterRooms/enterrooms.html' + window.location.search" class="back-pill">
+          <span class="material-icons">arrow_back</span> Back
+        </button>
+        <div class="header-content">
+          <div class="icon-box schedule-glow">
+            <span class="material-icons">schedule</span>
+          </div>
+          <h1>Find the Best Time</h1>
+        </div>
       </header>
 
-      <div class="exit" id="exit-btn">
-        <span class="material-icons">logout</span> Exit
-      </div>
-
-      <section class="dashboard">
-        <h2>Submitted Availabilities</h2>
-        <div id="entries"></div>
-
-        <div id="summary" class="summary-section">
-          <div id="suggested-time"></div>
-          <div id="suggested-locations"></div>
-        </div>
-
-        <div class="btn-group">
-          <button
-            id="editAvailabilityBtn"
-            class="edit-btn"
-            style="display: none"
-          >
-            <span class="material-icons">edit</span>
-            Edit Your Availability
+      <div class="content-grid">
+        
+        <aside class="glass-panel insights">
+          <h3><span class="material-icons">analytics</span> Top Suggestions</h3>
+          
+          <div class="suggestion-card">
+            <div id="suggested-locations">
+              <span class="label">Best Location</span>
+              <p>Calculating...</p>
+            </div>
+          </div>
+          
+          <button id="confirmMeetingBtn" class="confirm-fab" style="display: none;">
+            <span class="material-icons">check_circle</span> Finalize Meeting
           </button>
-        </div>
-      </section>
+        </aside>
+
+        <main class="glass-panel entries-area">
+          <div class="entries-header">
+            <h3>Member Availability</h3>
+            <button id="editAvailabilityBtn" class="edit-link" style="display: none;">
+              <span class="material-icons">edit</span> Edit Mine
+            </button>
+          </div>
+          
+          <div id="entries" class="entries-list">
+            </div>
+        </main>
+
+      </div>
     </div>
-    <script defer src="./scheduler.js"></script>
+
+    <div id="confirmModal" class="modal-overlay">
+      <div class="modal-box">
+        <div class="modal-icon">
+          <span class="material-icons">event_available</span>
+        </div>
+        <h2>Confirm Meeting?</h2>
+        <p id="confirmPromptText">Confirm this time for everyone?</p>
+        
+        <div class="input-wrapper">
+          <label>Location</label>
+          <input type="text" id="confirmLocationInput" class="glass-input" placeholder="e.g. Library Room 3">
+        </div>
+
+        <div class="modal-actions">
+          <button id="confirmCancelBtn" class="modal-btn secondary">Cancel</button>
+          <button id="confirmOkBtn" class="modal-btn primary">Confirm</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="confirmedModal" class="modal-overlay">
+      <div class="modal-box success">
+        <lottie-player src="https://assets2.lottiefiles.com/packages/lf20_xldzoar8.json" background="transparent" speed="1" style="width: 120px; height: 120px; margin: 0 auto;" loop autoplay></lottie-player>
+        <h2>It's Official!</h2>
+        <p>The meeting has been scheduled.</p>
+        <button id="confirmedCloseBtn" class="modal-btn primary" style="width: 100%; margin-top: 1rem;">Awesome</button>
+      </div>
+    </div>
+
+    <script src="scheduler.js"></script>
   </body>
-</html>
+</html>s
