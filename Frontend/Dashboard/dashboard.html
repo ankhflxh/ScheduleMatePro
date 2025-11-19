@@ -22,13 +22,28 @@
     <div class="dashboard-container">
       <header class="header-section">
         <div class="brand">
-          <span class="material-icons" style="color: var(--primary)"
-            >dashboard</span
+          <div
+            style="
+              width: 60px;
+              height: 60px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            "
           >
-          <span
-            >ScheduleMate<span style="color: var(--text-muted)">Pro</span></span
-          >
+            <lottie-player
+              src="/Assets/Hi Girl in orange background.json"
+              background="transparent"
+              speed="1"
+              loop
+              autoplay
+              style="width: 100%; height: 100%"
+            ></lottie-player>
+          </div>
+
+          <span id="dashboard-title">Loading...</span>
         </div>
+
         <button id="logout-button" class="logout-btn">
           <span class="material-icons">logout</span> Sign Out
         </button>

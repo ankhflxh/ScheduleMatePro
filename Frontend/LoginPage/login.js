@@ -1,38 +1,23 @@
-// === ScheduleMate — Login ===
-const API_BASE = "";
+// File: Frontend/LoginPage/login.js
 
-const els = {
-  form: document.getElementById("loginForm"),
-  identifier: document.getElementById("username"),
-  password: document.getElementById("password"),
-  btn: document.getElementById("loginBtn"),
-  alertBox: document.getElementById("loginAlert"),
-  idError: document.getElementById("loginIdError"),
-  pwdError: document.getElementById("loginPwdError"),
-  // New Elements
-  verifyModal: document.getElementById("verificationSuccessModal"),
-  verifyBtn: document.getElementById("verifyOkBtn"),
-};
+const API_BASE = ""; // Keep empty if serving from the same domain (localhost:5000)
 
+// Helper: Show banners
 function showBanner(msg, type = "error") {
-  if (!els.alertBox) return;
-  els.alertBox.textContent = msg;
-  els.alertBox.className = `alert ${type}`;
-}
-
-function clearFieldErrors() {
-  if (els.idError) els.idError.textContent = "";
-  if (els.pwdError) els.pwdError.textContent = "";
-  if (els.alertBox) {
-    els.alertBox.textContent = "";
-    els.alertBox.className = "alert";
+  const alertBox = document.getElementById("loginAlert");
+  if (alertBox) {
+    alertBox.textContent = msg;
+    alertBox.className = `alert show ${type}`;
   }
 }
 
-function setSubmitting(b) {
-  if (!els.btn) return;
-  els.btn.disabled = b;
-  els.btn.textContent = b ? "Signing in..." : "Login";
+// Helper: Loading State
+function setSubmitting(isLoading) {
+  const btn = document.getElementById("loginBtn");
+  if (btn) {
+    btn.disabled = isLoading;
+    btn.textContent = isLoading ? "Signing in..." : "Sign In";
+  }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -49,89 +34,94 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // 2. Handle URL Parameters (Verified Logic)
+  // 2. Handle "Verified" URL param
   const params = new URLSearchParams(window.location.search);
-  const verified = params.get("verified");
-  const errParam = params.get("error");
-
-  if (verified === "1") {
-    // SHOW THE LOCK ANIMATION MODAL
-    if (els.verifyModal) {
-      els.verifyModal.style.display = "flex";
-
-      // Load the Lock Animation inside the modal
-      const lockContainer = document.getElementById("lottie-lock-animation");
-      if (lockContainer && window.lottie) {
+  if (params.get("verified") === "1") {
+    const verifyModal = document.getElementById("verificationSuccessModal");
+    if (verifyModal) {
+      verifyModal.style.display = "flex";
+      const lockAnim = document.getElementById("lottie-lock-animation");
+      if (lockAnim && window.lottie) {
         window.lottie.loadAnimation({
-          container: lockContainer,
+          container: lockAnim,
           renderer: "svg",
-          loop: false, // Play once
+          loop: false,
           autoplay: true,
-          path: "/Assets/Lock.json", // Ensure Lock.json is in Assets folder
+          path: "/Assets/Lock.json",
         });
       }
-    }
-    // Fallback banner just in case
-    showBanner("Account verified successfully.", "success");
-  } else if (errParam) {
-    try {
-      showBanner(decodeURIComponent(errParam), "error");
-    } catch {
-      showBanner(String(errParam), "error");
+      // Close button logic
+      const okBtn = document.getElementById("verifyOkBtn");
+      if (okBtn) okBtn.onclick = () => (verifyModal.style.display = "none");
     }
   }
 
   // Clean URL
-  ["verified", "error"].forEach((k) => params.delete(k));
-  const newQuery = params.toString();
-  const newUrl = window.location.pathname + (newQuery ? `?${newQuery}` : "");
-  window.history.replaceState({}, "", newUrl);
-});
-
-// Close verification modal
-if (els.verifyBtn) {
-  els.verifyBtn.onclick = () => {
-    els.verifyModal.style.display = "none";
-  };
-}
-
-// --- Login Submit Handler ---
-els.form?.addEventListener("submit", async (ev) => {
-  ev.preventDefault();
-  clearFieldErrors();
-
-  const identifier = (els.identifier?.value || "").trim();
-  const password = els.password?.value || "";
-
-  if (!identifier || !password) {
-    showBanner("Email/username and password are required.", "error");
-    return;
+  if (window.history.replaceState) {
+    const url = new URL(window.location);
+    url.searchParams.delete("verified");
+    url.searchParams.delete("error");
+    window.history.replaceState({}, "", url);
   }
 
-  try {
-    setSubmitting(true);
-    const res = await fetch(`${API_BASE}/api/auth/login`, {
-      // Ensure path matches server.js
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ identifier, password }),
+  // 3. SECURE SUBMIT HANDLER
+  const form = document.getElementById("loginForm");
+
+  if (form) {
+    form.addEventListener("submit", async (ev) => {
+      ev.preventDefault(); // <--- CRITICAL: STOPS PAGE RELOAD
+
+      // Clear previous errors
+      showBanner("", "");
+
+      const identifierInput = document.getElementById("username");
+      const passwordInput = document.getElementById("password");
+
+      const identifier = identifierInput ? identifierInput.value.trim() : "";
+      const password = passwordInput ? passwordInput.value : "";
+
+      if (!identifier || !password) {
+        showBanner("Please enter both username/email and password.", "error");
+        return;
+      }
+
+      try {
+        setSubmitting(true);
+
+        // Perform Login
+        const res = await fetch(`${API_BASE}/api/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ identifier, password }),
+        });
+
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          throw new Error(data.message || "Login failed.");
+        }
+
+        // Success: Save Token
+        if (data.token) {
+          localStorage.setItem("sm_token", data.token);
+          sessionStorage.setItem("justLoggedIn", "1");
+
+          // Redirect to Dashboard
+          window.location.href = "/Dashboard/dashboard.html";
+        } else {
+          throw new Error("Server response missing token.");
+        }
+      } catch (err) {
+        console.error("Login Error:", err);
+        let msg = err.message;
+        if (msg === "Failed to fetch")
+          msg = "Cannot connect to server. Is it running?";
+        showBanner(msg, "error");
+      } finally {
+        setSubmitting(false);
+      }
     });
-
-    const data = await res.json().catch(() => ({}));
-
-    if (!res.ok) {
-      showBanner(data?.message || "Login failed.", "error");
-      return;
-    }
-
-    if (data?.token) localStorage.setItem("sm_token", data.token);
-    if (data?.user) localStorage.setItem("sm_user", JSON.stringify(data.user));
-    sessionStorage.setItem("justLoggedIn", "1");
-    window.location.href = "/Dashboard/dashboard.html";
-  } catch (e) {
-    console.error("[login] network error:", e);
-    showBanner("Network error. Please try again.", "error");
-  } finally {
-    setSubmitting(false);
+  } else {
+    console.error("CRITICAL: Login Form not found in DOM.");
   }
 });

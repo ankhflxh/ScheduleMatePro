@@ -31,9 +31,7 @@ document.getElementById("create-room-name").addEventListener("input", () => {
   roomNameError.style.display = "none";
 });
 
-// --- LOTTIE LOADER (Fixed Paths) ---
-// Note: We are now using <lottie-player> tags directly in HTML with src="/Assets/..."
-// This function is kept for dynamic fallbacks if needed, but specific calls below use correct paths.
+// --- LOTTIE LOADER ---
 function loadLottieAnimation(playerSelector, jsonPath) {
   const player = document.querySelector(playerSelector);
   if (player) {
@@ -57,6 +55,15 @@ if (!token) {
     .then((user) => {
       const userId = user.user_id || user.id;
       window.SLOTIFY_USER_ID = userId;
+
+      // --- NEW: Update Dashboard Title ---
+      const titleEl = document.getElementById("dashboard-title");
+      if (titleEl) {
+        // Capitalize first letter for better look
+        const displayName =
+          user.username.charAt(0).toUpperCase() + user.username.slice(1);
+        titleEl.textContent = `${displayName}'s Dashboard`;
+      }
 
       // Welcome Message Logic
       if (sessionStorage.getItem("justLoggedIn") === "1") {
@@ -104,8 +111,6 @@ function loadRooms(userId) {
         const roomName = room.room_name || room.name;
         const roomId = room.room_id || room.id;
 
-        // Note: room.code might not be in 'rooms' table join depending on query,
-        // but usually is. If missing, we hide the code line.
         const codeDisplay = room.code
           ? `Code: <span style="font-family:monospace; background:#edf2f7; padding:2px 5px; border-radius:4px;">${room.code}</span>`
           : "";
