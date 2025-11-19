@@ -15,11 +15,6 @@ const infoTitle = document.getElementById("infoModalTitle");
 const infoBody = document.getElementById("infoModalBody");
 const infoOkBtn = document.getElementById("infoModalOk");
 
-// NEW: Success Modal Elements
-const successModal = document.getElementById("dashboardSuccessModal");
-const successTitle = document.getElementById("successTitle");
-const successBody = document.getElementById("successBody");
-
 // --- HELPER: Show Info Modal ---
 function showModal(title, message) {
   infoTitle.textContent = title;
@@ -27,13 +22,6 @@ function showModal(title, message) {
   infoModal.style.display = "grid";
 }
 infoOkBtn.onclick = () => (infoModal.style.display = "none");
-
-// --- NEW HELPER: Show Success Modal (With Lottie) ---
-function showSuccess(title, message) {
-  successTitle.textContent = title;
-  successBody.textContent = message;
-  successModal.style.display = "grid"; // Grid centers it via CSS
-}
 
 // Validate room name
 function isRoomNameValid(name) {
@@ -43,20 +31,13 @@ document.getElementById("create-room-name").addEventListener("input", () => {
   roomNameError.style.display = "none";
 });
 
-// --- INITIALIZE BACKGROUND LOTTIE ---
-document.addEventListener("DOMContentLoaded", () => {
-  const bgContainer = document.getElementById("lottie-background");
-  if (bgContainer && window.lottie) {
-    window.lottie.loadAnimation({
-      container: bgContainer,
-      renderer: "svg",
-      loop: true,
-      autoplay: true,
-      path: "/Assets/background-collab.json",
-      rendererSettings: { preserveAspectRatio: "xMidYMid slice" },
-    });
+// --- LOTTIE LOADER ---
+function loadLottieAnimation(playerSelector, jsonPath) {
+  const player = document.querySelector(playerSelector);
+  if (player) {
+    player.load(jsonPath);
   }
-});
+}
 
 // --- AUTH & INIT ---
 const token = localStorage.getItem("sm_token");
@@ -72,20 +53,28 @@ if (!token) {
       return res.json();
     })
     .then((user) => {
+      // Use user_id if provided, fallback to id
       const userId = user.user_id || user.id;
       window.SLOTIFY_USER_ID = userId;
 
+      // --- NEW: Update Dashboard Title (FIXED) ---
       const titleEl = document.getElementById("dashboard-title");
       if (titleEl) {
+        // Backend sends 'user_username', but we check 'username' just in case
         const nameToDisplay = user.username || user.user_username || "User";
+
+        // Capitalize first letter for better look
         const displayName =
           nameToDisplay.charAt(0).toUpperCase() + nameToDisplay.slice(1);
+
         titleEl.textContent = `${displayName}'s Dashboard`;
       }
 
+      // Welcome Message Logic
       if (sessionStorage.getItem("justLoggedIn") === "1") {
         const firstVisit = !localStorage.getItem("firstVisitDone");
         const welcomeName = user.username || user.user_username || "User";
+
         showModal(
           firstVisit ? `Welcome, ${welcomeName}!` : `Welcome Back!`,
           firstVisit
@@ -101,6 +90,7 @@ if (!token) {
     })
     .catch((err) => {
       console.error("Dashboard Load Error:", err);
+      // If session is invalid, clear token and redirect
       localStorage.removeItem("sm_token");
       window.location.href = "/LoginPage/login.html";
     });
@@ -117,7 +107,7 @@ function loadRooms(userId) {
 
       if (!rooms || rooms.length === 0) {
         roomsContainer.style.display = "none";
-        noRoomsMsg.style.display = "flex";
+        noRoomsMsg.style.display = "flex"; // Show Flex for centering
         return;
       }
 
@@ -129,14 +119,15 @@ function loadRooms(userId) {
         card.className = "room-card";
         const roomName = room.room_name || room.name;
         const roomId = room.room_id || room.id;
+
         const codeDisplay = room.code
-          ? `<span class="room-code">${room.code}</span>`
+          ? `Code: <span style="font-family:monospace; background:#edf2f7; padding:2px 5px; border-radius:4px;">${room.code}</span>`
           : "";
 
         card.innerHTML = `
           <div>
             <div class="room-name">${roomName}</div>
-            ${codeDisplay}
+            <div class="room-code">${codeDisplay}</div>
           </div>
           <div class="card-actions">
             <a href="/Rooms/EnterRooms/enterrooms.html?roomId=${roomId}" class="btn-enter">
@@ -202,11 +193,7 @@ createForm.addEventListener("submit", (e) => {
     .then((res) => res.json())
     .then((room) => {
       if (room.error) throw new Error(room.error);
-      // NEW: Use Success Lottie Modal
-      showSuccess(
-        "Room Created!",
-        `Your room "${room.name}" is ready. Invite Code: ${room.code}`
-      );
+      showModal("Success", `Room "${room.name}" created! Code: ${room.code}`);
       document.getElementById("create-room-name").value = "";
       loadRooms(window.SLOTIFY_USER_ID);
     })
@@ -226,8 +213,7 @@ joinForm.addEventListener("submit", (e) => {
     .then((res) => res.json())
     .then((data) => {
       if (data.error) throw new Error(data.error);
-      // NEW: Use Success Lottie Modal
-      showSuccess("Joined!", "You have successfully joined the room.");
+      showModal("Joined!", "You have successfully joined the room.");
       document.getElementById("join-room-code").value = "";
       loadRooms(window.SLOTIFY_USER_ID);
     })

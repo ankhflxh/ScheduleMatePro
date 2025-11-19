@@ -8,15 +8,15 @@
   --primary-dark: #553c9a;
   --accent: #d53f8c; /* Pink accent */
   --bg-body: #f7f9fb;
-
+  
   /* Glassmorphism Variables */
   --glass-bg: rgba(255, 255, 255, 0.75);
   --glass-border: rgba(255, 255, 255, 0.4);
-
+  
   --card-bg: #ffffff;
   --text-main: #2d3748;
   --text-muted: #718096;
-
+  
   /* Shadows */
   --shadow-soft: 0 8px 30px rgba(0, 0, 0, 0.05);
   --shadow-hover: 0 20px 40px rgba(107, 70, 193, 0.15);
@@ -186,17 +186,17 @@ body {
   background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
   border: 1px solid rgba(255, 255, 255, 0.8);
   border-radius: 20px; /* Rounded creative look */
-  padding: 30px; /* Increased breathing room */
-
+  padding: 30px;       /* Increased breathing room */
+  
   /* Soft shadow */
   box-shadow: var(--shadow-soft);
-
+  
   /* Flex layout to push buttons to bottom */
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   min-height: 220px; /* Taller card size */
-
+  
   /* Smooth animations */
   transition: all 0.3s ease;
   position: relative;
@@ -205,7 +205,7 @@ body {
 
 /* The decorative colored top bar */
 .room-card::before {
-  content: "";
+  content: '';
   position: absolute;
   top: 0;
   left: 0;
@@ -397,14 +397,8 @@ body {
 }
 
 @keyframes modalPop {
-  from {
-    transform: scale(0.9);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 }
 
 .modal-title {
