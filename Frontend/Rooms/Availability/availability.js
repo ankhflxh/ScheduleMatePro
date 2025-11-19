@@ -1,13 +1,16 @@
-// File: Frontend/Rooms/Availability/availability.js (Complete Update for Merged Form)
+// File: Frontend/Rooms/Availability/availability.js
 
 const form = document.querySelector("#availability-form");
-const daySelect = document.querySelector("#day");
+// Removed daySelect
 const startSelect = document.querySelector("#start_time");
 const endSelect = document.querySelector("#end_time");
 const locationInput = document.querySelector("#location");
 
+// NEW Element for day display
+const constrainedDayDisplay = document.getElementById("constrainedDayDisplay");
+
 // New elements for Creator logic
-const creatorControls = document.getElementById("creatorControls"); // Now just a visibility wrapper
+const creatorControls = document.getElementById("creatorControls");
 const intervalSelect = document.getElementById("interval");
 const preferredDaySelect = document.getElementById("preferred_day"); // Day select in creator form
 const availabilityWrapper = document.getElementById("availabilityWrapper");
@@ -197,9 +200,13 @@ async function initializeAvailabilityPage() {
     intervalSet = !!roomData.meeting_interval;
     daySet = !!roomData.meeting_day;
 
-    // 🟢 NEW UX LOGIC: Show/Hide preference inputs, NO hiding of the whole form
+    // 🟢 NEW UX LOGIC: Show/Hide preference inputs
     if (isCreator) {
       creatorControls.style.display = "block"; // Show preference inputs
+
+      // Hide the display-only field for the creator
+      constrainedDayDisplay.style.display = "none";
+      constrainedDayDisplay.previousElementSibling.style.display = "none"; // Hide label
 
       // Pre-populate creator form if data exists
       if (intervalSet) intervalSelect.value = roomData.meeting_interval;
@@ -217,11 +224,10 @@ async function initializeAvailabilityPage() {
       // Preferences SET: Enable form and set constraints
       disabledOverlay.style.display = "none";
 
-      // 🟢 Constraint 1: Restrict Day Selection to Creator's Day
-      daySelect.innerHTML = `<option value="${roomData.meeting_day}">${roomData.meeting_day}</option>`;
-      daySelect.value = roomData.meeting_day;
-      daySelect.setAttribute("readonly", true);
-      daySelect.style.pointerEvents = "none"; // Visually disable it
+      // 🟢 Constraint 1: Display the Constrained Day to the user
+      constrainedDayDisplay.style.display = "block"; // Show display field
+      constrainedDayDisplay.previousElementSibling.style.display = "block"; // Show label
+      constrainedDayDisplay.textContent = roomData.meeting_day;
 
       // Store interval for time slot generation
       availabilityWrapper.dataset.interval = roomData.meeting_interval;
@@ -247,8 +253,7 @@ async function loadExistingAvailability(interval) {
       .then((res) => res.json())
       .then((data) => {
         if (data) {
-          // Update form values
-          daySelect.value = data.day;
+          // data.day is now confirmed to match roomData.meeting_day, so we just load time/location
           startSelect.value = data.start_time;
           locationInput.value = data.location;
 
@@ -266,8 +271,6 @@ async function loadExistingAvailability(interval) {
 }
 
 // --- SUBMIT HANDLERS ---
-
-// ❌ REMOVED: handleCreatorSubmit is now merged into form.addEventListener("submit")
 
 async function submitCreatorPreferences(interval, day) {
   const res = await fetch(`/api/rooms/${roomId}/schedule-preference`, {
@@ -326,21 +329,28 @@ form.addEventListener("submit", async (e) => {
   }
 
   // Get data from the *unified* form
-  const day = daySelect.value;
   const start_time = startSelect.value;
   const end_time = endSelect.value;
   const location = locationInput.value;
 
   let success = false;
 
-  // 1. CREATOR LOGIC: SUBMIT PREFERENCES FIRST (if preferences have changed or are new)
-  const isCreator = String(roomData.creator_id) === String(currentUserId);
+  const creatorIdStr = String(roomData.creator_id);
+  const currentUserIdStr = String(currentUserId);
+  const isCreator = creatorIdStr === currentUserIdStr;
 
+  // Day variable is now determined based on the source of the constraint (roomData)
+  let dayForSubmission = roomData.meeting_day;
+
+  // 1. CREATOR LOGIC: SUBMIT PREFERENCES FIRST (if preferences have changed or are new)
   if (isCreator) {
     const currentInterval = parseInt(intervalSelect.value);
     const currentDay = preferredDaySelect.value;
 
-    // Only submit preferences if the form is visible (which means they are either new or being edited)
+    // The creator's day for submission is the current preferred day, even before it's saved to the server
+    dayForSubmission = currentDay;
+
+    // Only submit preferences if the form is visible and inputs are complete
     if (creatorControls.style.display === "block") {
       if (currentInterval && currentDay) {
         const prefSaved = await submitCreatorPreferences(
@@ -353,20 +363,18 @@ form.addEventListener("submit", async (e) => {
         intervalSet = true;
         daySet = true;
 
-        // If preferences were newly set or changed, re-enable the availability section and update constraints
-        // This is crucial for a smooth transition from disabled to enabled state
+        // If preferences were newly set or changed, update the display for the creator (in case they switch roles)
         if (
           roomData.meeting_interval !== currentInterval ||
           roomData.meeting_day !== currentDay
         ) {
           // Re-enable and apply constraints visually and functionally
           disabledOverlay.style.display = "none";
-          daySelect.innerHTML = `<option value="${currentDay}">${currentDay}</option>`;
-          daySelect.value = currentDay;
-          daySelect.setAttribute("readonly", true);
-          daySelect.style.pointerEvents = "none";
           availabilityWrapper.dataset.interval = currentInterval;
           generateTimeOptions(currentInterval);
+
+          // Update the display field with the newly set day
+          constrainedDayDisplay.textContent = currentDay;
         }
       } else {
         // Creator tried to submit with incomplete preferences
@@ -378,14 +386,24 @@ form.addEventListener("submit", async (e) => {
     }
   }
 
+  // For non-creators, this ensures the day is set correctly if preferences are already defined
+  if (!dayForSubmission && roomData.meeting_day) {
+    dayForSubmission = roomData.meeting_day;
+  }
+
   // 2. AVAILABILITY LOGIC (Runs for everyone, including creator)
   if (intervalSet && daySet) {
     // Re-validate against current constraints (ensures time validity)
     const currentInterval = parseInt(availabilityWrapper.dataset.interval) || 1;
     const durationMinutes = currentInterval * 60;
 
-    // Use current daySelect value, which is constrained for all users
-    const constrainedDay = daySelect.value;
+    // Check if a time slot was actually selected
+    if (!start_time || !end_time || !location) {
+      showError(
+        "Missing required availability fields (Start/End Time or Location)."
+      );
+      return;
+    }
 
     // Time validation check
     const start = new Date(`2000/01/01 ${start_time}`);
@@ -398,15 +416,15 @@ form.addEventListener("submit", async (e) => {
       return;
     }
 
-    // Final submission using the constrained day
+    // Final submission using the correct dayForSubmission variable
     success = await submitAvailability(
-      constrainedDay,
+      dayForSubmission,
       start_time,
       end_time,
       location
     );
   } else {
-    // Should only happen if a non-creator somehow bypasses the overlay or if creator is missing inputs
+    // Should only happen if a non-creator submits when preferences are not set
     showError(
       "Meeting preferences must be set before submitting availability."
     );

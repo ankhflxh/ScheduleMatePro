@@ -38,7 +38,7 @@
         >
           <h2>Set Meeting Preferences</h2>
           <label for="interval">Meeting Duration (Hours):</label>
-          <select id="interval" required>
+          <select id="interval">
             <option value="">Select duration</option>
             <option value="1">1 hour</option>
             <option value="2">2 hours</option>
@@ -46,7 +46,7 @@
           </select>
 
           <label for="preferred_day">Preferred Day:</label>
-          <select id="preferred_day" required>
+          <select id="preferred_day">
             <option value="">Select day</option>
             <option value="Monday">Monday</option>
             <option value="Tuesday">Tuesday</option>
@@ -67,14 +67,12 @@
             </p>
           </div>
 
-          <select id="day" required>
-            <option value="">Select Day</option>
-            <option value="Monday">Monday</option>
-            <option value="Tuesday">Tuesday</option>
-            <option value="Wednesday">Wednesday</option>
-            <option value="Thursday">Thursday</option>
-            <option value="Friday">Friday</option>
-          </select>
+          <label for="constrainedDayDisplay">Selected Day:</label>
+          <div
+            id="constrainedDayDisplay"
+            class="display-value"
+            style="display: none"
+          ></div>
 
           <label for="start_time">Start Time:</label>
           <select id="start_time" required>

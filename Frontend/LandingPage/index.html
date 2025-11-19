@@ -2,39 +2,49 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Schedule Mate</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Schedule Mate Pro - Effortless Scheduling</title>
     <link rel="stylesheet" href="./style.css" />
     <link rel="icon" type="image/png" href="/Images/favicon.png" />
-  </head> 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;700;900&display=swap"
+      rel="stylesheet"
+    />
+  </head>
   <body>
-    <div class="landing-loading">
-      <div class="landing-message">
-        <div class="slotify-title">Schedule Mate</div>
-        <div class="typewriter-wrapper">
-          <div class="typewriter-message" id="typewriter"></div>
+    <header class="main-header">
+      <div class="logo">Schedule Mate <span class="pro-tag">Pro</span></div>
+      <nav class="nav-links">
+        <a href="/LoginPage/login.html" class="nav-login-btn">Login</a>
+        <a href="/RegisterPage/register.html" class="nav-register-btn"
+          >Get Started</a
+        >
+      </nav>
+    </header>
+
+    <main class="hero-section">
+      <div class="hero-content">
+        <h1 class="hero-title">Collaborate, Coordinate, Conquer.</h1>
+        <p class="hero-subtitle">
+          Effortless scheduling and coordination for student groups. Find the
+          perfect time for everyone, instantly.
+        </p>
+        <div class="cta-group">
+          <a href="/RegisterPage/register.html" class="cta-primary"
+            >Start Scheduling for Free</a
+          >
+          <a href="/LoginPage/login.html" class="cta-secondary"
+            >Existing User? Login</a
+          >
         </div>
       </div>
-    </div>
-    <script>
-      const message =
-        "Making scheduling and collaboration effortless for students...";
-      const typewriter = document.getElementById("typewriter");
-      let i = 0;
 
-      function typeWriter() {
-        if (i < message.length) {
-          typewriter.innerHTML += message.charAt(i);
-          i++;
-          setTimeout(typeWriter, 60);
-        } else {
-          setTimeout(() => {
-            // go straight to login page
-            window.location.href = "/LoginPage/login.html";
-          }, 900);
-        }
-      }
-      typeWriter();
-    </script>
-    <script src="./index.js" defer></script>
+      <div class="hero-animation-container">
+        <div id="lottie-schedule-animation"></div>
+      </div>
+    </main>
+
+    <script defer src="./index.js"></script>
   </body>
 </html>

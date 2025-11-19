@@ -1,98 +1,229 @@
-@import url("https://fonts.googleapis.com/css2?family=Rubik:wght@400;600;800&display=swap");
+/* style.css (New Modern Design) */
+
+@import url("https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;700;900&display=swap");
+
+:root {
+  /* Define modern color palette appealing to all genders */
+  --color-primary: #6b46c1; /* Friendly Purple Accent */
+  --color-primary-light: #805ad5;
+  --color-background: #f8f9fa; /* Very Light Gray/Off-white */
+  --color-text-dark: #2d3748; /* Dark Text */
+  --color-text-light: #4a5568; /* Subtle Text */
+  --color-border: #e2e8f0;
+  --color-shadow-light: rgba(107, 70, 193, 0.15); /* Soft Shadow */
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
 body {
   min-height: 100vh;
-  margin: 0;
   font-family: "Rubik", Arial, sans-serif;
-  background: url("../Images/landing.jpg") no-repeat center center fixed;
-  background-size: cover;
-  position: relative;
-}
-
-body::before {
-  content: "";
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: inherit;
-  filter: blur(8px) brightness(0.72);
-  z-index: 0;
-}
-
-.landing-loading {
-  min-height: 100vh;
-  min-width: 100vw;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  z-index: 1;
-}
-
-.landing-message {
-  background: rgba(
-    246,
-    240,
-    255,
-    0.96
-  ); /* lighter purple, close to screenshot */
-  color: #431a85;
-  border-radius: 2.2rem;
-  padding: 48px 50px 36px 50px;
-  box-shadow: 0 8px 36px 0 rgba(181, 120, 255, 0.14);
+  background-color: var(--color-background);
+  color: var(--color-text-dark);
   display: flex;
   flex-direction: column;
+}
+
+/* --- Header & Navigation --- */
+
+.main-header {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem 2rem;
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  min-width: 390px;
-  max-width: 410px;
-  min-height: 360px;
-  max-height: 410px;
 }
 
-.slotify-title {
-  font-size: 2.5rem;
-  font-weight: 800;
-  color: #8c38e7;
-  letter-spacing: 1.5px;
-  text-align: center;
-  margin-bottom: 36px;
-  line-height: 1.1;
+.logo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-primary);
 }
 
-.typewriter-wrapper {
+.pro-tag {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--color-text-light);
+}
+
+.nav-links a {
+  text-decoration: none;
+  font-weight: 500;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  transition: all 0.2s ease-in-out;
+}
+
+.nav-login-btn {
+  color: var(--color-text-light);
+  margin-right: 0.5rem;
+}
+
+.nav-login-btn:hover {
+  color: var(--color-primary);
+}
+
+.nav-register-btn {
+  background-color: var(--color-primary);
+  color: white;
+  border: 1px solid var(--color-primary);
+  box-shadow: 0 4px 12px var(--color-shadow-light);
+}
+
+.nav-register-btn:hover {
+  background-color: var(--color-primary-light);
+  box-shadow: 0 6px 16px var(--color-shadow-light);
+}
+
+/* --- Hero Section --- */
+
+.hero-section {
   flex: 1;
   display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  width: 100%;
-  min-height: 80px; /* creates space at the bottom */
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 4rem auto;
+  padding: 0 2rem;
+  gap: 4rem;
 }
 
-.typewriter-message {
-  font-size: 1.22rem;
-  color: #7b42bb;
-  font-weight: 500;
-  text-align: center;
-  line-height: 1.45;
-  margin-bottom: 6px;
-  min-height: 1.7em;
-  letter-spacing: 0.3px;
+.hero-content {
+  max-width: 50%;
+}
+
+.hero-title {
+  font-size: 3.5rem;
+  font-weight: 900;
+  line-height: 1.1;
+  margin-bottom: 1.5rem;
+  color: var(--color-text-dark);
+}
+
+.hero-subtitle {
+  font-size: 1.25rem;
+  font-weight: 400;
+  color: var(--color-text-light);
+  margin-bottom: 2.5rem;
+  line-height: 1.6;
+}
+
+.cta-group {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.cta-group a {
+  display: inline-block;
+  padding: 1rem 2rem;
+  border-radius: 10px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.cta-primary {
+  background-color: var(--color-primary);
+  color: white;
+  box-shadow: 0 6px 18px var(--color-shadow-light);
+  border: 1px solid var(--color-primary);
+}
+
+.cta-primary:hover {
+  background-color: var(--color-primary-light);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px var(--color-shadow-light);
+}
+
+.cta-secondary {
+  background-color: transparent;
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+}
+
+.cta-secondary:hover {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+/* --- Lottie Animation Placeholder --- */
+
+.hero-animation-container {
+  width: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#lottie-schedule-animation {
   width: 100%;
-  max-width: 90%;
+  max-width: 500px; /* Control size of animation */
+  height: 400px;
+}
+
+/* --- Media Queries for Responsiveness --- */
+
+@media (max-width: 1000px) {
+  .hero-section {
+    flex-direction: column;
+    text-align: center;
+    margin-top: 2rem;
+  }
+
+  .hero-content {
+    max-width: 90%;
+    order: 2; /* Put content after animation on mobile */
+  }
+
+  .hero-title {
+    font-size: 2.5rem;
+  }
+
+  .hero-animation-container {
+    width: 90%;
+    order: 1; /* Put animation first on mobile */
+  }
+
+  .cta-group {
+    justify-content: center;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .cta-group a {
+    width: 100%;
+  }
 }
 
 @media (max-width: 600px) {
-  .landing-message {
-    padding: 32px 12px 28px 12px;
-    min-width: 90vw;
-    max-width: 96vw;
+  .main-header {
+    padding: 1rem 1rem;
   }
-  .slotify-title {
+  .logo {
+    font-size: 1.3rem;
+  }
+  .pro-tag {
+    font-size: 1rem;
+  }
+  .nav-links a {
+    padding: 0.5rem 1rem;
+  }
+  .hero-section {
+    padding: 0 1rem;
+  }
+  .hero-content {
+    max-width: 100%;
+  }
+  .hero-title {
     font-size: 2rem;
   }
-  .typewriter-message {
+  .hero-subtitle {
     font-size: 1rem;
   }
 }
