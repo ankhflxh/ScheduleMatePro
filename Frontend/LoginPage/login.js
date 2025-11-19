@@ -1,22 +1,20 @@
 // === ScheduleMate — Login (robust) ===
-const API_BASE = ""; // same-origin. If hosting FE elsewhere, set "http://localhost:5174"
+const API_BASE = "";
 
 const els = {
   form: document.getElementById("loginForm"),
-  identifier: document.getElementById("username"), // username OR email
+  identifier: document.getElementById("username"),
   password: document.getElementById("password"),
   btn: document.getElementById("loginBtn"),
   alertBox: document.getElementById("loginAlert"),
-  // optional inline errors if you have them in HTML
   idError: document.getElementById("loginIdError"),
   pwdError: document.getElementById("loginPwdError"),
 };
 
-// tiny helpers
 function showBanner(msg, type = "error") {
   if (!els.alertBox) return;
   els.alertBox.textContent = msg;
-  els.alertBox.className = `alert ${type}`; // .alert.success / .alert.error
+  els.alertBox.className = `alert ${type}`;
 }
 function clearFieldErrors() {
   if (els.idError) els.idError.textContent = "";
@@ -32,8 +30,23 @@ function setSubmitting(b) {
   els.btn.textContent = b ? "Signing in..." : "Login";
 }
 
-// show verified / error messages from URL
 document.addEventListener("DOMContentLoaded", () => {
+  // 1. Background Animation (zpunet icon)
+  const bgContainer = document.getElementById("lottie-background");
+  if (bgContainer && window.lottie) {
+    window.lottie.loadAnimation({
+      container: bgContainer,
+      renderer: "svg",
+      loop: true,
+      autoplay: true,
+      path: "/Assets/zpunet icon.json", // Ensure this file exists in Assets
+      rendererSettings: {
+        preserveAspectRatio: "xMidYMid slice",
+      },
+    });
+  }
+
+  // 2. Handle URL Parameters (Verified/Error)
   try {
     const params = new URLSearchParams(window.location.search);
     const verified = params.get("verified");
@@ -50,7 +63,6 @@ document.addEventListener("DOMContentLoaded", () => {
         showBanner(String(errParam), "error");
       }
     }
-    // clean URL
     ["verified", "error"].forEach((k) => params.delete(k));
     const newQuery = params.toString();
     const newUrl = window.location.pathname + (newQuery ? `?${newQuery}` : "");
@@ -60,7 +72,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-// submit handler
 els.form?.addEventListener("submit", async (ev) => {
   ev.preventDefault();
   clearFieldErrors();
@@ -88,7 +99,6 @@ els.form?.addEventListener("submit", async (ev) => {
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-      // show server field errors if provided
       if (data?.errors) {
         if (els.idError) els.idError.textContent = data.errors.identifier || "";
         if (els.pwdError) els.pwdError.textContent = data.errors.password || "";
@@ -97,7 +107,6 @@ els.form?.addEventListener("submit", async (ev) => {
       return;
     }
 
-    // success: store session & go dashboard
     if (data?.token) localStorage.setItem("sm_token", data.token);
     if (data?.user) localStorage.setItem("sm_user", JSON.stringify(data.user));
     sessionStorage.setItem("justLoggedIn", "1");

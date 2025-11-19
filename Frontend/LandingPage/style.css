@@ -22,10 +22,25 @@
 body {
   min-height: 100vh;
   font-family: "Rubik", Arial, sans-serif;
-  background-color: var(--color-background);
   color: var(--color-text-dark);
   display: flex;
   flex-direction: column;
+
+  /* --- NEW: Animated Background Logic --- */
+  /* 1. We define a gradient with multiple soft "low light" colors */
+  background: linear-gradient(
+    -45deg,
+    #f8f9fa,
+    /* Original Off-white */ #eef2ff,
+    /* Very soft Indigo */ #f0fff4,
+    /* Very soft Mint */ #fff5f5 /* Very soft Rose */
+  );
+
+  /* 2. Zoom in on the gradient so we only see a part of it */
+  background-size: 400% 400%;
+
+  /* 3. Animate the position to move the colors */
+  animation: gradientBG 15s ease infinite;
 }
 
 /* --- Header & Navigation --- */
@@ -225,5 +240,18 @@ body {
   }
   .hero-subtitle {
     font-size: 1rem;
+  }
+}
+
+/* --- NEW: Animation Keyframes --- */
+@keyframes gradientBG {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
   }
 }
