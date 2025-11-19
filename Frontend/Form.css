@@ -1,4 +1,23 @@
-@import url("https://fonts.googleapis.com/css2?family=Rubik:wght@400;600&display=swap");
+/* Frontend/Form.css (MODERNIZED) */
+
+@import url("https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;700;900&display=swap");
+
+:root {
+  /* Modern Color Palette from Landing Page */
+  --color-primary: #6b46c1; /* Friendly Purple Accent */
+  --color-primary-light: #805ad5;
+  --color-primary-dark: #553c9a;
+  --color-background-body: #f7f9fb; /* Very Light Blue-Gray Background */
+  --color-background-card: #ffffff; /* White Card */
+  --color-text-dark: #2d3748; /* Dark Text */
+  --color-text-light: #4a5568; /* Subtle Text */
+  --color-border-subtle: #e2e8f0;
+  --color-shadow-subtle: rgba(107, 70, 193, 0.15); /* Soft Purple Shadow */
+  --color-error-bg: #fef2f2;
+  --color-error-text: #c53030;
+  --color-success-bg: #f0fff4;
+  --color-success-text: #2f855a;
+}
 
 body {
   font-family: "Rubik", Arial, sans-serif;
@@ -6,131 +25,158 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  /* No background here—handled by .bg-blur-image */
+  /* Apply a soft background */
+  background-color: var(--color-background-body);
+  margin: 0;
 }
 
-/* Blurred background image for the whole viewport */
+/* Remove blurred image background */
 .bg-blur-image {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: url("Images/loginandregister.jpg") no-repeat center center/cover;
-  filter: blur(5px) brightness(0.75);
-  z-index: 0;
-  width: 100vw;
-  height: 100vh;
-  pointer-events: none;
+  display: none; /* Hide the old blurred image */
 }
 
-/* Animated solid gradient for the auth card */
+/* Auth Card (Modernized) */
 .auth-container {
-  background: linear-gradient(120deg, #fff, #ffe3f1, #e1d5f2, #daf3ff);
-  background-size: 400% 400%;
-  animation: dreamyBackground 15s ease infinite;
-  padding: 40px 32px;
-  border-radius: 22px;
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.16);
-  width: 350px;
+  /* No more animated gradient */
+  background: var(--color-background-card);
+  padding: 2.5rem 2rem; /* Increased padding */
+  border-radius: 12px; /* Smoother radius */
+  /* Modern, subtle shadow */
+  box-shadow: 0 10px 30px -5px var(--color-shadow-subtle),
+    0 0 5px rgba(0, 0, 0, 0.05);
+  width: 100%;
+  max-width: 400px; /* Slightly wider card for better form layout */
   display: flex;
   flex-direction: column;
   align-items: center;
   position: relative;
   z-index: 1;
-}
-
-@keyframes dreamyBackground {
-  0%,
-  100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
+  transition: transform 0.3s ease;
 }
 
 .auth-title {
   font-size: 2rem;
-  font-weight: 600;
-  color: #722fbb;
-  margin-bottom: 20px;
-  letter-spacing: 1px;
+  font-weight: 700; /* Bolder title */
+  color: var(--color-text-dark); /* Darker, professional color */
+  margin-bottom: 1.5rem; /* Increased spacing */
+  letter-spacing: 0;
 }
 
 .auth-form {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 1rem; /* Consistent spacing */
 }
 
 .auth-form input {
-  padding: 12px 14px;
-  border-radius: 10px;
-  border: 1.5px solid #d3bffa;
+  padding: 1rem 1rem;
+  border-radius: 8px; /* Softer edges */
+  border: 1px solid var(--color-border-subtle);
   font-size: 1rem;
   outline: none;
-  background: #f6f3fa;
-  transition: border 0.2s;
+  background: var(
+    --color-background-body
+  ); /* Subtle gray background for inputs */
+  color: var(--color-text-dark);
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.auth-form input::placeholder {
+  color: var(--color-text-light);
+  opacity: 0.6;
 }
 
 .auth-form input:focus {
-  border-color: #a181fa;
-  background: #f3eaff;
+  border-color: var(--color-primary); /* Primary color border on focus */
+  background: var(--color-background-card);
+  box-shadow: 0 0 0 3px rgba(107, 70, 193, 0.1); /* Subtle focus ring */
 }
 
 .auth-button {
-  margin-top: 10px;
-  background: linear-gradient(90deg, #722fbb, #ec407a 90%);
+  margin-top: 0.5rem;
+  background: var(--color-primary); /* Solid primary color */
   color: #fff;
   font-weight: 600;
   border: none;
-  border-radius: 10px;
-  padding: 13px 0;
+  border-radius: 8px;
+  padding: 1.1rem 0; /* Taller button */
   font-size: 1.1rem;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(236, 64, 122, 0.08);
-  transition: background 0.2s, transform 0.1s;
+  /* Softer shadow based on primary color */
+  box-shadow: 0 4px 12px var(--color-shadow-subtle);
+  transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
 }
 
 .auth-button:hover {
-  background: linear-gradient(90deg, #ec407a, #722fbb 90%);
-  transform: translateY(-2px) scale(1.03);
+  background-color: var(--color-primary-light);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px var(--color-shadow-subtle);
 }
 
 .auth-link {
   display: block;
-  margin: 12px 0 0 0;
+  margin: 1.25rem 0 0 0;
   text-align: center;
-  color: #7e57c2;
+  color: var(--color-primary);
   text-decoration: none;
-  font-size: 0.98rem;
+  font-size: 0.95rem;
+  font-weight: 500;
   transition: color 0.18s;
 }
 
 .auth-link:hover {
-  color: #ec407a;
+  color: var(--color-primary-dark);
   text-decoration: underline;
 }
 
 /* Responsive */
 @media (max-width: 480px) {
   .auth-container {
-    padding: 22px 7vw;
-    width: 97vw;
-    min-width: unset;
+    padding: 2rem 1.5rem;
+    max-width: 95vw;
   }
 }
 
+/* --- Alerts and Errors --- */
+
 .error {
-  color: #e53935;
-  font-size: 0.96em;
-  margin-top: -10px;
-  margin-bottom: 6px;
-  min-height: 1.2em;
+  display: block;
+  color: var(--color-error-text);
+  font-size: 0.9rem;
+  margin-top: 0.35rem;
+}
+
+.input-error {
+  outline: 2px solid var(--color-error-text);
+}
+
+.alert {
+  display: none;
+  width: 100%;
+  margin-bottom: 1rem;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-weight: 500;
+  border: 1px solid transparent;
+}
+.alert.show {
   display: block;
 }
+
+.alert.error {
+  background: var(--color-error-bg);
+  color: var(--color-error-text);
+  border-left: 4px solid var(--color-error-text);
+}
+
+.alert.success {
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
+  border-left: 4px solid var(--color-success-text);
+}
+
+/* --- Modals (Modernized for consistency) --- */
 
 .modal-overlay {
   position: fixed;
@@ -138,17 +184,17 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(41, 32, 84, 0.23);
+  background: rgba(45, 55, 72, 0.6); /* Darker, modern overlay */
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1001;
 }
 .modal {
-  background: #fff;
-  padding: 30px 38px 22px 38px;
-  border-radius: 18px;
-  box-shadow: 0 6px 32px rgba(123, 73, 202, 0.13);
+  background: var(--color-background-card);
+  padding: 30px 40px 25px 40px;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
   min-width: 320px;
   max-width: 92vw;
   display: flex;
@@ -156,61 +202,46 @@ body {
   align-items: center;
 }
 .modal-title {
-  font-size: 1.3rem;
-  color: #a047e7;
+  font-size: 1.4rem;
+  color: var(--color-text-dark);
   font-weight: 700;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 .modal-body {
-  color: #432c63;
-  font-size: 1.08rem;
-  margin-bottom: 22px;
+  color: var(--color-text-light);
+  font-size: 1.05rem;
+  margin-bottom: 25px;
   text-align: center;
 }
 .modal-actions {
   display: flex;
-  gap: 14px;
+  gap: 1rem;
   justify-content: center;
+  width: 100%;
 }
 .modal-btn {
-  background: linear-gradient(90deg, #722fbb, #ec407a 90%);
+  background: var(--color-primary);
   color: #fff;
   border: none;
   border-radius: 8px;
   font-weight: 600;
-  padding: 11px 32px;
-  font-size: 1.08rem;
+  padding: 0.8rem 2rem;
+  font-size: 1rem;
   cursor: pointer;
-  transition: background 0.18s, transform 0.11s;
+  transition: background-color 0.18s, transform 0.11s;
 }
 .modal-btn:hover {
-  filter: brightness(1.09);
-  transform: translateY(-1px) scale(1.04);
+  background-color: var(--color-primary-light);
+  transform: translateY(-1px);
 }
 
-.input-error {
-  outline: 2px solid #e53935;
-}
-.error {
-  display: block;
-  color: #e53935;
-  font-size: 0.9rem;
-  margin-top: 0.35rem;
-}
-.alert {
-  display: none;
-  margin-bottom: 12px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  background: #fde7e7;
-  color: #8b1d1d;
-  font-weight: 600;
-}
-.alert.show {
-  display: block;
-}
+/* Ensure other modal styles remain functional (like sm-modal) but inherit the new aesthetic */
 
-/* Tiny, clean modal */
+/* Absolutely hide anything with the HTML hidden attribute */
+[hidden] {
+  display: none !important;
+}
+/* The following styles were retained/updated from the original Form.css but rely on the new variables */
 .sm-modal-backdrop {
   position: fixed;
   inset: 0;
@@ -220,7 +251,7 @@ body {
   z-index: 1000;
 }
 .sm-modal {
-  background: rgb(255, 255, 255);
+  background: var(--color-background-card);
   max-width: 28rem;
   width: 90%;
   padding: 1.25rem 1.5rem;
@@ -230,42 +261,23 @@ body {
 .sm-modal h2 {
   margin: 0 0 0.5rem 0;
   font-size: 1.25rem;
+  color: var(--color-text-dark);
 }
 .sm-modal p {
   margin: 0 0 1rem 0;
   line-height: 1.4;
+  color: var(--color-text-light);
 }
 .sm-actions {
   display: flex;
   gap: 0.75rem;
   justify-content: flex-end;
 }
-.sm-actions button {
-  padding: 0.6rem 1rem;
-  border: 0;
-  border-radius: 0.5rem;
-  cursor: pointer;
-}
 #sm-go-login {
-  background: rgb(16, 90, 228);
+  background: var(--color-primary);
   color: white;
 }
 #sm-close {
-  background: rgb(233, 233, 233);
-}
-
-/* Absolutely hide anything with the HTML hidden attribute */
-[hidden] {
-  display: none !important;
-}
-
-.alert.success {
-  display: block;
-  margin-bottom: 12px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  background: #d4edda; /* light green background */
-  color: #155724; /* dark green text */
-  font-weight: 600;
-  border-left: 4px solid #28a745; /* accent bar */
+  background: var(--color-border-subtle);
+  color: var(--color-text-dark);
 }

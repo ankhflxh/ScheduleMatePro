@@ -1,52 +1,46 @@
 <!DOCTYPE html>
 <html lang="en">
-   
   <head>
-       
     <meta charset="UTF-8" />
-       
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Register</title>
-       
     <link rel="stylesheet" href="/Form.css" />
-       
     <link rel="icon" type="image/png" href="/Images/favicon.png" />
-     
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
   </head>
-   
   <body>
-           
-    <section class="bg-blur-image"></section>
+    <div class="bg-blur-image"></div>
 
-       
-    <section class="auth-container">
-           
-      <section class="auth-title">Create Account</section>
+    <div class="auth-container">
+      <div
+        id="lottie-register-icon"
+        style="width: 80px; height: 80px; margin-bottom: 0.5rem"
+      ></div>
 
-                 
-      <section id="registerBanner" class="alert" style="display: none">
-                <span id="countdownTimer"></span>        
-        <button
-          id="resendLinkBtn"
-          class="auth-button"
-          disabled
-          style="display: none"
-        >
-                                Resend Verification Link                
-        </button>
-             
-      </section>
-
-           
+      <div class="auth-title">Create Your Account</div>
+      <div id="registerAlert" class="alert"></div>
       <form class="auth-form" id="registerForm">
-               
+        <input
+          type="text"
+          id="first_name"
+          placeholder="First Name"
+          required
+          autocomplete="given-name"
+        />
+        <input
+          type="text"
+          id="last_name"
+          placeholder="Last Name"
+          required
+          autocomplete="family-name"
+        />
         <input
           type="text"
           id="username"
-          placeholder="Full Name"
+          placeholder="Username"
           required
           autocomplete="username"
         />
-               
         <input
           type="email"
           id="email"
@@ -54,7 +48,6 @@
           required
           autocomplete="email"
         />
-               
         <input
           type="password"
           id="password"
@@ -62,54 +55,35 @@
           required
           autocomplete="new-password"
         />
-               
         <input
           type="password"
-          id="confirmPassword"
+          id="confirm_password"
           placeholder="Confirm Password"
           required
           autocomplete="new-password"
         />
-               
         <button type="submit" class="auth-button" id="registerBtn">
-                    Register        
+          Sign Up
         </button>
-             
       </form>
+      <a href="../LoginPage/login.html" class="auth-link"
+        >Already have an account? Login</a
+      >
+    </div>
 
-           
-      <a href="/LoginPage/login.html" class="auth-link">
-                Already have an account? Login      
-      </a>
-         
-    </section>
+    <div id="verificationModal" class="sm-modal-backdrop" hidden>
+      <div class="sm-modal">
+        <h2>✅ Verification Required</h2>
+        <p>
+          Your account has been created. Please check your email inbox to verify
+          your account before logging in.
+        </p>
+        <div class="sm-actions">
+          <button id="sm-go-login" class="modal-btn">Go to Login</button>
+        </div>
+      </div>
+    </div>
 
-           
-    <section
-      id="registerErrorModal"
-      class="modal-overlay"
-      style="display: none"
-    >
-           
-      <section class="modal">
-               
-        <section class="modal-title" style="color: #e53935">
-                    Registration Failed        
-        </section>
-               
-        <section class="modal-body" id="registerErrorMessage"></section>
-               
-        <section class="modal-actions">
-                    <button id="registerErrorOk" class="modal-btn">OK</button>  
-               
-        </section>
-             
-      </section>
-         
-    </section>
-
-       
-    <script src="/RegisterPage/register.js" defer></script>
-     
+    <script defer src="./register.js"></script>
   </body>
 </html>

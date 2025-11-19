@@ -14,9 +14,10 @@ document.addEventListener("DOMContentLoaded", () => {
       renderer: "svg",
       loop: true,
       autoplay: true,
-      // UPDATED: Reference the local Agenda.json file.
-      // Ensure you have placed this file in Frontend/Assets/
-      path: "../Assets/Agenda.json",
+      // UPDATED PATH: Using a forward slash at the start for a root-relative path
+      // is often safer if the 'Frontend' directory is served as the root.
+      // Check your Assets folder location and adjust path if necessary.
+      path: "/Assets/Agenda.json",
     });
   }
 

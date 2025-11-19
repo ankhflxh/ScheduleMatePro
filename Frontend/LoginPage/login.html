@@ -2,16 +2,16 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Login</title>
     <link rel="stylesheet" href="/Form.css" />
     <link rel="icon" type="image/png" href="/Images/favicon.png" />
   </head>
   <body>
-    <!-- Blurred background -->
     <div class="bg-blur-image"></div>
 
     <div class="auth-container">
-      <div class="auth-title">Sign In</div>
+      <div class="auth-title">Welcome Back</div>
       <div id="loginAlert" class="alert"></div>
       <form class="auth-form" id="loginForm">
         <input
@@ -28,17 +28,18 @@
           required
           autocomplete="current-password"
         />
-        <button type="submit" class="auth-button" id="loginBtn">Login</button>
+        <button type="submit" class="auth-button" id="loginBtn">Sign In</button>
       </form>
       <a href="../RegisterPage/register.html" class="auth-link"
         >Don't have an account? Register</a
       >
     </div>
 
-    <!-- Login Error Modal -->
     <div id="loginErrorModal" class="modal-overlay" style="display: none">
       <div class="modal">
-        <div class="modal-title" style="color: #e53935">Login Failed</div>
+        <div class="modal-title" style="color: var(--color-error-text)">
+          Login Failed
+        </div>
         <div class="modal-body" id="loginErrorMessage"></div>
         <div class="modal-actions">
           <button id="loginErrorOk" class="modal-btn">OK</button>
