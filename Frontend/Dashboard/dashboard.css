@@ -1,3 +1,22 @@
+/* Frontend/Dashboard/dashboard.css */
+
+@import url("https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;700&display=swap");
+
+:root {
+  --primary: #6b46c1;
+  --primary-light: #805ad5;
+  --primary-dark: #553c9a;
+  --accent: #d53f8c; /* Pink accent for "Create" */
+  --bg-body: #f7f9fb;
+  --glass-bg: rgba(255, 255, 255, 0.75);
+  --glass-border: rgba(255, 255, 255, 0.4);
+  --card-bg: #ffffff;
+  --text-main: #2d3748;
+  --text-muted: #718096;
+  --shadow-soft: 0 8px 30px rgba(0, 0, 0, 0.05);
+  --shadow-hover: 0 20px 40px rgba(107, 70, 193, 0.15);
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -6,366 +25,344 @@
 
 body {
   font-family: "Rubik", sans-serif;
+  background-color: var(--bg-body);
+  color: var(--text-main);
   min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  /* No background here—it's handled by .bg-blur-image and .dashboard-wrapper */
+  overflow-x: hidden;
 }
 
-/* Blurred background image slot */
-.bg-blur-image {
+/* --- Background Animation (Subtle moving blobs) --- */
+.bg-animation {
   position: fixed;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 0;
-  background: url("../Images/dashboard.jpg") no-repeat center center/cover;
-  filter: blur(13px) brightness(0.75);
-  width: 100vw;
-  height: 100vh;
-  pointer-events: none;
-}
-
-/* Main animated solid gradient card */
-.dashboard-wrapper.animated-gradient-bg {
-  background: linear-gradient(120deg, #fff, #ffe3f1, #e1d5f2, #daf3ff);
-  background-size: 400% 400%;
-  animation: dreamyBackground 15s ease infinite;
   width: 100%;
-  max-width: 1100px;
-  margin: 40px 20px;
-  padding: 40px;
-  border-radius: 18px;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.1);
-  position: relative;
-  z-index: 1;
+  height: 100%;
+  z-index: -1;
+  background: radial-gradient(circle at 0% 0%, #e9d8fd, transparent 50%),
+    radial-gradient(circle at 100% 100%, #fed7e2, transparent 50%);
+  filter: blur(40px);
+  opacity: 0.6;
 }
 
-@keyframes dreamyBackground {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
-}
-
-.top-bar {
-  margin-bottom: 35px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between; /* Added to space the title and logout button */
-  gap: 12px;
-}
-
-.top-bar h1 {
-  font-size: 28px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.gradient-icon {
-  font-size: 30px;
-  background: linear-gradient(45deg, #ff4081, #7c4dff);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.section {
-  margin-bottom: 40px;
-}
-
-.section h2 {
-  font-size: 22px;
-  margin-bottom: 16px;
-  color: #4a148c;
-}
-
-.card-grid {
+/* --- Main Layout --- */
+.dashboard-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 20px;
+  grid-template-columns: 1fr 350px; /* Main Content | Sidebar */
+  gap: 2rem;
+  min-height: 100vh;
 }
 
-.card {
-  background-color: #f9f9f9;
-  border-radius: 12px;
-  padding: 18px 20px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.07);
-  border-left: 5px solid #7c4dff;
-  transition: transform 0.2s ease;
+/* --- Header & Welcome --- */
+.header-section {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
 }
 
-.card:hover {
-  transform: translateY(-2px);
+.brand {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.card h3 {
-  font-size: 18px;
-  margin-bottom: 6px;
-  color: #333;
+.logout-btn {
+  background: transparent;
+  border: 2px solid #e2e8f0;
+  padding: 0.5rem 1.2rem;
+  border-radius: 50px;
+  color: var(--text-muted);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.card p {
-  font-size: 14px;
-  color: #555;
+.logout-btn:hover {
+  border-color: #fc8181;
+  color: #e53e3e;
+  background: #fff5f5;
 }
 
-.meeting-list {
-  list-style: none;
+/* --- Main Content Area (Left Side) --- */
+.main-content {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 2rem;
 }
 
-.meeting-list li {
-  background-color: #fefefe;
-  padding: 14px 18px;
-  border-radius: 10px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.06);
-  font-size: 15px;
-}
-
-.form-block {
-  background: #f6f6f6;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.05);
-  margin-bottom: 24px;
-}
-
-.form-block h3 {
-  font-size: 18px;
-  margin-bottom: 14px;
-}
-
-input[type="text"] {
-  width: 100%;
-  padding: 12px;
-  font-size: 15px;
-  margin-bottom: 10px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
-}
-
-.submit-btn {
-  background-color: #ec407a;
-  color: white;
-  font-weight: bold;
-  border: none;
-  padding: 12px 18px;
-  border-radius: 10px;
-  cursor: pointer;
-  font-size: 15px;
-  display: inline-flex;
+/* Quick Actions Bar */
+.quick-actions {
+  display: flex;
+  gap: 1.5rem;
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  padding: 1.5rem;
+  border-radius: 20px;
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-soft);
   align-items: center;
-  gap: 8px;
-  transition: background-color 0.3s ease;
 }
 
-.submit-btn:hover {
-  background-color: #d81b60;
+.action-card {
+  flex: 1;
+  display: flex;
+  gap: 1rem;
+  align-items: center;
 }
 
-.empty-msg {
-  font-style: italic;
-  color: #777;
-  font-size: 14px;
-  padding: 10px 0;
+.action-input {
+  flex: 1;
+  padding: 0.8rem 1rem;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  outline: none;
+  transition: all 0.2s;
+}
+.action-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(107, 70, 193, 0.1);
 }
 
-/* Responsive design */
-@media (max-width: 700px) {
-  .dashboard-wrapper.animated-gradient-bg {
-    padding: 14px 5vw;
-    margin: 20px 0;
+.action-btn {
+  padding: 0.8rem 1.5rem;
+  border-radius: 12px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: white;
+  transition: transform 0.1s, box-shadow 0.2s;
+}
+
+.btn-create {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+}
+.btn-join {
+  background: linear-gradient(135deg, var(--accent), #ed64a6);
+}
+
+.action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Room Grid */
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 1rem;
+}
+
+.rooms-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.room-card {
+  background: var(--card-bg);
+  border-radius: 20px;
+  padding: 1.5rem;
+  box-shadow: var(--shadow-soft);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid transparent;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 180px;
+}
+
+.room-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 6px;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+}
+
+.room-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-hover);
+  border-color: var(--primary-light);
+}
+
+.room-name {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+.room-code {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+.card-actions {
+  margin-top: auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.btn-enter {
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.btn-delete {
+  background: transparent;
+  border: none;
+  color: #cbd5e0;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.btn-delete:hover {
+  color: #fc8181;
+}
+
+/* --- Sidebar (Right Side - Meetings) --- */
+.sidebar {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  border-radius: 24px;
+  padding: 2rem;
+  border: 1px solid var(--glass-border);
+  height: fit-content;
+  position: sticky;
+  top: 2rem;
+  box-shadow: var(--shadow-soft);
+}
+
+.meeting-item {
+  background: white;
+  padding: 1rem;
+  border-radius: 16px;
+  margin-bottom: 1rem;
+  border-left: 4px solid var(--primary);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
+}
+
+.meeting-time {
+  font-size: 0.85rem;
+  color: var(--primary);
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 0.25rem;
+}
+.meeting-info {
+  font-size: 0.95rem;
+  color: var(--text-main);
+  font-weight: 500;
+}
+.meeting-loc {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* --- Empty States --- */
+.empty-state {
+  text-align: center;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.lottie-container {
+  width: 200px;
+  height: 200px;
+  margin-bottom: 1rem;
+}
+
+.empty-text {
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 0.5rem;
+}
+.empty-sub {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+/* --- Responsive --- */
+@media (max-width: 900px) {
+  .dashboard-container {
+    grid-template-columns: 1fr;
   }
-  .form-block,
-  .card {
-    padding: 12px;
+  .sidebar {
+    position: static;
+    margin-top: 2rem;
   }
-  .top-bar h1 {
-    font-size: 22px;
-  }
-  .section h2 {
-    font-size: 18px;
+  .quick-actions {
+    flex-direction: column;
+    align-items: stretch;
   }
 }
 
-/* --- Modals and Overlays (Condensed for readability) --- */
-
+/* --- Modal Styles (reused clean look) --- */
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(41, 32, 84, 0.23);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1001;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  display: none;
+  place-items: center;
+  z-index: 100;
 }
-.modal {
-  background: #fff;
-  padding: 32px 38px 26px 38px;
-  border-radius: 18px;
-  box-shadow: 0 6px 32px rgba(123, 73, 202, 0.13);
-  min-width: 320px;
-  max-width: 92vw;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+.modal-box {
+  background: white;
+  padding: 2rem;
+  border-radius: 20px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  max-width: 400px;
+  width: 90%;
 }
 .modal-title {
-  font-size: 1.3rem;
-  color: #a047e7;
+  font-size: 1.25rem;
   font-weight: 700;
-  margin-bottom: 14px;
+  color: var(--text-main);
+  margin-bottom: 0.5rem;
 }
-.modal-body {
-  color: #432c63;
-  font-size: 1.08rem;
-  margin-bottom: 22px;
-  text-align: center;
+.modal-msg {
+  color: var(--text-muted);
+  margin-bottom: 1.5rem;
 }
 .modal-actions {
   display: flex;
-  gap: 14px;
   justify-content: center;
-}
-.modal-btn {
-  background: linear-gradient(90deg, #722fbb, #ec407a 90%);
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  padding: 11px 32px;
-  font-size: 1.08rem;
-  cursor: pointer;
-  transition: background 0.18s, transform 0.11s;
-}
-.modal-btn:hover {
-  filter: brightness(1.09);
-  transform: translateY(-1px) scale(1.04);
+  gap: 1rem;
 }
 
-/* Delete Modal Styling */
-.modal-overlay {
-  background: rgba(0, 0, 0, 0.4);
+/* Alert for errors */
+.inline-error {
+  color: #e53e3e;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
   display: none;
-  justify-content: center;
-  align-items: center;
-}
-
-.modal-box {
-  background: #fff;
-  border-radius: 16px;
-  padding: 32px;
-  max-width: 360px;
-  width: 90%;
-  text-align: center;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-  font-family: "Rubik", sans-serif;
-}
-
-.modal-box p {
-  font-size: 18px;
-  margin-bottom: 20px;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: space-around;
-  gap: 12px;
-}
-
-.modal-actions .yes-btn {
-  background: linear-gradient(45deg, #e53935, #ef5350);
-  color: white;
-  border: none;
-  padding: 10px 18px;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.modal-actions .cancel-btn {
-  background: #ccc;
-  color: #333;
-  border: none;
-  padding: 10px 18px;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-/* Gradient Logout Button */
-.styled-logout-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  background: linear-gradient(45deg, #f44336, #e57373);
-  color: white;
-  font-weight: 600;
-  border: none;
-  border-radius: 12px;
-  cursor: pointer;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
-  font-size: 16px;
-  transition: background 0.3s ease;
-}
-
-.styled-logout-btn:hover {
-  background: linear-gradient(45deg, #d32f2f, #ef5350);
-}
-
-.room-actions {
-  display: flex;
-  gap: 12px;
-  margin-top: 12px;
-}
-
-/* Styling for the Empty State / Zero State Containers */
-.empty-state-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 40px 0; /* Add padding for visual separation */
-  min-height: 250px; /* Ensure space even when empty */
-}
-
-.empty-illustration {
-  /* Set a fixed size for the Lottie animation */
-  width: 250px;
-  height: 250px;
-  margin-bottom: 15px;
-  pointer-events: none; /* Prevents interference with clicks */
-}
-
-.empty-msg {
-  font-style: normal !important; /* Override default italic */
-  color: #333;
-  font-size: 18px;
-  font-weight: 600;
-  margin-bottom: 5px;
-}
-
-.empty-msg-secondary {
-  font-size: 14px;
-  color: #777;
-}
-
-/* Ensure the main content containers reset the height when content loads */
-#my-rooms,
-#my-meetings {
-  min-height: 200px;
 }
