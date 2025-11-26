@@ -40,16 +40,19 @@ document.addEventListener("DOMContentLoaded", () => {
     const verifyModal = document.getElementById("verificationSuccessModal");
     if (verifyModal) {
       verifyModal.style.display = "flex";
-      const lockAnim = document.getElementById("lottie-lock-animation");
-      if (lockAnim && window.lottie) {
+
+      // UPDATED: Target the new success container
+      const successAnim = document.getElementById("lottie-success-animation");
+      if (successAnim && window.lottie) {
         window.lottie.loadAnimation({
-          container: lockAnim,
+          container: successAnim,
           renderer: "svg",
-          loop: false,
+          loop: false, // Play once for success ticks
           autoplay: true,
-          path: "/Assets/Lock.json",
+          path: "/Assets/success.json", // UPDATED: Points to success.json
         });
       }
+
       // Close button logic
       const okBtn = document.getElementById("verifyOkBtn");
       if (okBtn) okBtn.onclick = () => (verifyModal.style.display = "none");

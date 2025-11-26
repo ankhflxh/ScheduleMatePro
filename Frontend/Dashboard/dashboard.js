@@ -15,28 +15,23 @@ const infoTitle = document.getElementById("infoModalTitle");
 const infoBody = document.getElementById("infoModalBody");
 const infoOkBtn = document.getElementById("infoModalOk");
 
-// --- HELPER: Show Info Modal ---
 function showModal(title, message) {
-  infoTitle.textContent = title;
-  infoBody.textContent = message;
-  infoModal.style.display = "grid";
+  if (infoTitle && infoBody && infoModal) {
+    infoTitle.textContent = title;
+    infoBody.textContent = message;
+    infoModal.style.display = "grid";
+  }
 }
-infoOkBtn.onclick = () => (infoModal.style.display = "none");
+if (infoOkBtn) infoOkBtn.onclick = () => (infoModal.style.display = "none");
 
-// Validate room name
 function isRoomNameValid(name) {
   return /^[A-Za-z]{4,}$/.test(name);
 }
-document.getElementById("create-room-name").addEventListener("input", () => {
-  roomNameError.style.display = "none";
-});
-
-// --- LOTTIE LOADER ---
-function loadLottieAnimation(playerSelector, jsonPath) {
-  const player = document.querySelector(playerSelector);
-  if (player) {
-    player.load(jsonPath);
-  }
+const createRoomNameInput = document.getElementById("create-room-name");
+if (createRoomNameInput) {
+  createRoomNameInput.addEventListener("input", () => {
+    roomNameError.style.display = "none";
+  });
 }
 
 // --- AUTH & INIT ---
@@ -53,35 +48,40 @@ if (!token) {
       return res.json();
     })
     .then((user) => {
-      // Use user_id if provided, fallback to id
       const userId = user.user_id || user.id;
       window.SLOTIFY_USER_ID = userId;
 
-      // --- NEW: Update Dashboard Title (FIXED) ---
       const titleEl = document.getElementById("dashboard-title");
       if (titleEl) {
-        // Backend sends 'user_username', but we check 'username' just in case
         const nameToDisplay = user.username || user.user_username || "User";
-
-        // Capitalize first letter for better look
         const displayName =
           nameToDisplay.charAt(0).toUpperCase() + nameToDisplay.slice(1);
-
         titleEl.textContent = `${displayName}'s Dashboard`;
       }
 
-      // Welcome Message Logic
       if (sessionStorage.getItem("justLoggedIn") === "1") {
-        const firstVisit = !localStorage.getItem("firstVisitDone");
+        const visitKey = `firstVisitDone_${userId}`;
+        const oldKey = "firstVisitDone";
+        let hasVisited = localStorage.getItem(visitKey);
+
+        if (!hasVisited && localStorage.getItem(oldKey)) {
+          hasVisited = "true";
+          localStorage.setItem(visitKey, "true");
+        }
+
+        const isFirstVisit = !hasVisited;
         const welcomeName = user.username || user.user_username || "User";
 
         showModal(
-          firstVisit ? `Welcome, ${welcomeName}!` : `Welcome Back!`,
-          firstVisit
+          isFirstVisit
+            ? `Welcome to ScheduleMatePro, ${welcomeName}!`
+            : `Welcome Back!`,
+          isFirstVisit
             ? "Ready to schedule? Create a room to get started."
             : "Good to see you again."
         );
-        if (firstVisit) localStorage.setItem("firstVisitDone", "true");
+
+        if (isFirstVisit) localStorage.setItem(visitKey, "true");
         sessionStorage.removeItem("justLoggedIn");
       }
 
@@ -90,10 +90,45 @@ if (!token) {
     })
     .catch((err) => {
       console.error("Dashboard Load Error:", err);
-      // If session is invalid, clear token and redirect
       localStorage.removeItem("sm_token");
       window.location.href = "/LoginPage/login.html";
     });
+}
+
+// --- HELPER: Filter Past Meetings ---
+function isUpcoming(dayName, endTimeStr) {
+  const days = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ];
+  const now = new Date();
+  const currentDayIndex = now.getDay();
+  const meetingDayIndex = days.indexOf(dayName);
+
+  if (meetingDayIndex === -1) return true; // Show if invalid to be safe
+
+  // 1. If today is the meeting day, check if END time has passed
+  if (currentDayIndex === meetingDayIndex) {
+    const [hours, minutes] = endTimeStr.split(":");
+    const meetingEndTimeToday = new Date();
+    meetingEndTimeToday.setHours(hours, minutes, 0);
+
+    // Show if NOW is before the meeting ENDS
+    return now < meetingEndTimeToday;
+  }
+
+  // 2. If meeting day is later in the week -> Show it
+  if (meetingDayIndex > currentDayIndex) {
+    return true;
+  }
+
+  // 3. If meeting day was earlier in the week -> Hide it (It's past)
+  return false;
 }
 
 // --- LOAD ROOMS ---
@@ -103,23 +138,22 @@ function loadRooms(userId) {
   })
     .then((res) => res.json())
     .then((rooms) => {
-      roomsContainer.innerHTML = "";
+      if (roomsContainer) roomsContainer.innerHTML = "";
 
       if (!rooms || rooms.length === 0) {
-        roomsContainer.style.display = "none";
-        noRoomsMsg.style.display = "flex"; // Show Flex for centering
+        if (roomsContainer) roomsContainer.style.display = "none";
+        if (noRoomsMsg) noRoomsMsg.style.display = "flex";
         return;
       }
 
-      roomsContainer.style.display = "grid";
-      noRoomsMsg.style.display = "none";
+      if (roomsContainer) roomsContainer.style.display = "grid";
+      if (noRoomsMsg) noRoomsMsg.style.display = "none";
 
       rooms.forEach((room) => {
         const card = document.createElement("div");
         card.className = "room-card";
         const roomName = room.room_name || room.name;
         const roomId = room.room_id || room.id;
-
         const codeDisplay = room.code
           ? `Code: <span style="font-family:monospace; background:#edf2f7; padding:2px 5px; border-radius:4px;">${room.code}</span>`
           : "";
@@ -138,7 +172,7 @@ function loadRooms(userId) {
             </button>
           </div>
         `;
-        roomsContainer.appendChild(card);
+        if (roomsContainer) roomsContainer.appendChild(card);
       });
     })
     .catch(console.error);
@@ -151,112 +185,125 @@ function loadMeetings(userId) {
   })
     .then((res) => res.json())
     .then((meetings) => {
-      meetingsList.innerHTML = "";
-      if (!meetings.length) {
-        noMeetingsMsg.style.display = "flex";
+      if (meetingsList) meetingsList.innerHTML = "";
+
+      // FILTER: Only keep upcoming/active meetings for THIS WEEK
+      const upcomingMeetings = meetings.filter(
+        (m) =>
+          m.meeting_day && m.end_time && isUpcoming(m.meeting_day, m.end_time)
+      );
+
+      if (!upcomingMeetings.length) {
+        if (noMeetingsMsg) noMeetingsMsg.style.display = "flex";
         return;
       }
-      noMeetingsMsg.style.display = "none";
+      if (noMeetingsMsg) noMeetingsMsg.style.display = "none";
 
-      meetings.forEach((m) => {
+      upcomingMeetings.forEach((m) => {
         const div = document.createElement("div");
         div.className = "meeting-item";
+
+        const cleanStart = m.start_time ? m.start_time.substring(0, 5) : "";
+
         div.innerHTML = `
-          <div class="meeting-time">${m.day} @ ${m.start_time}</div>
+          <div class="meeting-time">${m.meeting_day} @ ${cleanStart}</div>
           <div class="meeting-info">Room: ${m.room_name}</div>
           <div class="meeting-loc">
             <span class="material-icons" style="font-size:1rem">place</span> ${m.location}
           </div>
         `;
-        meetingsList.appendChild(div);
+        if (meetingsList) meetingsList.appendChild(div);
       });
     })
     .catch(console.error);
 }
 
-// --- CREATE ROOM ---
-createForm.addEventListener("submit", (e) => {
-  e.preventDefault();
-  const name = document.getElementById("create-room-name").value.trim();
-
-  if (!isRoomNameValid(name)) {
-    roomNameError.textContent = "Name must be 4+ letters, no numbers/symbols.";
-    roomNameError.style.display = "block";
-    return;
-  }
-
-  fetch("/api/rooms", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "X-Auth-Token": token },
-    body: JSON.stringify({ name }),
-  })
-    .then((res) => res.json())
-    .then((room) => {
-      if (room.error) throw new Error(room.error);
-      showModal("Success", `Room "${room.name}" created! Code: ${room.code}`);
-      document.getElementById("create-room-name").value = "";
-      loadRooms(window.SLOTIFY_USER_ID);
+// --- CREATE/JOIN/LOGOUT/DELETE Logic (Unchanged) ---
+if (createForm) {
+  createForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const nameInput = document.getElementById("create-room-name");
+    const name = nameInput.value.trim();
+    if (!isRoomNameValid(name)) {
+      roomNameError.textContent =
+        "Name must be 4+ letters, no numbers/symbols.";
+      roomNameError.style.display = "block";
+      return;
+    }
+    fetch("/api/rooms", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Auth-Token": token },
+      body: JSON.stringify({ name }),
     })
-    .catch((err) => showModal("Error", err.message));
-});
+      .then((res) => res.json())
+      .then((room) => {
+        if (room.error) throw new Error(room.error);
+        showModal("Success", `Room "${room.name}" created! Code: ${room.code}`);
+        nameInput.value = "";
+        loadRooms(window.SLOTIFY_USER_ID);
+      })
+      .catch((err) => showModal("Error", err.message));
+  });
+}
 
-// --- JOIN ROOM ---
-joinForm.addEventListener("submit", (e) => {
-  e.preventDefault();
-  const code = document.getElementById("join-room-code").value.trim();
-
-  fetch("/api/rooms/join", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "X-Auth-Token": token },
-    body: JSON.stringify({ inviteCode: code }),
-  })
-    .then((res) => res.json())
-    .then((data) => {
-      if (data.error) throw new Error(data.error);
-      showModal("Joined!", "You have successfully joined the room.");
-      document.getElementById("join-room-code").value = "";
-      loadRooms(window.SLOTIFY_USER_ID);
+if (joinForm) {
+  joinForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const codeInput = document.getElementById("join-room-code");
+    const code = codeInput.value.trim();
+    fetch("/api/rooms/join", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Auth-Token": token },
+      body: JSON.stringify({ inviteCode: code }),
     })
-    .catch((err) => showModal("Error", err.message));
-});
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.error) throw new Error(data.error);
+        showModal("Joined!", "You have successfully joined the room.");
+        codeInput.value = "";
+        loadRooms(window.SLOTIFY_USER_ID);
+      })
+      .catch((err) => showModal("Error", err.message));
+  });
+}
 
-// --- LOGOUT LOGIC ---
 const logoutModal = document.getElementById("logoutModal");
-document.getElementById("logout-button").onclick = () =>
-  (logoutModal.style.display = "grid");
+const logoutBtn = document.getElementById("logout-button");
+if (logoutBtn) {
+  logoutBtn.onclick = () => (logoutModal.style.display = "grid");
+}
 window.closeLogoutModal = () => (logoutModal.style.display = "none");
-
 window.confirmLogout = () => {
   localStorage.removeItem("sm_token");
-  localStorage.removeItem("firstVisitDone");
   window.location.href = "../../LandingPage/index.html";
 };
 
-// --- DELETE ROOM LOGIC ---
 let deleteTargetId = null;
 const deleteModal = document.getElementById("deleteRoomModal");
-
 document.addEventListener("click", (e) => {
   const btn = e.target.closest(".delete-room-btn");
   if (btn) {
     deleteTargetId = btn.dataset.roomId;
-    deleteModal.style.display = "grid";
+    if (deleteModal) deleteModal.style.display = "grid";
   }
 });
-
-window.closeDeleteModal = () => (deleteModal.style.display = "none");
-
-document.getElementById("confirmDeleteBtn").onclick = () => {
-  if (!deleteTargetId) return;
-  fetch(`/api/rooms/${deleteTargetId}/leave`, {
-    method: "DELETE",
-    headers: { "X-Auth-Token": token },
-  }).then((res) => {
-    if (res.ok) {
-      loadRooms(window.SLOTIFY_USER_ID);
-      closeDeleteModal();
-    } else {
-      alert("Failed to delete room.");
-    }
-  });
+window.closeDeleteModal = () => {
+  if (deleteModal) deleteModal.style.display = "none";
 };
+const confirmDeleteBtn = document.getElementById("confirmDeleteBtn");
+if (confirmDeleteBtn) {
+  confirmDeleteBtn.onclick = () => {
+    if (!deleteTargetId) return;
+    fetch(`/api/rooms/${deleteTargetId}/leave`, {
+      method: "DELETE",
+      headers: { "X-Auth-Token": token },
+    }).then((res) => {
+      if (res.ok) {
+        loadRooms(window.SLOTIFY_USER_ID);
+        closeDeleteModal();
+      } else {
+        alert("Failed to delete room.");
+      }
+    });
+  };
+}

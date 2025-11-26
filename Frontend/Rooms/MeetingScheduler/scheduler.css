@@ -125,26 +125,37 @@ body {
   gap: 8px;
 }
 
-.suggestion-card {
-  background: rgba(255, 255, 255, 0.5);
-  border-radius: 16px;
-  padding: 1rem;
+/* NEW: Grid for suggestions */
+.suggestions-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
   margin-bottom: 1.5rem;
 }
+
+.suggestion-card {
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 16px;
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+}
+
 .suggestion-card .label {
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 1px;
   color: #64748b;
   font-weight: 700;
+  display: block;
+  margin-bottom: 4px;
 }
 .suggestion-card p {
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 600;
   color: var(--text-main);
-  margin-top: 4px;
 }
 
+/* Confirm Button */
 .confirm-fab {
   width: 100%;
   background: var(--text-main);
