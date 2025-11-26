@@ -1,10 +1,11 @@
+// File: Backend/server.js
 const path = require("path");
 const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
-const cron = require("node-cron"); // 1. Import cron
-const pool = require("./db"); // Import DB pool
-const sgMail = require("@sendgrid/mail"); // Import SendGrid
+const cron = require("node-cron");
+const pool = require("./db");
+const sgMail = require("@sendgrid/mail");
 require("dotenv").config();
 
 const { router: authRoutes } = require("./Routes/auth");
@@ -46,19 +47,105 @@ app.get("/", (req, res) => {
 });
 
 // ----------------------------------------------------------------
-// ⏰ CRON JOB: Send Reminder Emails at 7:00 PM Every Day
+// ⏰ CRON JOB 1: Send "Meeting Started" Emails (Runs Every Minute)
+// ----------------------------------------------------------------
+cron.schedule("* * * * *", async () => {
+  // 1. Get Current Day & Time
+  const now = new Date();
+  const currentDay = now.toLocaleDateString("en-US", { weekday: "long" });
+
+  // Format time as HH:MM:00 for comparison
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+  const currentTime = `${hours}:${minutes}:00`;
+
+  try {
+    // 2. Find meetings that:
+    //    - Match Today
+    //    - Have Started (Start Time <= Now)
+    //    - Haven't sent the "Started" email yet
+    const meetingsResult = await pool.query(
+      `SELECT m.id, m.room_id, m.start_time, m.location, r.name as room_name 
+       FROM meetings m
+       JOIN rooms r ON m.room_id = r.id
+       WHERE m.meeting_day = $1
+         AND m.started_email_sent = FALSE
+         AND m.start_time <= $2
+         AND m.end_time > $2`, // Optional: Ensure it hasn't already ended
+      [currentDay, currentTime]
+    );
+
+    const meetings = meetingsResult.rows;
+
+    if (meetings.length > 0) {
+      console.log(`🚀 Found ${meetings.length} new meetings starting now.`);
+
+      for (const meeting of meetings) {
+        // A. Mark as sent IMMEDIATELY to prevent double sends
+        await pool.query(
+          "UPDATE meetings SET started_email_sent = TRUE WHERE id = $1",
+          [meeting.id]
+        );
+
+        // B. Fetch Members
+        const memberResult = await pool.query(
+          `SELECT u.email, u.username 
+           FROM room_members rm
+           JOIN users u ON rm.user_id = u.id
+           WHERE rm.room_id = $1`,
+          [meeting.room_id]
+        );
+
+        const members = memberResult.rows;
+        const cleanTime = meeting.start_time.substring(0, 5);
+
+        // C. Send Emails
+        const emailPromises = members.map((member) => {
+          const msg = {
+            to: member.email,
+            from: process.env.EMAIL_USER,
+            subject: `Happening Now: Meeting in "${meeting.room_name}"`,
+            text: `Hello ${member.username},\n\nThe meeting for "${meeting.room_name}" has started!\n\nTime: ${cleanTime}\nLocation: ${meeting.location}\n\nHop in!`,
+            html: `
+              <div style="font-family: Arial, sans-serif; color: #333;">
+                <h2 style="color: #10b981;">🚀 Meeting Started!</h2>
+                <p>Hello <strong>${member.username}</strong>,</p>
+                <p>The meeting for <strong>${meeting.room_name}</strong> is happening right now.</p>
+                <div style="background: #ecfdf5; padding: 15px; border-radius: 8px; border-left: 5px solid #10b981;">
+                  <p><strong>⏰ Time:</strong> ${cleanTime}</p>
+                  <p><strong>📍 Location:</strong> ${meeting.location}</p>
+                </div>
+                <p>See you there!</p>
+              </div>
+            `,
+          };
+          return sgMail
+            .send(msg)
+            .catch((err) =>
+              console.error(`Failed to email ${member.email}:`, err)
+            );
+        });
+
+        await Promise.all(emailPromises);
+      }
+    }
+  } catch (err) {
+    console.error("❌ In-Progress Cron Error:", err);
+  }
+});
+
+// ----------------------------------------------------------------
+// ⏰ CRON JOB 2: Send Reminder Emails at 7:00 PM Every Day
 // ----------------------------------------------------------------
 cron.schedule("0 19 * * *", async () => {
   console.log("⏰ Running Daily Meeting Reminder Check...");
 
-  // 1. Get "Tomorrow's" Day Name (e.g., "Wednesday")
+  // 1. Get "Tomorrow's" Day Name
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   const tomorrowDay = tomorrow.toLocaleDateString("en-US", { weekday: "long" });
 
   try {
-    // 2. Find all meetings scheduled for Tomorrow
-    // We join with 'rooms' to get the room name
     const meetingsResult = await pool.query(
       `SELECT m.id, m.room_id, m.start_time, m.location, r.name as room_name 
        FROM meetings m
@@ -74,7 +161,6 @@ cron.schedule("0 19 * * *", async () => {
       return;
     }
 
-    // 3. For each meeting, find members and send email
     for (const meeting of meetings) {
       const memberResult = await pool.query(
         `SELECT u.email, u.username 
@@ -85,9 +171,8 @@ cron.schedule("0 19 * * *", async () => {
       );
 
       const members = memberResult.rows;
-      const cleanTime = meeting.start_time.substring(0, 5); // Remove seconds
+      const cleanTime = meeting.start_time.substring(0, 5);
 
-      // Send emails in parallel
       const emailPromises = members.map((member) => {
         const msg = {
           to: member.email,
@@ -124,7 +209,4 @@ cron.schedule("0 19 * * *", async () => {
 
 app.listen(PORT, async () => {
   console.log(`✅ Server running at: http://localhost:${PORT}`);
-  // Optional: Auto-open browser
-  const open = (await import("open")).default;
-  await open(`http://localhost:${PORT}/`);
 });
