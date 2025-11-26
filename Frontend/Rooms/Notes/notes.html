@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Room Notes | ScheduleMate Pro</title>
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="notes.css" />
+    <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+  </head>
+  <body>
+    <div class="bg-layer">
+      <lottie-player
+        src="../../Assets/Work flow Gear Animation.json"
+        background="transparent"
+        speed="1"
+        style="width: 100%; height: 100%; opacity: 0.15"
+        loop
+        autoplay
+      >
+      </lottie-player>
+    </div>
+
+    <div class="notes-container">
+      <header class="page-header">
+        <button
+          onclick="window.location.href='../EnterRooms/enterrooms.html' + window.location.search"
+          class="back-pill"
+        >
+          <span class="material-icons">arrow_back</span> Room Hub
+        </button>
+        <h1><span class="material-icons">sticky_note_2</span> Shared Notes</h1>
+      </header>
+
+      <div id="notesGrid" class="notes-grid">
+        <div class="loading-state">Loading notes...</div>
+      </div>
+
+      <button id="addNoteFab" class="fab">
+        <span class="material-icons">add</span>
+      </button>
+    </div>
+
+    <div id="noteModal" class="modal-overlay">
+      <div class="modal-box glass-modal">
+        <h2 id="modalTitle">Add Note</h2>
+
+        <input
+          type="text"
+          id="noteTitle"
+          placeholder="Note Title"
+          class="glass-input title-input"
+        />
+        <textarea
+          id="noteContent"
+          placeholder="Write something..."
+          rows="4"
+        ></textarea>
+
+        <div class="upload-section">
+          <input type="file" id="noteImageInput" accept="image/*" hidden />
+          <button id="triggerUploadBtn" class="upload-btn">
+            <span class="material-icons">add_a_photo</span> Scan / Upload Image
+          </button>
+          <div id="imagePreviewContainer" style="display: none">
+            <img id="imagePreview" src="" alt="Preview" />
+            <button id="removeImageBtn" class="remove-img-btn">
+              <span class="material-icons">close</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="color-picker">
+          <label>Color:</label>
+          <div class="color-options">
+            <div
+              class="color-dot selected"
+              data-color="#ffffff"
+              style="background: #ffffff"
+            ></div>
+            <div
+              class="color-dot"
+              data-color="#ffedd5"
+              style="background: #ffedd5"
+            ></div>
+            <div
+              class="color-dot"
+              data-color="#dcfce7"
+              style="background: #dcfce7"
+            ></div>
+            <div
+              class="color-dot"
+              data-color="#dbeafe"
+              style="background: #dbeafe"
+            ></div>
+            <div
+              class="color-dot"
+              data-color="#fae8ff"
+              style="background: #fae8ff"
+            ></div>
+            <div
+              class="color-dot"
+              data-color="#fee2e2"
+              style="background: #fee2e2"
+            ></div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button id="cancelNoteBtn" class="btn secondary">Cancel</button>
+          <button id="saveNoteBtn" class="btn primary">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="deleteModal" class="modal-overlay">
+      <div class="modal-box glass-modal">
+        <h2>Delete Note?</h2>
+        <p>Are you sure you want to delete this note?</p>
+        <div class="modal-actions">
+          <button id="cancelDelete" class="btn secondary">Cancel</button>
+          <button id="confirmDelete" class="btn danger">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="notes.js"></script>
+  </body>
+</html>

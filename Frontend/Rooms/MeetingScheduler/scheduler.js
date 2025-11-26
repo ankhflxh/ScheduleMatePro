@@ -1,7 +1,6 @@
 // File: Frontend/Rooms/MeetingScheduler/scheduler.js
 
 const entriesContainer = document.querySelector("#entries");
-// Updated selectors to target the <p> tags specifically
 const suggestedTimeEl = document.querySelector("#suggested-time-text");
 const suggestedLocationEl = document.querySelector("#suggested-location-text");
 
@@ -27,6 +26,7 @@ if (!roomId) {
 
 let currentUserId = null;
 let roomCreatorId = null;
+let roomInterval = 1; // Default to 1 hour
 let mostCommonTime = "";
 let mostCommonPlace = "";
 const token = localStorage.getItem("sm_token");
@@ -75,6 +75,7 @@ if (confirmCancelBtn) {
   };
 }
 
+// 🟢 FIXED: Calculate End Time based on Interval
 if (confirmOkBtn) {
   confirmOkBtn.onclick = () => {
     const location = confirmLocationInput.value.trim();
@@ -84,7 +85,20 @@ if (confirmOkBtn) {
     }
 
     const [meeting_day, start_time] = mostCommonTime.split(" ");
-    const end_time = start_time;
+
+    // 1. Calculate End Time
+    // Parse "11:00" into hours and minutes
+    const [startH, startM] = start_time.split(":").map(Number);
+
+    const date = new Date();
+    date.setHours(startH, startM, 0, 0);
+    // Add the room's interval (in hours)
+    date.setHours(date.getHours() + roomInterval);
+
+    // Format back to HH:MM
+    const endH = String(date.getHours()).padStart(2, "0");
+    const endM = String(date.getMinutes()).padStart(2, "0");
+    const end_time = `${endH}:${endM}`;
 
     fetch(`/api/meetings/${roomId}`, {
       method: "POST",
@@ -95,7 +109,7 @@ if (confirmOkBtn) {
       body: JSON.stringify({
         meeting_day: meeting_day,
         start_time: start_time,
-        end_time: end_time,
+        end_time: end_time, // Sending calculated end time
         location: location,
       }),
     })
@@ -131,6 +145,9 @@ Promise.all([
   .then(([user, room]) => {
     currentUserId = String(user.user_id);
     roomCreatorId = String(room.creator_id);
+    // 🟢 Save the room interval
+    roomInterval = parseInt(room.meeting_interval) || 1;
+
     fetchAvailabilities();
   })
   .catch((err) => {

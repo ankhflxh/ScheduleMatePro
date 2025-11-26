@@ -11,6 +11,7 @@ const { router: authRoutes } = require("./Routes/auth");
 const roomRoutes = require("./Routes/rooms");
 const availabilityRoutes = require("./Routes/availability");
 const meetingRoutes = require("./Routes/meetings");
+const notesRoutes = require("./Routes/notes");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -36,6 +37,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/rooms", roomRoutes);
 app.use("/api/availability", availabilityRoutes);
 app.use("/api/meetings", meetingRoutes);
+app.use("/api/notes", notesRoutes);
 app.use("/api/users", authRoutes);
 
 // Landing page (root)
@@ -105,9 +107,11 @@ cron.schedule("0 19 * * *", async () => {
             </div>
           `,
         };
-        return sgMail.send(msg).catch((err) =>
-          console.error(`Failed to email ${member.email}:`, err)
-        );
+        return sgMail
+          .send(msg)
+          .catch((err) =>
+            console.error(`Failed to email ${member.email}:`, err)
+          );
       });
 
       await Promise.all(emailPromises);

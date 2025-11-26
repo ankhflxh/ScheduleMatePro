@@ -1,13 +1,11 @@
-/* Frontend/Rooms/EnterRooms/enterrooms.css */
-
-@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700&display=swap");
 
 :root {
   --primary: #6366f1;
-  --dark-text: #1e293b;
-  --glass-surface: rgba(255, 255, 255, 0.75);
+  --text-main: #1e293b;
+  --text-light: #64748b;
+  --glass-bg: rgba(255, 255, 255, 0.85);
   --glass-border: rgba(255, 255, 255, 0.9);
-  --card-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
 }
 
 * {
@@ -18,194 +16,170 @@
 
 body {
   font-family: "Outfit", sans-serif;
+  background: #eef2ff;
   height: 100vh;
-  overflow: hidden;
+  width: 100vw;
   display: flex;
   justify-content: center;
   align-items: center;
-  background: #eef2ff;
+  overflow: hidden; /* Prevent body scroll */
 }
 
-/* --- 1. BACKGROUND LAYER --- */
+/* Background */
 .bg-layer {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  z-index: 0;
+  z-index: -1;
   pointer-events: none;
 }
 
-/* --- 2. MAIN GLASS WRAPPER --- */
+/* Main Card */
 .glass-wrapper {
-  position: relative;
-  z-index: 10;
-  width: 100%;
-  max-width: 550px;
-  background: rgba(255, 255, 255, 0.3);
-  backdrop-filter: blur(0px);
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
   padding: 2rem;
-  border-radius: 40px;
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-}
-
-/* --- 3. HEADER --- */
-.hub-header {
+  width: 90%;
+  max-width: 600px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+
+  /* CRITICAL FIX: Ensure card fits on screen */
+  max-height: 95vh;
+  overflow-y: auto; /* Scroll inside if needed */
+  position: relative;
+}
+
+/* Header */
+.hub-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  padding-bottom: 1rem;
 }
 
 .back-pill {
-  align-self: flex-start;
   background: white;
   border: 1px solid #e2e8f0;
-  padding: 8px 16px;
-  border-radius: 30px;
+  padding: 8px 14px;
+  border-radius: 20px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   font-weight: 600;
-  color: #64748b;
+  color: var(--text-light);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: 0.2s;
+  font-size: 0.9rem;
 }
 .back-pill:hover {
   background: var(--primary);
   color: white;
   border-color: var(--primary);
-  transform: translateX(-5px);
 }
 
-/* Removed .room-icon styles as it is deleted */
-
-.room-title-block {
-  /* Just standard block layout for text now */
-  display: block;
+.room-title-block h1 {
+  font-size: 1.5rem;
+  color: var(--text-main);
+  text-align: right;
 }
 
-#room-header {
-  font-size: 2.5rem; /* Made slightly larger for impact */
-  font-weight: 800;
-  color: var(--dark-text);
-  letter-spacing: -1px;
-  line-height: 1.1;
-}
-
-/* --- 4. STATUS BANNER --- */
+/* Status Banner */
 .status-banner {
-  background: #10b981;
-  color: white;
-  padding: 1rem;
-  border-radius: 16px;
-  font-weight: 600;
-  box-shadow: 0 10px 20px rgba(16, 185, 129, 0.25);
-  animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  background: #ecfdf5;
+  border: 1px solid #10b981;
+  color: #047857;
+  padding: 12px;
+  border-radius: 12px;
+  font-size: 0.9rem;
 }
 
-@keyframes popIn {
-  from {
-    transform: scale(0.9);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-/* --- 5. ACTION MENU --- */
+/* Menu Grid */
 .action-menu {
-  display: flex;
-  flex-direction: column;
-  gap: 1.2rem;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
 }
 
 .menu-card {
-  background: var(--glass-surface);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--glass-border);
-  padding: 1.5rem;
-  border-radius: 24px;
+  background: white;
+  border-radius: 16px;
+  padding: 1rem;
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1rem;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: var(--card-shadow);
-  position: relative;
-  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: 1px solid transparent;
 }
 
 .menu-card:hover {
-  transform: translateY(-4px) scale(1.02);
-  background: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+  border-color: #e2e8f0;
 }
 
-/* Icons */
 .card-icon {
-  width: 60px;
-  height: 60px;
-  border-radius: 18px;
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  font-size: 28px;
   flex-shrink: 0;
 }
+
+/* Icons Gradients */
 .schedule-glow {
   background: linear-gradient(135deg, #6366f1, #818cf8);
-  box-shadow: 0 8px 16px rgba(99, 102, 241, 0.3);
 }
 .avail-glow {
-  background: linear-gradient(135deg, #ec4899, #f472b6);
-  box-shadow: 0 8px 16px rgba(236, 72, 153, 0.3);
+  background: linear-gradient(135deg, #10b981, #34d399);
+}
+.notes-glow {
+  background: linear-gradient(135deg, #a855f7, #c084fc);
+}
+.board-glow {
+  background: linear-gradient(135deg, #f59e0b, #fbbf24);
 }
 .settings-glow {
-  background: linear-gradient(135deg, #f59e0b, #fbbf24);
-  box-shadow: 0 8px 16px rgba(245, 158, 11, 0.3);
+  background: linear-gradient(135deg, #64748b, #94a3b8);
+}
+
+.card-content {
+  flex-grow: 1;
 }
 
 .card-content h2 {
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: var(--dark-text);
-  margin-bottom: 4px;
+  font-size: 1.1rem;
+  color: var(--text-main);
+  margin-bottom: 2px;
 }
+
 .card-content p {
-  font-size: 0.9rem;
-  color: #64748b;
-  font-weight: 500;
+  font-size: 0.85rem;
+  color: var(--text-light);
 }
 
 .arrow {
-  margin-left: auto;
   color: #cbd5e1;
   font-size: 1rem;
-  transition: transform 0.3s;
-}
-.menu-card:hover .arrow {
-  color: var(--primary);
-  transform: translateX(5px);
 }
 
-@media (max-width: 600px) {
-  .glass-wrapper {
-    width: 100%;
-    padding: 1.5rem;
-    border-radius: 0;
-    height: 100vh;
-    justify-content: center;
-  }
-  .menu-card {
-    padding: 1.25rem;
-  }
+/* Scrollbar Polish */
+.glass-wrapper::-webkit-scrollbar {
+  width: 6px;
 }
-
-
+.glass-wrapper::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}

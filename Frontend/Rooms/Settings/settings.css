@@ -1,258 +1,304 @@
-@import url("https://fonts.googleapis.com/css2?family=Rubik:wght@400;600;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap");
+
+:root {
+  --primary: #6366f1;       /* Indigo */
+  --primary-dark: #4f46e5;
+  --danger: #ef4444;        /* Red */
+  --text-main: #1e293b;     /* Dark Slate */
+  --text-secondary: #64748b;
+  --glass-bg: rgba(255, 255, 255, 0.65);
+  --glass-border: rgba(255, 255, 255, 0.8);
+  --bg-gradient: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
 body {
+  font-family: "Outfit", sans-serif;
+  background: var(--bg-gradient);
   min-height: 100vh;
-  font-family: "Rubik", Arial, sans-serif;
-  margin: 0;
-  /* No background here; it's on .bg-blur-image */
-}
-
-.bg-blur-image {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 0;
-  background: url("../../Images/settings.jpg") no-repeat center center/cover;
-  filter: blur(5px) brightness(0.75);
-  width: 100vw;
-  height: 100vh;
-  pointer-events: none;
-}
-
-/* Solid animated gradient card */
-.settings-panel.animated-gradient-bg {
-  background: linear-gradient(120deg, #fff, #ffe3f1, #e1d5f2, #daf3ff);
-  background-size: 400% 400%;
-  animation: dreamyBackground 15s ease infinite;
-  border-radius: 22px;
-  box-shadow: 0 8px 36px 0 rgba(181, 120, 255, 0.13);
-  max-width: 430px;
-  margin: 60px auto 0 auto;
-  padding: 0 0 34px 0;
   display: flex;
-  flex-direction: column;
-  position: relative;
-  z-index: 1;
+  justify-content: center;
+  align-items: center; /* Center card vertically */
+  overflow-x: hidden;
 }
 
-@keyframes dreamyBackground {
-  0%,
-  100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
+/* Lottie Background */
+.bg-layer {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  z-index: -1;
+  pointer-events: none;
+  /* Optional: add a slight blur to the background animation so text pops more */
+  backdrop-filter: blur(2px); 
 }
 
-.top-bar {
+/* Layout */
+.settings-container {
+  width: 100%;
+  max-width: 480px;
+  padding: 1.5rem;
+  z-index: 10;
+}
+
+/* Header */
+.settings-header {
   display: flex;
   align-items: center;
-  padding: 24px 36px 0 36px;
-  background: transparent;
-  color: #722fbb;
-  font-size: 1.2rem;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
 }
 
-.top-bar h1 {
-  margin: 0 auto 0 18px;
-  font-size: 1.55rem;
+.settings-header h1 {
+  font-size: 1.75rem;
   font-weight: 700;
+  color: var(--text-main);
+}
+
+.back-pill {
+  background: white;
+  border: 1px solid #e2e8f0;
+  padding: 8px 16px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: 0.2s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+.back-pill:hover {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+/* Glass Panel */
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  padding: 2rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
+}
+
+/* Section Headings */
+.label-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 0.8rem;
+  color: var(--primary);
+}
+.label-row .material-icons { font-size: 1.2rem; }
+.label-row h2 {
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.setting-group {
+  margin-bottom: 2rem;
+}
+
+/* Room Code Display */
+.code-display {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.code-text {
+  font-family: monospace;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-main);
   letter-spacing: 1px;
 }
 
-.exit {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  font-weight: 600;
-  color: #722fbb;
-  gap: 7px;
-  font-size: 1.05rem;
-}
-
-main {
-  padding: 0 38px 0 38px;
-  display: flex;
-  flex-direction: column;
-}
-
-main h2 {
-  font-size: 1.45rem;
-  color: #722fbb;
-  font-weight: 700;
-  margin: 28px 0 20px 0;
-}
-
-/* This is the base style applied to most setting wrappers, including the Participants UL */
-.setting-item {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  margin-bottom: 26px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #e3d3fa;
-}
-
-.theme-toggle-btn {
-  background: linear-gradient(90deg, #722fbb, #ec407a 90%);
-  color: #fff;
+.icon-btn {
+  background: transparent;
   border: none;
-  border-radius: 9px;
-  padding: 10px 28px;
-  font-size: 1.04rem;
-  font-weight: 600;
+  color: var(--text-secondary);
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(236, 64, 122, 0.09);
-  transition: background 0.2s, transform 0.1s;
-}
-
-.theme-toggle-btn:hover {
-  background: linear-gradient(90deg, #ec407a, #722fbb 90%);
-  transform: translateY(-1px) scale(1.04);
-}
-
-@media (max-width: 600px) {
-  .settings-panel.animated-gradient-bg {
-    padding: 0 8px 16px 8px;
-    max-width: 97vw;
-  }
-  .top-bar {
-    padding: 10px 7vw 0 7vw;
-    font-size: 1rem;
-  }
-  main {
-    padding: 0 10px 0 10px;
-  }
-}
-
-/* Modal styles omitted for brevity */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(41, 32, 84, 0.23);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1001;
-}
-.modal {
-  background: #fff;
-  padding: 30px 38px 22px 38px;
-  border-radius: 18px;
-  box-shadow: 0 6px 32px rgba(123, 73, 202, 0.13);
-  min-width: 310px;
-  max-width: 92vw;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-.modal-title {
-  font-size: 1.35rem;
-  color: #a047e7;
-  font-weight: 700;
-  margin-bottom: 12px;
-}
-.modal-body {
-  color: #432c63;
-  font-size: 1.08rem;
-  margin-bottom: 24px;
-  text-align: center;
-}
-.modal-actions {
-  display: flex;
-  gap: 14px;
-  justify-content: center;
-}
-.modal-btn {
-  background: linear-gradient(90deg, #722fbb, #ec407a 90%);
-  color: #fff;
-  border: none;
+  padding: 8px;
   border-radius: 8px;
+  transition: 0.2s;
+}
+.icon-btn:hover {
+  background: #f1f5f9;
+  color: var(--primary);
+}
+
+/* Participants List */
+.participants-box {
+  background: white;
+  border-radius: 16px;
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #e2e8f0;
+}
+
+.participants-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.participant-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.95rem;
+  color: var(--text-main);
+}
+.participant-item:last-child {
+  border-bottom: none;
+}
+
+.loading-item {
+  padding: 16px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* Roles */
+.participant-role {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+.role-creator {
+  background: #e0e7ff;
+  color: var(--primary);
+}
+.role-member {
+  background: #f1f5f9;
+  color: #94a3b8;
+}
+
+/* Logout Button */
+.logout-btn {
+  width: 100%;
+  padding: 14px;
+  background: #fee2e2;
+  color: var(--danger);
+  border: none;
+  border-radius: 14px;
   font-weight: 600;
-  padding: 10px 26px;
-  font-size: 1.03rem;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   cursor: pointer;
-  transition: background 0.18s, transform 0.11s;
+  transition: 0.2s;
 }
-.modal-btn.logout {
-  background: linear-gradient(90deg, #f44336, #e57373 90%);
-}
-.modal-btn:hover {
-  filter: brightness(1.08);
-  transform: translateY(-1px) scale(1.04);
-}
-
-/* Dark Theme Styles */
-body.dark-theme {
-  background-color: #121212;
-  color: #eeeeee;
-}
-
-body.dark-theme .settings-panel {
-  background: #1f1f1f;
-}
-
-body.dark-theme .modal {
-  background: #2b2b2b;
+.logout-btn:hover {
+  background: var(--danger);
   color: white;
 }
 
-body.dark-theme .highlight-bar,
-body.dark-theme .modal-input,
-body.dark-theme .setting-item {
-  background-color: #292929 !important;
-  color: #f0f0f0;
-}
-
-#participantsList {
-  padding-left: 0;
-  margin-top: 10px;
-}
-
-/* 🟢 FIX: Override .setting-item rule applied to the UL to ensure vertical flow */
-#participantsList {
-  display: block;
-  /* The other styling rules like margin-bottom, padding-bottom, border-bottom 
-       are inherited from .setting-item and are fine for the UL container */
-}
-
-/* NEW CSS FOR ALIGNMENT */
-
-/* The actual list items (li) */
-.participant-item {
-  display: flex;
-  justify-content: space-between; /* Pushes the name and role to opposite ends */
+/* Modals */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(4px);
+  z-index: 100;
+  display: none; /* Toggled by JS */
   align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid #e3d3fa; /* Light border separator */
-  font-size: 1.05rem;
-  list-style: none; /* Ensure no default bullets */
-  margin: 6px 0;
-  padding-left: 8px;
-  text-align: left;
+  justify-content: center;
 }
 
-.participant-role {
+.modal-box {
+  background: white;
+  padding: 2rem;
+  border-radius: 24px;
+  width: 90%;
+  max-width: 350px;
+  text-align: center;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes popIn {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.modal-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+}
+.modal-icon.danger {
+  background: #fee2e2;
+  color: var(--danger);
+}
+
+.modal-box h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.25rem;
+  color: var(--text-main);
+}
+.modal-box p {
+  margin: 0 0 1.5rem 0;
+  color: var(--text-secondary);
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.modal-btn {
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: none;
   font-weight: 600;
-  text-transform: uppercase;
-  font-size: 0.8em;
-  padding: 4px 8px;
-  border-radius: 4px;
-  transition: all 0.2s;
+  cursor: pointer;
+  font-size: 0.95rem;
+  flex: 1;
 }
 
-.role-creator {
-  background-color: #722fbb; /* Primary purple color */
-  color: #fff;
+.secondary {
+  background: #f1f5f9;
+  color: var(--text-secondary);
+}
+.secondary:hover {
+  background: #e2e8f0;
 }
 
-.role-member {
-  /* Hides role text for non-creators but maintains vertical spacing */
-  color: transparent;
+.danger-btn {
+  background: var(--danger);
+  color: white;
+}
+.danger-btn:hover {
+  background: #dc2626;
 }

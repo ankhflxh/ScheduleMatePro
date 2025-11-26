@@ -40,7 +40,7 @@
         </button>
 
         <div class="room-title-block">
-          <h1 id="room-header">Loading Room...</h1>
+          <h1 id="room-header">Loading...</h1>
         </div>
       </header>
 
@@ -51,7 +51,6 @@
       ></div>
 
       <main class="action-menu">
-        
         <div
           class="menu-card"
           onclick="location.href='../MeetingScheduler/scheduler.html' + window.location.search"
@@ -61,7 +60,7 @@
           </div>
           <div class="card-content">
             <h2>Meeting Viewer</h2>
-            <p>View and Edit meeting's details.</p>
+            <p>View and vote on meeting times.</p>
           </div>
           <span class="material-icons arrow">arrow_forward_ios</span>
         </div>
@@ -75,7 +74,21 @@
           </div>
           <div class="card-content">
             <h2>My Availability</h2>
-            <p>Let others know when you're free.</p>
+            <p>Set your free time slots.</p>
+          </div>
+          <span class="material-icons arrow">arrow_forward_ios</span>
+        </div>
+
+        <div
+          class="menu-card"
+          onclick="location.href='../Notes/notes.html' + window.location.search"
+        >
+          <div class="card-icon notes-glow">
+            <span class="material-icons">sticky_note_2</span>
+          </div>
+          <div class="card-content">
+            <h2>Notes</h2>
+            <p>Shared ideas and to-dos.</p>
           </div>
           <span class="material-icons arrow">arrow_forward_ios</span>
         </div>
@@ -84,12 +97,12 @@
           class="menu-card"
           onclick="location.href='../MeetingBoard/board.html' + window.location.search"
         >
-          <div class="card-icon board-glow" style="background: linear-gradient(135deg, #f59e0b, #fbbf24); box-shadow: 0 8px 16px rgba(245, 158, 11, 0.3);">
+          <div class="card-icon board-glow">
             <span class="material-icons">dashboard</span>
           </div>
           <div class="card-content">
             <h2>Meeting Board</h2>
-            <p>Track Upcoming, Active & Past meetings.</p>
+            <p>History of Upcoming & Past meetings.</p>
           </div>
           <span class="material-icons arrow">arrow_forward_ios</span>
         </div>
@@ -102,8 +115,8 @@
             <span class="material-icons">tune</span>
           </div>
           <div class="card-content">
-            <h2>Room Settings</h2>
-            <p>Manage preferences and members.</p>
+            <h2>Settings</h2>
+            <p>Manage room & members.</p>
           </div>
           <span class="material-icons arrow">arrow_forward_ios</span>
         </div>
