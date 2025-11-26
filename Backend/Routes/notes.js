@@ -152,4 +152,49 @@ router.delete("/:noteId", authenticateToken, async (req, res) => {
   }
 });
 
+router.get("/:roomId/unread-count", authenticateToken, async (req, res) => {
+  const { roomId } = req.params;
+  const userId = req.user.id;
+
+  try {
+    // 1. Get the time this user last viewed notes
+    const memberRes = await pool.query(
+      "SELECT last_notes_viewed_at FROM room_members WHERE room_id = $1 AND user_id = $2",
+      [roomId, userId]
+    );
+
+    if (memberRes.rows.length === 0) return res.json({ count: 0 });
+
+    const lastViewed = memberRes.rows[0].last_notes_viewed_at || new Date(0); // Default to old date if null
+
+    // 2. Count notes created AFTER that time
+    const countRes = await pool.query(
+      "SELECT COUNT(*) FROM notes WHERE room_id = $1 AND created_at > $2",
+      [roomId, lastViewed]
+    );
+
+    res.json({ count: parseInt(countRes.rows[0].count) });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to get unread count" });
+  }
+});
+
+// NEW: Mark notes as read (Update timestamp)
+router.post("/:roomId/mark-read", authenticateToken, async (req, res) => {
+  const { roomId } = req.params;
+  const userId = req.user.id;
+
+  try {
+    await pool.query(
+      "UPDATE room_members SET last_notes_viewed_at = CURRENT_TIMESTAMP WHERE room_id = $1 AND user_id = $2",
+      [roomId, userId]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to mark read" });
+  }
+});
+
 module.exports = router;

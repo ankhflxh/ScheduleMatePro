@@ -83,9 +83,27 @@
           class="menu-card"
           onclick="location.href='../Notes/notes.html' + window.location.search"
         >
-          <div class="card-icon notes-glow">
-            <span class="material-icons">sticky_note_2</span>
+          <div
+            class="card-icon"
+            style="
+              position: relative;
+              background: linear-gradient(135deg, #a855f7, #c084fc);
+              box-shadow: 0 8px 16px rgba(168, 85, 247, 0.3);
+            "
+          >
+            <span class="material-icons" style="color: white"
+              >sticky_note_2</span
+            >
+
+            <div
+              id="notesBadge"
+              class="notification-badge"
+              style="display: none"
+            >
+              0
+            </div>
           </div>
+
           <div class="card-content">
             <h2>Notes</h2>
             <p>Shared ideas and to-dos.</p>

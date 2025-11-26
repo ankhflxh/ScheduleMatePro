@@ -66,6 +66,27 @@ if (roomId && confirmedBanner) {
       confirmedBanner.style.display = "none";
     });
 }
+if (roomId) {
+  checkUnreadNotes(roomId);
+}
+
+function checkUnreadNotes(roomId) {
+  const badge = document.getElementById("notesBadge");
+
+  fetch(`/api/notes/${roomId}/unread-count`, {
+    headers: { "X-Auth-Token": token },
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.count > 0) {
+        badge.textContent = data.count > 9 ? "9+" : data.count;
+        badge.style.display = "flex"; // Show badge
+      } else {
+        badge.style.display = "none"; // Hide badge
+      }
+    })
+    .catch(console.error);
+}
 
 // 4. Exit Button Logic
 const exitBtn = document.getElementById("exitBtn");

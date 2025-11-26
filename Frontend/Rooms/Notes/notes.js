@@ -39,7 +39,15 @@ function init() {
     .then((user) => {
       currentUserId = user.user_id || user.id;
       loadNotes();
+      markNotesAsRead();
     });
+}
+
+function markNotesAsRead() {
+  fetch(`/api/notes/${roomId}/mark-read`, {
+    method: "POST",
+    headers: { "X-Auth-Token": token },
+  }).catch((err) => console.error("Failed to mark notes as read", err));
 }
 
 // --- LOAD NOTES ---
