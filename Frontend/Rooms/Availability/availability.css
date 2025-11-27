@@ -21,10 +21,14 @@ body {
   font-family: "Outfit", sans-serif;
   min-height: 100vh;
   display: flex;
-  align-items: center;
+  /* changed from center to flex-start to prevent top being cut off on scroll */
+  align-items: flex-start;
   justify-content: center;
-  background: #eef2ff; /* Fallback */
-  overflow: hidden;
+  background: #eef2ff;
+  /* CHANGED: Allow scrolling */
+  overflow-y: auto;
+  /* ADDED: Padding so it looks good when you scroll */
+  padding: 2rem 1rem;
 }
 
 /* --- BACKGROUND --- */

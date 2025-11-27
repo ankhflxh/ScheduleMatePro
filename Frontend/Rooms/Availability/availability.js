@@ -149,7 +149,8 @@ if (!roomId) {
 }
 
 document.getElementById("exitButton").onclick = () => {
-  window.location.href = `/rooms/enterRooms/enterRooms.html?roomId=${roomId}`;
+  // 🟢 FIX: Capitalized Rooms and EnterRooms for case-sensitive Render deployment
+  window.location.href = `/Rooms/EnterRooms/enterrooms.html?roomId=${roomId}`;
 };
 
 function showError(message) {
@@ -166,12 +167,14 @@ function showSuccessModal() {
 
   viewSchedulerBtn.onclick = () => {
     const timestamp = Date.now();
-    window.location.href = `/rooms/meetingscheduler/scheduler.html?roomId=${roomId}&t=${timestamp}`;
+    // 🟢 FIX: Capitalized Rooms and MeetingScheduler
+    window.location.href = `/Rooms/MeetingScheduler/scheduler.html?roomId=${roomId}&t=${timestamp}`;
   };
 
   successExitBtn.onclick = () => {
     successModal.style.display = "none";
-    window.location.href = `/rooms/enterRooms/enterRooms.html?roomId=${roomId}`;
+    // 🟢 FIX: Capitalized Rooms and EnterRooms
+    window.location.href = `/Rooms/EnterRooms/enterrooms.html?roomId=${roomId}`;
   };
 }
 
