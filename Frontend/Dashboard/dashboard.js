@@ -83,8 +83,6 @@ if (!token) {
 }
 
 // ... (Keep isUpcoming, loadRooms, loadMeetings, and Form Logic exactly as before) ...
-// (I will omit them here to save space, but DO NOT DELETE THEM from your file)
-// Helper: Filter Past Meetings
 function isUpcoming(dayName, endTimeStr) {
   const days = [
     "Sunday",
@@ -265,10 +263,10 @@ if (confirmDeleteBtn) {
   };
 }
 
-// --- TOUR & CHATBOT MANAGER (FIXED) ---
+// --- TOUR & CHATBOT MANAGER ---
 const TourManager = {
   step: 0,
-  autoCloseTimer: null, // 🟢 NEW: Track the timer
+  autoCloseTimer: null,
 
   init: function (isFirstVisit, username) {
     const bubble = document.getElementById("guide-bubble");
@@ -276,12 +274,23 @@ const TourManager = {
     const title = document.querySelector("#guide-text-content h3");
     const text = document.querySelector("#guide-text-content p");
 
+    // 🟢 UPDATED: Explicitly control which buttons are visible
+    const actions = document.getElementById("guide-actions");
+    const chatOptions = document.getElementById("chat-options");
+
     if (isFirstVisit) {
+      // Tour Mode
       bubble.style.display = "block";
       toggle.style.display = "none";
+
+      // Ensure Start/Skip buttons are visible, Chat hidden
+      actions.style.display = "flex";
+      chatOptions.style.display = "none";
+
       title.textContent = `Hi ${username}!`;
       text.innerHTML = `I am Amara and I will love to show you what I have built just to make navigation easy for you but feel free to skip. You could always visit me at the corner of the screen if you have any questions and I will be delighted to help cause it gets lonely 😞. Okay so let's get started!`;
     } else {
+      // Minimized mode (Default)
       bubble.style.display = "none";
       toggle.style.display = "flex";
     }
@@ -289,9 +298,7 @@ const TourManager = {
 
   startTour: function () {
     this.step = 0;
-    // Clear any pending close timers so the tour doesn't vanish
     if (this.autoCloseTimer) clearTimeout(this.autoCloseTimer);
-
     document.getElementById("tour-overlay").classList.add("active");
     this.nextStep();
   },
@@ -368,22 +375,18 @@ const TourManager = {
     actions.style.display = "none";
     chatOptions.style.display = "none";
 
-    // 🟢 UPDATED: Save timer ID so we can cancel it if user clicks immediately
     this.autoCloseTimer = setTimeout(() => {
       document.getElementById("guide-bubble").style.display = "none";
       document.getElementById("guide-toggle").style.display = "flex";
     }, 3000);
   },
 
-  // 🟢 UPDATED: Handles click events safely
   toggleChat: function (e) {
-    // Prevent double-firing or bubbling
     if (e) {
       e.stopPropagation();
       e.preventDefault();
     }
 
-    // 🟢 CRITICAL: Cancel any pending "auto-close" if the user just clicked
     if (this.autoCloseTimer) {
       clearTimeout(this.autoCloseTimer);
       this.autoCloseTimer = null;
@@ -404,7 +407,7 @@ const TourManager = {
 
       // Default to Chat Mode
       document.querySelector("#guide-text-content h3").textContent =
-        "Asking Amara";
+        "Help Center";
       document.querySelector("#guide-text-content p").textContent =
         "How can Amara help you today?";
       actions.style.display = "none";
@@ -416,7 +419,6 @@ const TourManager = {
     }
   },
 
-  // 🟢 UPDATED: Handles all 5 new questions
   answer: function (topic) {
     const text = document.querySelector("#guide-text-content p");
 
