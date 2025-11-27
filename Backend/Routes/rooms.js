@@ -4,18 +4,18 @@ const router = express.Router();
 const pool = require("../db");
 const crypto = require("crypto");
 const { authenticateToken } = require("./auth");
-const sgMail = require("@sendgrid/mail"); // Import SendGrid
+const sgMail = require("@sendgrid/mail");
 require("dotenv").config();
 
-// Initialize SendGrid
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
-// GET /api/rooms/me - Get rooms the current user is in
+// GET /api/rooms/me
 router.get("/me", authenticateToken, async (req, res) => {
   const userId = req.user.id;
   try {
     const result = await pool.query(
-      `SELECT r.* FROM rooms r
+      `SELECT r.*, r.name as room_name, r.id as room_id 
+       FROM rooms r
        JOIN room_members rm ON r.id = rm.room_id
        WHERE rm.user_id = $1`,
       [userId]
@@ -27,7 +27,7 @@ router.get("/me", authenticateToken, async (req, res) => {
   }
 });
 
-// GET /api/rooms/:roomId - Get single room details
+// GET /api/rooms/:roomId
 router.get("/:roomId", authenticateToken, async (req, res) => {
   const { roomId } = req.params;
   try {
@@ -44,21 +44,50 @@ router.get("/:roomId", authenticateToken, async (req, res) => {
   }
 });
 
+// GET /api/rooms/:roomId/members
+router.get("/:roomId/members", authenticateToken, async (req, res) => {
+  const { roomId } = req.params;
+  try {
+    const result = await pool.query(
+      `SELECT u.id, u.username, u.email 
+       FROM room_members rm
+       JOIN users u ON rm.user_id = u.id
+       WHERE rm.room_id = $1`,
+      [roomId]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch room members" });
+  }
+});
+
 // POST /api/rooms - Create a new room
 router.post("/", authenticateToken, async (req, res) => {
   const { name } = req.body;
   const creatorId = req.user.id;
+
+  // 🛡️ SECURITY: Backend Validation
+  if (!name || name.trim().length < 3) {
+    return res
+      .status(400)
+      .json({ error: "Room name must be at least 3 characters." });
+  }
+  if (name.length > 50) {
+    return res
+      .status(400)
+      .json({ error: "Room name is too long (max 50 chars)." });
+  }
+
   const code = crypto.randomBytes(4).toString("hex").toUpperCase();
 
   try {
-    // 1. Create Room
     const roomResult = await pool.query(
       "INSERT INTO rooms (name, code, creator_id) VALUES ($1, $2, $3) RETURNING *",
-      [name, code, creatorId]
+      [name.trim(), code, creatorId]
     );
     const room = roomResult.rows[0];
 
-    // 2. Add Creator as Member
     await pool.query(
       "INSERT INTO room_members (room_id, user_id) VALUES ($1, $2)",
       [room.id, creatorId]
@@ -71,7 +100,7 @@ router.post("/", authenticateToken, async (req, res) => {
   }
 });
 
-// POST /api/rooms/join - Join a room via code
+// POST /api/rooms/join
 router.post("/join", authenticateToken, async (req, res) => {
   const { inviteCode } = req.body;
   const userId = req.user.id;
@@ -85,7 +114,6 @@ router.post("/join", authenticateToken, async (req, res) => {
     }
     const room = roomResult.rows[0];
 
-    // Check if already member
     const memberCheck = await pool.query(
       "SELECT * FROM room_members WHERE room_id = $1 AND user_id = $2",
       [room.id, userId]
@@ -107,7 +135,7 @@ router.post("/join", authenticateToken, async (req, res) => {
   }
 });
 
-// DELETE /api/rooms/:roomId/leave - Leave or Delete room
+// DELETE /api/rooms/:roomId/leave (UPDATED CLEANUP)
 router.delete("/:roomId/leave", authenticateToken, async (req, res) => {
   const { roomId } = req.params;
   const userId = req.user.id;
@@ -122,10 +150,11 @@ router.delete("/:roomId/leave", authenticateToken, async (req, res) => {
     const room = roomRes.rows[0];
 
     if (String(room.creator_id) === String(userId)) {
-      // Creator is deleting the room -> Delete everything
+      // Creator is deleting the room -> Delete EVERYTHING
+      await pool.query("DELETE FROM notes WHERE room_id = $1", [roomId]); // 🟢 Added Notes
       await pool.query("DELETE FROM availability WHERE room_id = $1", [roomId]);
       await pool.query("DELETE FROM room_members WHERE room_id = $1", [roomId]);
-      await pool.query("DELETE FROM meetings WHERE room_id = $1", [roomId]); // cleanup meetings
+      await pool.query("DELETE FROM meetings WHERE room_id = $1", [roomId]);
       await pool.query("DELETE FROM rooms WHERE id = $1", [roomId]);
       return res.json({ message: "Room deleted" });
     } else {
@@ -134,7 +163,6 @@ router.delete("/:roomId/leave", authenticateToken, async (req, res) => {
         "DELETE FROM room_members WHERE room_id = $1 AND user_id = $2",
         [roomId, userId]
       );
-      // Optional: Cleanup their availability
       await pool.query(
         "DELETE FROM availability WHERE room_id = $1 AND user_id = $2",
         [roomId, userId]
@@ -147,9 +175,7 @@ router.delete("/:roomId/leave", authenticateToken, async (req, res) => {
   }
 });
 
-// ------------------------------------------------------------------
-// PATCH /api/rooms/:roomId/schedule-preference (UPDATED WITH EMAIL)
-// ------------------------------------------------------------------
+// PATCH /api/rooms/:roomId/schedule-preference
 router.patch(
   "/:roomId/schedule-preference",
   authenticateToken,
@@ -159,7 +185,6 @@ router.patch(
     const userId = req.user.id;
 
     try {
-      // 1. Verify User is Creator
       const roomCheck = await pool.query("SELECT * FROM rooms WHERE id = $1", [
         roomId,
       ]);
@@ -174,7 +199,6 @@ router.patch(
           .json({ error: "Only creator can set preferences." });
       }
 
-      // 2. Update Preferences
       await pool.query(
         `UPDATE rooms
          SET meeting_interval = $1, meeting_day = $2
@@ -182,8 +206,6 @@ router.patch(
         [interval, day, roomId]
       );
 
-      // 3. SEND EMAIL NOTIFICATION TO MEMBERS
-      // Find all members EXCEPT the creator (who is making the change)
       const memberResult = await pool.query(
         `SELECT u.email, u.username
          FROM room_members rm
@@ -193,31 +215,24 @@ router.patch(
       );
 
       const members = memberResult.rows;
-
       if (members.length > 0) {
         const emailPromises = members.map((member) => {
           const msg = {
             to: member.email,
-            from: process.env.EMAIL_USER, // Ensure this is set in .env
+            from: process.env.EMAIL_USER,
             subject: `Update: Meeting Details for "${room.name}" Changed`,
-            text: `Hello ${member.username},\n\nThe meeting day for "${room.name}" has been changed to ${day}. Please log in and update your availability.\n\nBest,\nScheduleMate Team`,
+            text: `Hello ${member.username},\n\nThe meeting day for "${room.name}" has been changed to ${day}. Please log in and update your availability.`,
             html: `
               <div style="font-family: Arial, sans-serif; color: #333;">
                 <h3>Meeting Update</h3>
                 <p>Hello <strong>${member.username}</strong>,</p>
                 <p>The meeting day for <strong>${room.name}</strong> has been updated to <strong style="color: #6366f1;">${day}</strong>.</p>
-                <p>Please log in and update your availability to match the new schedule.</p>
-                <br>
-                <a href="${process.env.APP_BASE_URL}" style="background-color: #6366f1; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Go to Dashboard</a>
+                <p>Please log in and update your availability.</p>
               </div>
             `,
           };
-          return sgMail.send(msg).catch((err) => {
-            console.error(`Failed to send email to ${member.email}`, err);
-          });
+          return sgMail.send(msg).catch((e) => console.error(e));
         });
-
-        // Send all emails in parallel (non-blocking)
         Promise.all(emailPromises);
       }
 

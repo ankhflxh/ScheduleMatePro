@@ -26,7 +26,7 @@ if (!roomId) {
 
 let currentUserId = null;
 let roomCreatorId = null;
-let roomInterval = 1; // Default to 1 hour
+// We no longer need roomInterval here for calculation, strictly display if needed
 let mostCommonTime = "";
 let mostCommonPlace = "";
 const token = localStorage.getItem("sm_token");
@@ -34,6 +34,7 @@ const token = localStorage.getItem("sm_token");
 const API_HEADERS = {
   credentials: "include",
   headers: {
+    "Content-Type": "application/json",
     "X-Auth-Token": token,
   },
 };
@@ -48,7 +49,6 @@ function showConfirmIfEligible(entries) {
   if (creatorControls) {
     if (isCreator && entries.length > 0 && hasSuggestedTime) {
       creatorControls.style.display = "block"; // Show Button
-
       if (confirmBtn) confirmBtn.onclick = showConfirmModal;
     } else {
       creatorControls.style.display = "none"; // Hide Button
@@ -75,7 +75,6 @@ if (confirmCancelBtn) {
   };
 }
 
-// 🟢 FIXED: Calculate End Time based on Interval
 if (confirmOkBtn) {
   confirmOkBtn.onclick = () => {
     const location = confirmLocationInput.value.trim();
@@ -84,32 +83,20 @@ if (confirmOkBtn) {
       return;
     }
 
+    // Set Loading State
+    const originalText = confirmOkBtn.textContent;
+    confirmOkBtn.textContent = "Confirming...";
+    confirmOkBtn.disabled = true;
+
     const [meeting_day, start_time] = mostCommonTime.split(" ");
 
-    // 1. Calculate End Time
-    // Parse "11:00" into hours and minutes
-    const [startH, startM] = start_time.split(":").map(Number);
-
-    const date = new Date();
-    date.setHours(startH, startM, 0, 0);
-    // Add the room's interval (in hours)
-    date.setHours(date.getHours() + roomInterval);
-
-    // Format back to HH:MM
-    const endH = String(date.getHours()).padStart(2, "0");
-    const endM = String(date.getMinutes()).padStart(2, "0");
-    const end_time = `${endH}:${endM}`;
-
+    // 🟢 UPDATED: No longer calculating end_time here. Backend handles it.
     fetch(`/api/meetings/${roomId}`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Auth-Token": token,
-      },
+      ...API_HEADERS, // Use spread to include headers
       body: JSON.stringify({
         meeting_day: meeting_day,
         start_time: start_time,
-        end_time: end_time, // Sending calculated end time
         location: location,
       }),
     })
@@ -124,6 +111,11 @@ if (confirmOkBtn) {
       .catch((err) => {
         console.error(err);
         alert("Failed to confirm meeting. Check console.");
+      })
+      .finally(() => {
+        // Reset Button
+        confirmOkBtn.textContent = originalText;
+        confirmOkBtn.disabled = false;
       });
   };
 }
@@ -138,26 +130,29 @@ if (confirmedCloseBtn) {
 // ----------------------------------------------------
 // INITIALIZATION
 // ----------------------------------------------------
+// Ensure headers are correct for GET requests
+const GET_HEADERS = {
+  headers: { "X-Auth-Token": token },
+};
+
 Promise.all([
-  fetch("/api/users/me", API_HEADERS).then((res) => res.json()),
-  fetch(`/api/rooms/${roomId}`, API_HEADERS).then((res) => res.json()),
+  fetch("/api/users/me", GET_HEADERS).then((res) => res.json()),
+  fetch(`/api/rooms/${roomId}`, GET_HEADERS).then((res) => res.json()),
 ])
   .then(([user, room]) => {
     currentUserId = String(user.user_id);
     roomCreatorId = String(room.creator_id);
-    // 🟢 Save the room interval
-    roomInterval = parseInt(room.meeting_interval) || 1;
-
     fetchAvailabilities();
   })
   .catch((err) => {
     console.error("Initialization error:", err);
+    entriesContainer.innerHTML = "<p>Please log in to view this room.</p>";
   });
 
 function fetchAvailabilities() {
   if (suggestedTimeEl) suggestedTimeEl.textContent = "Loading...";
 
-  fetch(`/api/availability/${roomId}`, API_HEADERS)
+  fetch(`/api/availability/${roomId}`, GET_HEADERS)
     .then((res) => res.json())
     .then((entries) => {
       renderEntries(entries);
@@ -168,13 +163,13 @@ function fetchAvailabilities() {
       console.error("Error fetching entries:", err);
     });
 
-  fetch(`/api/meetings/confirmed?roomId=${roomId}`, API_HEADERS)
+  fetch(`/api/meetings/confirmed?roomId=${roomId}`, GET_HEADERS)
     .then((res) => {
       if (!res.ok) throw new Error("No confirmed meeting");
       return res.json();
     })
     .catch((err) => {
-      console.error("No confirmed meeting:", err);
+      // It's normal to have no confirmed meeting yet, suppress error
     });
 }
 
@@ -224,7 +219,6 @@ function renderEntries(entries) {
 function suggestMeeting(entries) {
   const countMap = {};
   const locationMap = {};
-  const locations = new Set();
   let maxLocationVotes = 0;
   let preferredLocation = "";
 
@@ -237,7 +231,6 @@ function suggestMeeting(entries) {
       maxLocationVotes = locationMap[location];
       preferredLocation = location;
     }
-    locations.add(location);
   });
 
   // 1. Best Time

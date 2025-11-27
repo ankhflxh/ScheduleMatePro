@@ -20,7 +20,7 @@ const PORT = process.env.PORT || 5000;
 // Initialize SendGrid
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
-// middleware
+// Middleware
 app.use(
   cors({
     origin: process.env.APP_BASE_URL,
@@ -29,11 +29,11 @@ app.use(
 );
 app.use(express.json());
 
-// serve the whole Frontend folder
+// Serve Frontend
 app.use(express.static(path.join(__dirname, "..", "Frontend")));
 app.use(cookieParser());
 
-// API routes
+// API Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/rooms", roomRoutes);
 app.use("/api/availability", availabilityRoutes);
@@ -41,29 +41,29 @@ app.use("/api/meetings", meetingRoutes);
 app.use("/api/notes", notesRoutes);
 app.use("/api/users", authRoutes);
 
-// Landing page (root)
+// Root Redirect
 app.get("/", (req, res) => {
   res.redirect("/LandingPage/index.html");
 });
+
+// --- HELPER: Get Consistent System Time ---
+function getSystemTime() {
+  const now = new Date();
+  const currentDay = now.toLocaleDateString("en-US", { weekday: "long" });
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+  const currentTime = `${hours}:${minutes}:00`;
+  return { now, currentDay, currentTime };
+}
 
 // ----------------------------------------------------------------
 // ⏰ CRON JOB 1: Send "Meeting Started" Emails (Runs Every Minute)
 // ----------------------------------------------------------------
 cron.schedule("* * * * *", async () => {
-  // 1. Get Current Day & Time
-  const now = new Date();
-  const currentDay = now.toLocaleDateString("en-US", { weekday: "long" });
-
-  // Format time as HH:MM:00 for comparison
-  const hours = String(now.getHours()).padStart(2, "0");
-  const minutes = String(now.getMinutes()).padStart(2, "0");
-  const currentTime = `${hours}:${minutes}:00`;
+  const { currentDay, currentTime } = getSystemTime();
 
   try {
-    // 2. Find meetings that:
-    //    - Match Today
-    //    - Have Started (Start Time <= Now)
-    //    - Haven't sent the "Started" email yet
+    // Find meetings that: Match Today, Have Started, Email NOT sent yet
     const meetingsResult = await pool.query(
       `SELECT m.id, m.room_id, m.start_time, m.location, r.name as room_name 
        FROM meetings m
@@ -71,17 +71,19 @@ cron.schedule("* * * * *", async () => {
        WHERE m.meeting_day = $1
          AND m.started_email_sent = FALSE
          AND m.start_time <= $2
-         AND m.end_time > $2`, // Optional: Ensure it hasn't already ended
+         AND m.end_time > $2`,
       [currentDay, currentTime]
     );
 
     const meetings = meetingsResult.rows;
 
     if (meetings.length > 0) {
-      console.log(`🚀 Found ${meetings.length} new meetings starting now.`);
+      console.log(
+        `🚀 Sending "Started" emails for ${meetings.length} meetings.`
+      );
 
       for (const meeting of meetings) {
-        // A. Mark as sent IMMEDIATELY to prevent double sends
+        // A. Mark as sent FIRST (prevent double-send race conditions)
         await pool.query(
           "UPDATE meetings SET started_email_sent = TRUE WHERE id = $1",
           [meeting.id]
@@ -140,8 +142,8 @@ cron.schedule("* * * * *", async () => {
 cron.schedule("0 19 * * *", async () => {
   console.log("⏰ Running Daily Meeting Reminder Check...");
 
-  // 1. Get "Tomorrow's" Day Name
-  const tomorrow = new Date();
+  const now = new Date();
+  const tomorrow = new Date(now);
   tomorrow.setDate(tomorrow.getDate() + 1);
   const tomorrowDay = tomorrow.toLocaleDateString("en-US", { weekday: "long" });
 

@@ -28,7 +28,7 @@ function initSettings() {
     .then((room) => {
       if (roomCodeText) roomCodeText.textContent = room.code || "UNKNOWN";
 
-      // Fetch Participants based on room info
+      // Fetch Participants
       loadParticipants(roomId, room.creator_id);
     })
     .catch((err) => {
@@ -37,36 +37,28 @@ function initSettings() {
     });
 }
 
-// 2. Fetch & Render Members
+// 2. Fetch & Render Members (UPDATED)
 function loadParticipants(roomId, creatorId) {
-  // Using availability endpoint to get list of users in the room
-  // (Assuming backend doesn't have a specific GET /rooms/:id/members route yet)
-  fetch(`/api/availability/${roomId}`, {
+  // 🟢 FIXED: Now uses the dedicated members endpoint
+  fetch(`/api/rooms/${roomId}/members`, {
     headers: { "X-Auth-Token": token },
   })
     .then((res) => res.json())
-    .then((data) => {
+    .then((users) => {
       participantsList.innerHTML = "";
 
-      // Use a Map to ensure unique users (in case of multiple entries)
-      const uniqueUsers = new Map();
-      data.forEach((entry) => {
-        if (!uniqueUsers.has(entry.user_id)) {
-          uniqueUsers.set(entry.user_id, entry.username);
-        }
-      });
-
-      if (uniqueUsers.size === 0) {
+      if (users.length === 0) {
         participantsList.innerHTML =
-          "<li class='participant-item'>No members yet.</li>";
+          "<li class='participant-item'>No members found.</li>";
         return;
       }
 
-      uniqueUsers.forEach((username, userId) => {
+      users.forEach((user) => {
         const li = document.createElement("li");
         li.className = "participant-item";
 
-        const isCreator = String(userId) === String(creatorId);
+        // Check if this user is the creator
+        const isCreator = String(user.id) === String(creatorId);
 
         // Badge Logic
         const roleBadge = isCreator
@@ -74,7 +66,7 @@ function loadParticipants(roomId, creatorId) {
           : `<span class="participant-role role-member">Member</span>`;
 
         li.innerHTML = `
-            <span class="member-name">${username}</span>
+            <span class="member-name">${user.username}</span>
             ${roleBadge}
         `;
         participantsList.appendChild(li);

@@ -1,32 +1,32 @@
-// auth.js
+// File: Backend/Routes/auth.js
 const express = require("express");
 const router = express.Router();
 const pool = require("../db");
 const crypto = require("crypto");
-require("dotenv").config();
-
-// NEW SECURITY IMPORTS
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-
-// SendGrid setup (retained)
 const sgMail = require("@sendgrid/mail");
+require("dotenv").config();
+
+// SendGrid setup
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
-// You MUST set this in your .env file
-const JWT_SECRET = process.env.JWT_SECRET || "your_insecure_default_secret";
+// SECURITY: Enforce secret presence
+if (!process.env.JWT_SECRET) {
+  console.error("FATAL ERROR: JWT_SECRET is not defined in .env");
+  process.exit(1);
+}
+
+const JWT_SECRET = process.env.JWT_SECRET;
 const SALT_ROUNDS = 10;
 
 // --- HELPER FUNCTIONS AND MIDDLEWARE ---
 
-// REPLACED: JWT token generation
 const generateToken = (id) => {
   return jwt.sign({ userId: id }, JWT_SECRET, { expiresIn: "7d" });
 };
 
-// MODIFIED: Middleware to authenticate user via JWT
 const authenticateToken = async (req, res, next) => {
-  // Check for 'X-Auth-Token' header (used by dashboard.js)
   const token = req.headers["x-auth-token"] || req.cookies.sm_auth_token;
 
   if (!token) {
@@ -36,11 +36,9 @@ const authenticateToken = async (req, res, next) => {
   }
 
   try {
-    // Verify the JWT signature and extract payload
     const decoded = jwt.verify(token, JWT_SECRET);
     const userId = decoded.userId;
 
-    // Check for user existence
     const result = await pool.query(
       "SELECT id, username, email, is_verified FROM users WHERE id = $1",
       [userId]
@@ -52,7 +50,6 @@ const authenticateToken = async (req, res, next) => {
     req.user = result.rows[0];
     next();
   } catch (err) {
-    // Handles JWT errors (e.g., token expired, invalid signature)
     console.error("Token Authentication Error:", err);
     return res.status(403).json({ message: "Invalid or expired token" });
   }
@@ -65,10 +62,25 @@ const authenticateToken = async (req, res, next) => {
 // POST /api/auth/register
 router.post("/register", async (req, res) => {
   const { username, email, password } = req.body;
+
+  // 🛡️ SECURITY: Backend Validation
+  if (!username || !email || !password) {
+    return res.status(400).json({ error: "All fields are required." });
+  }
+  if (password.length < 8) {
+    return res
+      .status(400)
+      .json({ error: "Password must be at least 8 characters." });
+  }
+  if (username.length < 3) {
+    return res
+      .status(400)
+      .json({ error: "Username must be at least 3 characters." });
+  }
+
   const verificationToken = crypto.randomBytes(32).toString("hex");
   const expires = new Date(Date.now() + 1000 * 60 * 30); // 30 mins
 
-  // NEW: HASH THE PASSWORD using bcrypt
   let passwordHash;
   try {
     passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
@@ -78,19 +90,15 @@ router.post("/register", async (req, res) => {
   }
 
   try {
-    // 1) create user as NOT verified, saving the HASH
     await pool.query(
       `INSERT INTO users (username, email, password_hash, is_verified, verification_token, verification_expires)
        VALUES ($1, $2, $3, FALSE, $4, $5)`,
       [username, email, passwordHash, verificationToken, expires]
     );
 
-    // 2) ***IMMEDIATELY SEND SUCCESS RESPONSE***
     res.json({ message: "verification_sent" });
   } catch (err) {
-    // 3) Error handling for duplicate key or DB insert failure
     console.error("REGISTER ERROR:", err);
-    // ... (rest of duplicate key error handling is unchanged)
     if (err.code === "23505") {
       if (err.constraint === "users_username_key") {
         return res
@@ -103,14 +111,13 @@ router.post("/register", async (req, res) => {
           .json({ error: "That email address is already registered." });
       }
     }
-    // Only send 400 status if no response was sent yet
     if (!res.headersSent) {
       res.status(400).json({ error: "Registration failed. Please try again." });
     }
     return;
   }
 
-  // 4) ***SEND EMAIL OUTSIDE OF THE MAIN TRY/CATCH (Non-blocking)***
+  // Non-blocking Email
   try {
     const verifyLink = `${process.env.APP_BASE_URL}/api/auth/verify?token=${verificationToken}`;
     const msg = {
@@ -128,7 +135,7 @@ router.post("/register", async (req, res) => {
   }
 });
 
-// GET /api/auth/verify (remains UNCHANGED, uses verification_token, not JWT)
+// GET /api/auth/verify
 router.get("/verify", async (req, res) => {
   const { token } = req.query;
 
@@ -171,9 +178,9 @@ router.get("/verify", async (req, res) => {
   }
 });
 
-// POST /api/login
+// POST /api/auth/login
 router.post("/login", async (req, res) => {
-  const { identifier, password } = req.body; // identifier can be username or email
+  const { identifier, password } = req.body;
 
   try {
     const result = await pool.query(
@@ -188,7 +195,6 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ message: "Invalid username or password." });
     }
 
-    // NEW: HASHED PASSWORD COMPARISON
     const passwordMatch = await bcrypt.compare(password, user.password_hash);
 
     if (!passwordMatch) {
@@ -202,10 +208,8 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    // Success: Generate and return JWT
     const token = generateToken(user.id);
 
-    // Frontend expects token and user info
     res.json({
       token: token,
       user: { user_id: user.id, username: user.username },
@@ -217,9 +221,8 @@ router.post("/login", async (req, res) => {
   }
 });
 
-// GET /api/users/me (unchanged logic, now using secure JWT)
+// GET /api/users/me
 router.get("/me", authenticateToken, (req, res) => {
-  // req.user is set by the authenticateToken middleware
   res.json({
     user_id: req.user.id,
     user_username: req.user.username,
@@ -228,13 +231,13 @@ router.get("/me", authenticateToken, (req, res) => {
   });
 });
 
-// POST /api/auth/resend-verification (remains UNCHANGED, uses verification_token)
+// POST /api/auth/resend-verification
 router.post("/resend-verification", async (req, res) => {
   const { email } = req.body;
 
   try {
     const userResult = await pool.query(
-      `SELECT id, username, is_verified, verification_expires FROM users WHERE email = $1`,
+      `SELECT id, username, is_verified FROM users WHERE email = $1`,
       [email]
     );
 
@@ -246,7 +249,6 @@ router.post("/resend-verification", async (req, res) => {
       return res.status(400).json({ error: "Account is already verified." });
     }
 
-    // Generate new token and expiry
     const newToken = crypto.randomBytes(32).toString("hex");
     const newExpires = new Date(Date.now() + 1000 * 60 * 30); // 30 mins
 
@@ -259,7 +261,6 @@ router.post("/resend-verification", async (req, res) => {
 
     res.json({ message: "Verification link successfully resent." });
 
-    // Send email non-blocking
     const verifyLink = `${process.env.APP_BASE_URL}/api/auth/verify?token=${newToken}`;
     const msg = {
       to: email,
@@ -274,7 +275,6 @@ router.post("/resend-verification", async (req, res) => {
     });
   } catch (err) {
     console.error("RESEND ERROR:", err);
-    // Send error response if headers were not sent by the res.json above
     if (!res.headersSent) {
       res.status(500).json({ error: "Failed to resend verification link." });
     }
@@ -283,5 +283,5 @@ router.post("/resend-verification", async (req, res) => {
 
 module.exports = {
   router: router,
-  authenticateToken: authenticateToken, // Export the middleware function
+  authenticateToken: authenticateToken,
 };

@@ -1,9 +1,10 @@
+// File: Backend/Routes/availability.js
 const express = require("express");
 const router = express.Router();
 const pool = require("../db");
-const { authenticateToken } = require("./auth"); // Import the secure middleware
+const { authenticateToken } = require("./auth");
 
-// GET /api/availability/:roomId  → all members' availability (no auth needed, public view)
+// GET /api/availability/:roomId
 router.get("/:roomId", async (req, res) => {
   const { roomId } = req.params;
   try {
@@ -21,10 +22,9 @@ router.get("/:roomId", async (req, res) => {
   }
 });
 
-// GET /api/availability/:roomId/me (No longer needs userId in query string)
+// GET /api/availability/:roomId/me
 router.get("/:roomId/me", authenticateToken, async (req, res) => {
   const { roomId } = req.params;
-  // SECURE: Use authenticated ID, ignore req.query.userId
   const userId = req.user.id;
 
   try {
@@ -34,7 +34,6 @@ router.get("/:roomId/me", authenticateToken, async (req, res) => {
       [roomId, userId]
     );
     if (result.rows.length === 0) {
-      // Returning 404/empty is fine, the FE handles null
       return res.json(null);
     }
     res.json(result.rows[0]);
@@ -45,22 +44,41 @@ router.get("/:roomId/me", authenticateToken, async (req, res) => {
 });
 
 // POST /api/availability/:roomId
-// body: { day, start_time, end_time, location } - userId is now ignored from body
 router.post("/:roomId", authenticateToken, async (req, res) => {
   const { roomId } = req.params;
-  const { day, start_time, end_time, location } = req.body;
-  // SECURE: Use authenticated ID, ignore req.body.userId
+  const { day, start_time, location } = req.body; // NOTE: We ignore end_time from body
   const userId = req.user.id;
 
-  // Basic validation (optional but recommended)
-  if (!day || !start_time || !end_time) {
-    return res
-      .status(400)
-      .json({ error: "Missing required availability fields." });
+  if (!day || !start_time) {
+    return res.status(400).json({ error: "Missing required fields." });
   }
 
   try {
-    // upsert style: try update first
+    // 1. Fetch Room Interval
+    const roomRes = await pool.query(
+      "SELECT meeting_interval FROM rooms WHERE id = $1",
+      [roomId]
+    );
+
+    if (roomRes.rows.length === 0) {
+      return res.status(404).json({ error: "Room not found" });
+    }
+
+    const interval = parseInt(roomRes.rows[0].meeting_interval) || 1;
+
+    // 2. Calculate End Time Server-Side
+    const [startH, startM] = start_time.split(":").map(Number);
+    let endH = startH + interval;
+
+    // Optional: Handle midnight wrap-around (e.g. 23:00 + 2h = 01:00)
+    // For now, we'll keep it simple as the frontend usually limits times to 22:00
+    if (endH >= 24) endH -= 24;
+
+    const end_time = `${String(endH).padStart(2, "0")}:${String(
+      startM
+    ).padStart(2, "0")}`;
+
+    // 3. Upsert Logic
     const update = await pool.query(
       `UPDATE availability
        SET day = $1, start_time = $2, end_time = $3, location = $4, updated_at = CURRENT_TIMESTAMP
@@ -73,7 +91,6 @@ router.post("/:roomId", authenticateToken, async (req, res) => {
       return res.json(update.rows[0]);
     }
 
-    // else insert
     const insert = await pool.query(
       `INSERT INTO availability (room_id, user_id, day, start_time, end_time, location)
        VALUES ($1, $2, $3, $4, $5, $6)
