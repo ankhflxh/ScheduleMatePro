@@ -1,7 +1,7 @@
 {
   "name": "ScheduleMate Pro",
   "short_name": "ScheduleMate",
-  "start_url": "/Dashboard/dashboard.html",
+  "start_url": "/LandingPage/index.html",
   "display": "standalone",
   "background_color": "#eef2ff",
   "theme_color": "#6366f1",
