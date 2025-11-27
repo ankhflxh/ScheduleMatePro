@@ -1,6 +1,6 @@
 // File: Frontend/Dashboard/dashboard.js
 
-// ... (Keep existing DOM Elements and Modal Logic at the top) ...
+// ... (DOM Elements and Modals are unchanged) ...
 const roomsContainer = document.querySelector("#my-rooms");
 const meetingsList = document.querySelector("#my-meetings");
 const noRoomsMsg = document.querySelector("#no-rooms-message");
@@ -59,30 +59,26 @@ if (!token) {
         titleEl.textContent = `${displayName}'s Dashboard`;
       }
 
-      if (sessionStorage.getItem("justLoggedIn") === "1") {
-        const visitKey = `firstVisitDone_${userId}`;
-        const hasVisited = localStorage.getItem(visitKey);
-        const isFirstVisit = !hasVisited;
+      // 🟢 UPDATED: Use Database 'has_seen_tour' instead of LocalStorage
+      // If has_seen_tour is FALSE (or null), we show the tour.
+      const isFirstVisit = !user.has_seen_tour;
 
-        TourManager.init(isFirstVisit, displayName);
-
-        if (isFirstVisit) localStorage.setItem(visitKey, "true");
-        sessionStorage.removeItem("justLoggedIn");
-      } else {
-        TourManager.init(false, displayName);
-      }
+      TourManager.init(isFirstVisit, displayName);
 
       loadRooms(userId);
       loadMeetings(userId);
     })
     .catch((err) => {
       console.error("Dashboard Load Error:", err);
-      localStorage.removeItem("sm_token");
-      window.location.href = "/LoginPage/login.html";
+      // Only redirect if it's a true auth error, not just a fetch error
+      if (err.message === "Session expired") {
+        localStorage.removeItem("sm_token");
+        window.location.href = "/LoginPage/login.html";
+      }
     });
 }
 
-// ... (Keep isUpcoming, loadRooms, loadMeetings, and Form Logic exactly as before) ...
+// ... (Helper functions loadRooms, loadMeetings, Form Listeners remain the same) ...
 function isUpcoming(dayName, endTimeStr) {
   const days = [
     "Sunday",
@@ -271,26 +267,25 @@ const TourManager = {
   init: function (isFirstVisit, username) {
     const bubble = document.getElementById("guide-bubble");
     const toggle = document.getElementById("guide-toggle");
+    const avatar = document.getElementById("amara-avatar");
     const title = document.querySelector("#guide-text-content h3");
     const text = document.querySelector("#guide-text-content p");
-
-    // 🟢 UPDATED: Explicitly control which buttons are visible
     const actions = document.getElementById("guide-actions");
     const chatOptions = document.getElementById("chat-options");
 
     if (isFirstVisit) {
-      // Tour Mode
+      // MAXIMIZED MODE
+      avatar.style.display = "block";
       bubble.style.display = "block";
       toggle.style.display = "none";
-
-      // Ensure Start/Skip buttons are visible, Chat hidden
       actions.style.display = "flex";
       chatOptions.style.display = "none";
 
       title.textContent = `Hi ${username}!`;
       text.innerHTML = `I am Amara and I will love to show you what I have built just to make navigation easy for you but feel free to skip. You could always visit me at the corner of the screen if you have any questions and I will be delighted to help cause it gets lonely 😞. Okay so let's get started!`;
     } else {
-      // Minimized mode (Default)
+      // MINIMIZED MODE
+      avatar.style.display = "none";
       bubble.style.display = "none";
       toggle.style.display = "flex";
     }
@@ -364,6 +359,12 @@ const TourManager = {
     this.clearHighlights();
     document.getElementById("tour-overlay").classList.remove("active");
 
+    // 🟢 NEW: Mark as complete in Database
+    fetch("/api/users/tour-complete", {
+      method: "POST",
+      headers: { "X-Auth-Token": token },
+    }).catch(console.error);
+
     const title = document.querySelector("#guide-text-content h3");
     const text = document.querySelector("#guide-text-content p");
     const actions = document.getElementById("guide-actions");
@@ -377,6 +378,7 @@ const TourManager = {
 
     this.autoCloseTimer = setTimeout(() => {
       document.getElementById("guide-bubble").style.display = "none";
+      document.getElementById("amara-avatar").style.display = "none";
       document.getElementById("guide-toggle").style.display = "flex";
     }, 3000);
   },
@@ -394,6 +396,7 @@ const TourManager = {
 
     const bubble = document.getElementById("guide-bubble");
     const toggle = document.getElementById("guide-toggle");
+    const avatar = document.getElementById("amara-avatar");
     const actions = document.getElementById("guide-actions");
     const chatOptions = document.getElementById("chat-options");
 
@@ -402,10 +405,10 @@ const TourManager = {
 
     if (bubble.style.display === "none") {
       // OPEN
+      avatar.style.display = "block";
       bubble.style.display = "block";
       toggle.style.display = "none";
 
-      // Default to Chat Mode
       document.querySelector("#guide-text-content h3").textContent =
         "Asking Amara";
       document.querySelector("#guide-text-content p").textContent =
@@ -414,6 +417,7 @@ const TourManager = {
       chatOptions.style.display = "flex";
     } else {
       // CLOSE
+      avatar.style.display = "none";
       bubble.style.display = "none";
       toggle.style.display = "flex";
     }
@@ -433,7 +437,7 @@ const TourManager = {
         "Click the 'Notes' card inside a room. You can write messages, to-do lists, and upload images to share.";
     } else if (topic === "leave") {
       text.textContent =
-        "On the Dashboard, click the 'Trash Can' icon on any room card to leave. If you are the creator, this deletes the room. or you could go to the room settings and log out of the room";
+        "On the Dashboard, click the 'Trash Can' icon on any room card to leave. If you are the creator, this deletes the room.";
     } else if (topic === "edit") {
       text.textContent =
         "Yes! You can update your availability anytime. Just go back to the room and click 'Edit Mine'.";
@@ -442,6 +446,6 @@ const TourManager = {
 
   resetChat: function () {
     document.querySelector("#guide-text-content p").textContent =
-      "How can Amara help you today?";
+      "How can I help you today?";
   },
 };

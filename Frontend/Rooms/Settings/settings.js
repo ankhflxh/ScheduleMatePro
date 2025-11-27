@@ -39,7 +39,6 @@ function initSettings() {
 
 // 2. Fetch & Render Members (UPDATED)
 function loadParticipants(roomId, creatorId) {
-  // 🟢 FIXED: Now uses the dedicated members endpoint
   fetch(`/api/rooms/${roomId}/members`, {
     headers: { "X-Auth-Token": token },
   })
@@ -52,6 +51,9 @@ function loadParticipants(roomId, creatorId) {
           "<li class='participant-item'>No members found.</li>";
         return;
       }
+
+      // 🟢 CHANGED: Sort users alphabetically by username
+      users.sort((a, b) => a.username.localeCompare(b.username));
 
       users.forEach((user) => {
         const li = document.createElement("li");

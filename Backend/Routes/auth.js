@@ -39,8 +39,9 @@ const authenticateToken = async (req, res, next) => {
     const decoded = jwt.verify(token, JWT_SECRET);
     const userId = decoded.userId;
 
+    // 🟢 UPDATED: Now selects 'has_seen_tour'
     const result = await pool.query(
-      "SELECT id, username, email, is_verified FROM users WHERE id = $1",
+      "SELECT id, username, email, is_verified, has_seen_tour FROM users WHERE id = $1",
       [userId]
     );
 
@@ -63,7 +64,6 @@ const authenticateToken = async (req, res, next) => {
 router.post("/register", async (req, res) => {
   const { username, email, password } = req.body;
 
-  // 🛡️ SECURITY: Backend Validation
   if (!username || !email || !password) {
     return res.status(400).json({ error: "All fields are required." });
   }
@@ -91,8 +91,8 @@ router.post("/register", async (req, res) => {
 
   try {
     await pool.query(
-      `INSERT INTO users (username, email, password_hash, is_verified, verification_token, verification_expires)
-       VALUES ($1, $2, $3, FALSE, $4, $5)`,
+      `INSERT INTO users (username, email, password_hash, is_verified, verification_token, verification_expires, has_seen_tour)
+       VALUES ($1, $2, $3, FALSE, $4, $5, FALSE)`,
       [username, email, passwordHash, verificationToken, expires]
     );
 
@@ -117,7 +117,6 @@ router.post("/register", async (req, res) => {
     return;
   }
 
-  // Non-blocking Email
   try {
     const verifyLink = `${process.env.APP_BASE_URL}/api/auth/verify?token=${verificationToken}`;
     const msg = {
@@ -228,7 +227,21 @@ router.get("/me", authenticateToken, (req, res) => {
     user_username: req.user.username,
     email: req.user.email,
     is_verified: req.user.is_verified,
+    has_seen_tour: req.user.has_seen_tour, // 🟢 Include this status
   });
+});
+
+// 🟢 NEW ROUTE: Mark tour as complete
+router.post("/tour-complete", authenticateToken, async (req, res) => {
+  try {
+    await pool.query("UPDATE users SET has_seen_tour = TRUE WHERE id = $1", [
+      req.user.id,
+    ]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to update status" });
+  }
 });
 
 // POST /api/auth/resend-verification
@@ -250,7 +263,7 @@ router.post("/resend-verification", async (req, res) => {
     }
 
     const newToken = crypto.randomBytes(32).toString("hex");
-    const newExpires = new Date(Date.now() + 1000 * 60 * 30); // 30 mins
+    const newExpires = new Date(Date.now() + 1000 * 60 * 30);
 
     await pool.query(
       `UPDATE users

@@ -4,7 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dashboard | ScheduleMate Pro</title>
-
     <link
       href="https://fonts.googleapis.com/icon?family=Material+Icons"
       rel="stylesheet"
@@ -13,10 +12,8 @@
       href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
-
     <link rel="stylesheet" href="dashboard.css" />
     <link rel="icon" type="image/png" href="../../Images/favicon.png" />
-
     <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
   </head>
   <body>
@@ -45,13 +42,11 @@
             loop
             autoplay
           ></lottie-player>
-
           <div>
             <h1 id="dashboard-title">Dashboard</h1>
             <p class="subtitle">Manage your schedule and teams.</p>
           </div>
         </div>
-
         <button id="logout-button" class="logout-pill">
           <span class="material-icons">logout</span> Log Out
         </button>
@@ -68,11 +63,10 @@
               <p>Host a new space for your team.</p>
             </div>
           </div>
-
           <form id="create-room-form" class="action-form">
             <div class="input-wrapper">
-              <span class="material-icons input-icon">label</span>
-              <input
+              <span class="material-icons input-icon">label</span
+              ><input
                 type="text"
                 id="create-room-name"
                 placeholder="e.g. Daily Standup"
@@ -80,13 +74,11 @@
               />
             </div>
             <p id="roomNameError" class="error-msg" style="display: none"></p>
-
             <button type="submit" class="btn-action btn-create">
               Create New <span class="material-icons">arrow_forward</span>
             </button>
           </form>
         </div>
-
         <div class="action-card join-card">
           <div class="card-content">
             <div class="icon-bubble join-bubble">
@@ -97,18 +89,16 @@
               <p>Have a code? Enter it below.</p>
             </div>
           </div>
-
           <form id="join-room-form" class="action-form">
             <div class="input-wrapper">
-              <span class="material-icons input-icon">password</span>
-              <input
+              <span class="material-icons input-icon">password</span
+              ><input
                 type="text"
                 id="join-room-code"
                 placeholder="e.g. A1B2"
                 autocomplete="off"
               />
             </div>
-
             <button type="submit" class="btn-action btn-join">
               Join Now <span class="material-icons">login</span>
             </button>
@@ -131,9 +121,7 @@
               Your Rooms
             </h3>
           </div>
-
           <div id="my-rooms" class="rooms-list"></div>
-
           <div id="no-rooms-message" class="empty-state" style="display: none">
             <lottie-player
               src="../../Assets/NoRooms.json"
@@ -146,16 +134,13 @@
             <p>You haven't joined any rooms yet.</p>
           </div>
         </section>
-
         <section class="glass-panel meetings-section">
           <div class="section-header">
             <h3>
               <span class="material-icons">event</span> Upcoming This Week
             </h3>
           </div>
-
           <div id="my-meetings" class="meetings-list"></div>
-
           <div
             id="no-meetings-message"
             class="empty-state"
@@ -176,7 +161,11 @@
     </div>
 
     <div id="guide-wrapper" class="guide-wrapper">
-      <div class="guide-avatar" onclick="TourManager.toggleChat(event)">
+      <div
+        class="guide-avatar"
+        id="amara-avatar"
+        onclick="TourManager.toggleChat(event)"
+      >
         <lottie-player
           src="../../Assets/Amara.json"
           background="transparent"
@@ -188,6 +177,10 @@
       </div>
 
       <div id="guide-bubble" class="speech-bubble" style="display: none">
+        <button class="minimize-btn" onclick="TourManager.toggleChat(event)">
+          <span class="material-icons">close</span>
+        </button>
+
         <div id="guide-text-content">
           <h3>Hi!</h3>
           <p>Loading Amara...</p>
@@ -249,7 +242,6 @@
         <button id="infoModalOk" class="modal-btn primary">OK</button>
       </div>
     </div>
-
     <div id="logoutModal" class="modal-overlay">
       <div class="modal-box">
         <div class="modal-icon danger">
@@ -262,15 +254,16 @@
             onclick="window.closeLogoutModal()"
             class="modal-btn secondary"
           >
-            Cancel
-          </button>
-          <button onclick="window.confirmLogout()" class="modal-btn danger-btn">
+            Cancel</button
+          ><button
+            onclick="window.confirmLogout()"
+            class="modal-btn danger-btn"
+          >
             Yes, Logout
           </button>
         </div>
       </div>
     </div>
-
     <div id="deleteRoomModal" class="modal-overlay">
       <div class="modal-box">
         <div class="modal-icon danger">
@@ -286,9 +279,8 @@
             onclick="window.closeDeleteModal()"
             class="modal-btn secondary"
           >
-            Cancel
-          </button>
-          <button id="confirmDeleteBtn" class="modal-btn danger-btn">
+            Cancel</button
+          ><button id="confirmDeleteBtn" class="modal-btn danger-btn">
             Leave / Delete
           </button>
         </div>

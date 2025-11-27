@@ -450,6 +450,10 @@ body {
 
 /* --- GUIDE / CHATBOT SYSTEM --- */
 
+/* ... (Keep all existing styles) ... */
+
+/* --- GUIDE / CHATBOT SYSTEM --- */
+
 .guide-wrapper {
   position: fixed;
   bottom: 2rem;
@@ -461,7 +465,6 @@ body {
   pointer-events: none;
 }
 
-/* 🟢 UPDATED: Added cursor pointer so user knows it's clickable */
 .guide-avatar {
   pointer-events: auto;
   margin-right: 10px;
@@ -484,9 +487,30 @@ body {
   width: 300px;
   margin-bottom: -20px;
   margin-right: 40px;
-  position: relative;
+  position: relative; /* Needed for absolute close button */
   border: 1px solid rgba(255, 255, 255, 0.8);
   animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* 🟢 NEW: Minimize Button Style */
+.minimize-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+.minimize-btn:hover {
+  background: #f1f5f9;
+  color: var(--primary);
 }
 
 @keyframes popIn {
@@ -500,24 +524,22 @@ body {
   }
 }
 
+/* ... (Keep existing text, button, and highlight styles) ... */
 .speech-bubble h3 {
   color: var(--primary);
   margin-bottom: 0.5rem;
   font-size: 1.1rem;
 }
-
 .speech-bubble p {
   color: var(--text-main);
   font-size: 0.95rem;
   line-height: 1.5;
 }
-
 .guide-actions {
   display: flex;
   gap: 10px;
   margin-top: 1rem;
 }
-
 .guide-btn {
   padding: 8px 16px;
   border-radius: 8px;
@@ -541,14 +563,12 @@ body {
 .guide-btn.secondary:hover {
   background: #e2e8f0;
 }
-
 .chat-options {
   display: flex;
   flex-direction: column;
   gap: 8px;
   margin-top: 1rem;
 }
-
 .chat-option-btn {
   background: #f8fafc;
   border: 1px solid #e2e8f0;
@@ -565,7 +585,6 @@ body {
   color: var(--primary);
   background: white;
 }
-
 .chat-back-btn {
   margin-top: 0.5rem;
   background: none;
@@ -575,7 +594,6 @@ body {
   cursor: pointer;
   text-decoration: underline;
 }
-
 .guide-toggle {
   pointer-events: auto;
   width: 50px;
@@ -596,7 +614,6 @@ body {
 .guide-toggle:hover {
   transform: scale(1.1);
 }
-
 .tour-backdrop {
   position: fixed;
   inset: 0;
@@ -610,7 +627,6 @@ body {
   display: block;
   opacity: 1;
 }
-
 .tour-highlight {
   position: relative;
   z-index: 1001;
