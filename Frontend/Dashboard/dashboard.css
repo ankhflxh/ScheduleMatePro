@@ -445,3 +445,176 @@ body {
     padding: 1.5rem;
   }
 }
+
+/* ... (Keep existing dashboard.css content) ... */
+
+/* --- GUIDE / CHATBOT SYSTEM --- */
+
+.guide-wrapper {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  pointer-events: none;
+}
+
+/* 🟢 UPDATED: Added cursor pointer so user knows it's clickable */
+.guide-avatar {
+  pointer-events: auto;
+  margin-right: 10px;
+  filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.2));
+  transition: transform 0.3s ease;
+  cursor: pointer;
+}
+
+.guide-avatar:hover {
+  transform: scale(1.05);
+}
+
+.speech-bubble {
+  pointer-events: auto;
+  background: white;
+  padding: 1.5rem;
+  border-radius: 20px;
+  border-bottom-right-radius: 4px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  width: 300px;
+  margin-bottom: -20px;
+  margin-right: 40px;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.speech-bubble h3 {
+  color: var(--primary);
+  margin-bottom: 0.5rem;
+  font-size: 1.1rem;
+}
+
+.speech-bubble p {
+  color: var(--text-main);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.guide-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 1rem;
+}
+
+.guide-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+.guide-btn.primary {
+  background: var(--primary);
+  color: white;
+}
+.guide-btn.primary:hover {
+  background: var(--primary-hover);
+}
+.guide-btn.secondary {
+  background: #f1f5f9;
+  color: var(--text-light);
+}
+.guide-btn.secondary:hover {
+  background: #e2e8f0;
+}
+
+.chat-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 1rem;
+}
+
+.chat-option-btn {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 10px;
+  border-radius: 10px;
+  text-align: left;
+  color: var(--text-main);
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+.chat-option-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: white;
+}
+
+.chat-back-btn {
+  margin-top: 0.5rem;
+  background: none;
+  border: none;
+  color: var(--text-light);
+  font-size: 0.85rem;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.guide-toggle {
+  pointer-events: auto;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: white;
+  border: none;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin-top: 1rem;
+  margin-right: 10px;
+  transition: transform 0.2s;
+}
+.guide-toggle:hover {
+  transform: scale(1.1);
+}
+
+.tour-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 1000;
+  display: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.tour-backdrop.active {
+  display: block;
+  opacity: 1;
+}
+
+.tour-highlight {
+  position: relative;
+  z-index: 1001;
+  background: white;
+  box-shadow: 0 0 0 4px var(--primary), 0 0 30px rgba(0, 0, 0, 0.5) !important;
+  pointer-events: none;
+}

@@ -4,7 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dashboard | ScheduleMate Pro</title>
-
     <link
       href="https://fonts.googleapis.com/icon?family=Material+Icons"
       rel="stylesheet"
@@ -13,10 +12,8 @@
       href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
-
     <link rel="stylesheet" href="dashboard.css" />
     <link rel="icon" type="image/png" href="../../Images/favicon.png" />
-
     <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
   </head>
   <body>
@@ -45,13 +42,11 @@
             loop
             autoplay
           ></lottie-player>
-
           <div>
             <h1 id="dashboard-title">Dashboard</h1>
             <p class="subtitle">Manage your schedule and teams.</p>
           </div>
         </div>
-
         <button id="logout-button" class="logout-pill">
           <span class="material-icons">logout</span> Log Out
         </button>
@@ -68,11 +63,10 @@
               <p>Host a new space for your team.</p>
             </div>
           </div>
-
           <form id="create-room-form" class="action-form">
             <div class="input-wrapper">
-              <span class="material-icons input-icon">label</span>
-              <input
+              <span class="material-icons input-icon">label</span
+              ><input
                 type="text"
                 id="create-room-name"
                 placeholder="e.g. Daily Standup"
@@ -80,13 +74,11 @@
               />
             </div>
             <p id="roomNameError" class="error-msg" style="display: none"></p>
-
             <button type="submit" class="btn-action btn-create">
               Create New <span class="material-icons">arrow_forward</span>
             </button>
           </form>
         </div>
-
         <div class="action-card join-card">
           <div class="card-content">
             <div class="icon-bubble join-bubble">
@@ -97,18 +89,16 @@
               <p>Have a code? Enter it below.</p>
             </div>
           </div>
-
           <form id="join-room-form" class="action-form">
             <div class="input-wrapper">
-              <span class="material-icons input-icon">password</span>
-              <input
+              <span class="material-icons input-icon">password</span
+              ><input
                 type="text"
                 id="join-room-code"
                 placeholder="e.g. A1B2"
                 autocomplete="off"
               />
             </div>
-
             <button type="submit" class="btn-action btn-join">
               Join Now <span class="material-icons">login</span>
             </button>
@@ -131,9 +121,7 @@
               Your Rooms
             </h3>
           </div>
-
           <div id="my-rooms" class="rooms-list"></div>
-
           <div id="no-rooms-message" class="empty-state" style="display: none">
             <lottie-player
               src="../../Assets/NoRooms.json"
@@ -146,16 +134,13 @@
             <p>You haven't joined any rooms yet.</p>
           </div>
         </section>
-
         <section class="glass-panel meetings-section">
           <div class="section-header">
             <h3>
               <span class="material-icons">event</span> Upcoming This Week
             </h3>
           </div>
-
           <div id="my-meetings" class="meetings-list"></div>
-
           <div
             id="no-meetings-message"
             class="empty-state"
@@ -174,6 +159,73 @@
         </section>
       </main>
     </div>
+
+    <div id="guide-wrapper" class="guide-wrapper">
+      <div class="guide-avatar" onclick="TourManager.toggleChat(event)">
+        <lottie-player
+          src="../../Assets/Amara.json"
+          background="transparent"
+          speed="1"
+          style="width: 150px; height: 150px"
+          loop
+          autoplay
+        ></lottie-player>
+      </div>
+
+      <div id="guide-bubble" class="speech-bubble">
+        <div id="guide-text-content">
+          <h3>Hi!</h3>
+          <p>Loading Amara...</p>
+        </div>
+
+        <div id="guide-actions" class="guide-actions">
+          <button onclick="TourManager.startTour()" class="guide-btn primary">
+            Start Tour
+          </button>
+          <button onclick="TourManager.endTour()" class="guide-btn secondary">
+            Skip
+          </button>
+        </div>
+
+        <div id="chat-options" class="chat-options" style="display: none">
+          <button
+            onclick="TourManager.answer('overview')"
+            class="chat-option-btn"
+          >
+            How does this app work?
+          </button>
+          <button
+            onclick="TourManager.answer('availability')"
+            class="chat-option-btn"
+          >
+            How do I set availability?
+          </button>
+          <button onclick="TourManager.answer('notes')" class="chat-option-btn">
+            How do I take notes?
+          </button>
+          <button onclick="TourManager.answer('leave')" class="chat-option-btn">
+            How do I leave a room?
+          </button>
+          <button onclick="TourManager.answer('edit')" class="chat-option-btn">
+            Can I edit availability?
+          </button>
+          <button onclick="TourManager.resetChat()" class="chat-back-btn">
+            Back to Menu
+          </button>
+        </div>
+      </div>
+
+      <button
+        id="guide-toggle"
+        class="guide-toggle"
+        onclick="TourManager.toggleChat(event)"
+        style="display: none"
+      >
+        <span class="material-icons">help_outline</span>
+      </button>
+    </div>
+
+    <div id="tour-overlay" class="tour-backdrop"></div>
 
     <div id="infoModal" class="modal-overlay">
       <div class="modal-box">
