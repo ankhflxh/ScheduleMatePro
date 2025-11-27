@@ -13,19 +13,17 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="dashboard.css" />
-
-    <link rel="icon" type="image/png" href="/Images/favicon.png" />
+    <link rel="icon" type="image/png" href="../../Images/favicon.png" />
     <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#6366f1" />
     <link rel="apple-touch-icon" href="/Images/favicon.png" />
-
     <script>
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
           navigator.serviceWorker
             .register("/sw.js")
-            .then(() => console.log("App is ready for install"))
+            .then(() => console.log("App is ready"))
             .catch((err) => console.log("SW Fail", err));
         });
       }
@@ -211,6 +209,13 @@
         </div>
 
         <div id="chat-options" class="chat-options" style="display: none">
+          <button
+            onclick="TourManager.answer('install')"
+            class="chat-option-btn"
+          >
+            <strong>How do I install the app?</strong>
+          </button>
+
           <button
             onclick="TourManager.answer('overview')"
             class="chat-option-btn"

@@ -1,6 +1,6 @@
 // File: Frontend/Dashboard/dashboard.js
 
-// ... (DOM Elements and Modals are unchanged) ...
+// ... (Keep ALL existing variable declarations and Modal functions at the top) ...
 const roomsContainer = document.querySelector("#my-rooms");
 const meetingsList = document.querySelector("#my-meetings");
 const noRoomsMsg = document.querySelector("#no-rooms-message");
@@ -59,7 +59,6 @@ if (!token) {
         titleEl.textContent = `${displayName}'s Dashboard`;
       }
 
-      // 🟢 UPDATED: Use Database 'has_seen_tour' instead of LocalStorage
       // If has_seen_tour is FALSE (or null), we show the tour.
       const isFirstVisit = !user.has_seen_tour;
 
@@ -70,7 +69,6 @@ if (!token) {
     })
     .catch((err) => {
       console.error("Dashboard Load Error:", err);
-      // Only redirect if it's a true auth error, not just a fetch error
       if (err.message === "Session expired") {
         localStorage.removeItem("sm_token");
         window.location.href = "/LoginPage/login.html";
@@ -78,7 +76,7 @@ if (!token) {
     });
 }
 
-// ... (Helper functions loadRooms, loadMeetings, Form Listeners remain the same) ...
+// ... (Keep helper functions: isUpcoming, loadRooms, loadMeetings unchanged) ...
 function isUpcoming(dayName, endTimeStr) {
   const days = [
     "Sunday",
@@ -172,6 +170,7 @@ function loadMeetings(userId) {
     .catch(console.error);
 }
 
+// ... (Keep Form Listeners: createForm, joinForm, logoutModal, deleteModal unchanged) ...
 if (createForm) {
   createForm.addEventListener("submit", (e) => {
     e.preventDefault();
@@ -274,7 +273,6 @@ const TourManager = {
     const chatOptions = document.getElementById("chat-options");
 
     if (isFirstVisit) {
-      // MAXIMIZED MODE
       avatar.style.display = "block";
       bubble.style.display = "block";
       toggle.style.display = "none";
@@ -284,7 +282,6 @@ const TourManager = {
       title.textContent = `Hi ${username}!`;
       text.innerHTML = `I am Amara and I will love to show you what I have built just to make navigation easy for you but feel free to skip. You could always visit me at the corner of the screen if you have any questions and I will be delighted to help cause it gets lonely 😞. Okay so let's get started!`;
     } else {
-      // MINIMIZED MODE
       avatar.style.display = "none";
       bubble.style.display = "none";
       toggle.style.display = "flex";
@@ -359,7 +356,7 @@ const TourManager = {
     this.clearHighlights();
     document.getElementById("tour-overlay").classList.remove("active");
 
-    // 🟢 NEW: Mark as complete in Database
+    // Mark as complete in Database
     fetch("/api/users/tour-complete", {
       method: "POST",
       headers: { "X-Auth-Token": token },
@@ -410,9 +407,9 @@ const TourManager = {
       toggle.style.display = "none";
 
       document.querySelector("#guide-text-content h3").textContent =
-        "Asking Amara";
+        "Help Center";
       document.querySelector("#guide-text-content p").textContent =
-        "How can I help you today?";
+        "How can Amara help you today?";
       actions.style.display = "none";
       chatOptions.style.display = "flex";
     } else {
@@ -423,10 +420,18 @@ const TourManager = {
     }
   },
 
+  // 🟢 UPDATED: Smart OS Detection for Install Answer
   answer: function (topic) {
     const text = document.querySelector("#guide-text-content p");
 
-    if (topic === "overview") {
+    if (topic === "install") {
+      const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+      if (isIOS) {
+        text.innerHTML = `<strong>iOS Instructions:</strong><br>1. Tap the <strong>Share</strong> button <span class="material-icons" style="font-size:1em; vertical-align:middle;">ios_share</span> below.<br>2. Scroll down and tap <strong>'Add to Home Screen'</strong>.`;
+      } else {
+        text.innerHTML = `<strong>Android / Chrome:</strong><br>Tap the menu dots (⋮) and select <strong>'Install App'</strong> or click the Install icon in your address bar.`;
+      }
+    } else if (topic === "overview") {
       text.textContent =
         "It's easy! Create a room, invite friends, vote on availability, and let the app find the perfect meeting time.";
     } else if (topic === "availability") {
@@ -446,6 +451,6 @@ const TourManager = {
 
   resetChat: function () {
     document.querySelector("#guide-text-content p").textContent =
-      "How can I help you today?";
+      "How can Amara help you today?";
   },
 };
