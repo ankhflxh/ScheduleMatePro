@@ -11,6 +11,21 @@
       href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;700;900&display=swap"
       rel="stylesheet"
     />
+
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#6366f1" />
+    <link rel="apple-touch-icon" href="/Images/favicon.png" />
+
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker
+            .register("/sw.js")
+            .then(() => console.log("App is ready for install"))
+            .catch((err) => console.log("SW Fail", err));
+        });
+      }
+    </script>
   </head>
   <body>
     <header class="main-header">

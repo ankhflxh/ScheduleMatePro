@@ -14,6 +14,19 @@
     />
     <link rel="stylesheet" href="notes.css" />
     <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#6366f1" />
+    <link rel="apple-touch-icon" href="/Images/favicon.png" />
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker
+            .register("/sw.js")
+            .then(() => console.log("App is ready for install"))
+            .catch((err) => console.log("SW Fail", err));
+        });
+      }
+    </script>
   </head>
   <body>
     <div class="bg-layer">
