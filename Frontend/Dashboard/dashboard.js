@@ -407,9 +407,9 @@ const TourManager = {
 
       // Default to Chat Mode
       document.querySelector("#guide-text-content h3").textContent =
-        "Help Center";
+        "Asking Amara";
       document.querySelector("#guide-text-content p").textContent =
-        "How can Amara help you today?";
+        "How can I help you today?";
       actions.style.display = "none";
       chatOptions.style.display = "flex";
     } else {
@@ -433,7 +433,7 @@ const TourManager = {
         "Click the 'Notes' card inside a room. You can write messages, to-do lists, and upload images to share.";
     } else if (topic === "leave") {
       text.textContent =
-        "On the Dashboard, click the 'Trash Can' icon on any room card to leave. If you are the creator, this deletes the room.";
+        "On the Dashboard, click the 'Trash Can' icon on any room card to leave. If you are the creator, this deletes the room. or you could go to the room settings and log out of the room";
     } else if (topic === "edit") {
       text.textContent =
         "Yes! You can update your availability anytime. Just go back to the room and click 'Edit Mine'.";
