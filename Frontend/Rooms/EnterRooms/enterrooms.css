@@ -4,8 +4,9 @@
   --primary: #6366f1;
   --text-main: #1e293b;
   --text-light: #64748b;
-  --glass-bg: rgba(255, 255, 255, 0.85);
-  --glass-border: rgba(255, 255, 255, 0.9);
+  /* 🟢 CHANGED: Higher opacity white background for better contrast without blur */
+  --glass-bg: rgba(255, 255, 255, 0.9);
+  --glass-border: rgba(255, 255, 255, 1);
 }
 
 * {
@@ -22,7 +23,7 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  overflow: hidden; /* Prevent body scroll */
+  overflow: hidden;
 }
 
 /* Background */
@@ -34,13 +35,14 @@ body {
   height: 100%;
   z-index: -1;
   pointer-events: none;
+  /* Optional: Add a slight brightness filter to the background only */
+  filter: brightness(1.05);
 }
 
 /* Main Card */
 .glass-wrapper {
   background: var(--glass-bg);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  /* 🟢 CHANGED: Removed backdrop-filter (blur) entirely so background is sharp */
   border: 1px solid var(--glass-border);
   border-radius: 24px;
   padding: 2rem;
@@ -50,10 +52,8 @@ body {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-
-  /* CRITICAL FIX: Ensure card fits on screen */
   max-height: 95vh;
-  overflow-y: auto; /* Scroll inside if needed */
+  overflow-y: auto;
   position: relative;
 }
 
@@ -158,13 +158,11 @@ body {
 .card-content {
   flex-grow: 1;
 }
-
 .card-content h2 {
   font-size: 1.1rem;
   color: var(--text-main);
   margin-bottom: 2px;
 }
-
 .card-content p {
   font-size: 0.85rem;
   color: var(--text-light);
@@ -175,7 +173,6 @@ body {
   font-size: 1rem;
 }
 
-/* Scrollbar Polish */
 .glass-wrapper::-webkit-scrollbar {
   width: 6px;
 }
@@ -184,13 +181,11 @@ body {
   border-radius: 3px;
 }
 
-/* Add to enterrooms.css */
-
 .notification-badge {
   position: absolute;
   top: -5px;
   right: -5px;
-  background-color: #ef4444; /* Red */
+  background-color: #ef4444;
   color: white;
   font-size: 0.75rem;
   font-weight: 700;
@@ -200,7 +195,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid white; /* White ring to separate from icon */
+  border: 2px solid white;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   z-index: 10;
 }
