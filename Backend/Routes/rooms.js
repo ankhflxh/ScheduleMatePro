@@ -4,10 +4,10 @@ const router = express.Router();
 const pool = require("../db");
 const crypto = require("crypto");
 const { authenticateToken } = require("./auth");
-const sgMail = require("@sendgrid/mail");
+const { Resend } = require("resend");
 require("dotenv").config();
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // GET /api/rooms/me
 router.get("/me", authenticateToken, async (req, res) => {
@@ -217,7 +217,7 @@ router.patch(
       const members = memberResult.rows;
       if (members.length > 0) {
         const emailPromises = members.map((member) => {
-          const msg = {
+          return resend.emails.send({
             to: member.email,
             from: process.env.EMAIL_USER,
             subject: `Update: Meeting Details for "${room.name}" Changed`,
@@ -230,8 +230,7 @@ router.patch(
                 <p>Please log in and update your availability.</p>
               </div>
             `,
-          };
-          return sgMail.send(msg).catch((e) => console.error(e));
+          }).catch((e) => console.error(e));
         });
         Promise.all(emailPromises);
       }

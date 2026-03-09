@@ -4,10 +4,10 @@ const express = require("express");
 const router = express.Router();
 const pool = require("../db");
 const { authenticateToken } = require("./auth");
-const sgMail = require("@sendgrid/mail");
+const { Resend } = require("resend");
 require("dotenv").config();
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // GET /api/meetings/me - Get meetings for the logged-in user
 router.get("/me", authenticateToken, async (req, res) => {
@@ -21,7 +21,7 @@ router.get("/me", authenticateToken, async (req, res) => {
        JOIN users u ON m.confirmed_by = u.id
        WHERE rm.user_id = $1
        ORDER BY m.created_at DESC`,
-      [userId]
+      [userId],
     );
     res.json(result.rows);
   } catch (err) {
@@ -39,7 +39,7 @@ router.get("/history/:roomId", authenticateToken, async (req, res) => {
              FROM meetings
              WHERE room_id = $1
              ORDER BY created_at DESC`,
-      [roomId]
+      [roomId],
     );
     res.json(result.rows);
   } catch (err) {
@@ -58,7 +58,7 @@ router.post("/:roomId", authenticateToken, async (req, res) => {
     // 1. Fetch Room Details (Creator & Interval)
     const roomCheck = await pool.query(
       "SELECT creator_id, name, meeting_interval FROM rooms WHERE id = $1",
-      [roomId]
+      [roomId],
     );
 
     if (roomCheck.rows.length === 0)
@@ -81,14 +81,14 @@ router.post("/:roomId", authenticateToken, async (req, res) => {
     if (endH >= 24) endH -= 24; // Wrap around midnight if necessary
 
     const end_time = `${String(endH).padStart(2, "0")}:${String(
-      startM
+      startM,
     ).padStart(2, "0")}`;
 
     // 4. Insert Meeting
     const result = await pool.query(
       `INSERT INTO meetings (room_id, confirmed_by, meeting_day, start_time, end_time, location)
              VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [roomId, confirmed_by, meeting_day, start_time, end_time, location]
+      [roomId, confirmed_by, meeting_day, start_time, end_time, location],
     );
 
     const newMeeting = result.rows[0];
@@ -99,13 +99,13 @@ router.post("/:roomId", authenticateToken, async (req, res) => {
        FROM room_members rm
        JOIN users u ON rm.user_id = u.id
        WHERE rm.room_id = $1`,
-      [roomId]
+      [roomId],
     );
 
     const members = memberResult.rows;
 
     const emailPromises = members.map((member) => {
-      const msg = {
+      return resend.emails.send({
         to: member.email,
         from: process.env.EMAIL_USER,
         subject: `Meeting Confirmed: "${room.name}"`,
@@ -123,11 +123,7 @@ router.post("/:roomId", authenticateToken, async (req, res) => {
             <p>See you there!</p>
           </div>
         `,
-      };
-      // Send and catch individual errors so one bad email doesn't crash the loop
-      return sgMail
-        .send(msg)
-        .catch((e) => console.error(`Failed to email ${member.email}:`, e));
+      }).catch((e) => console.error(`Failed to email ${member.email}:`, e));
     });
 
     // Run emails in background (don't await them to speed up response)
@@ -148,7 +144,7 @@ router.get("/confirmed", authenticateToken, async (req, res) => {
     const result = await pool.query(
       `SELECT meeting_day AS day, start_time AS time, location
              FROM meetings WHERE room_id = $1 ORDER BY created_at DESC LIMIT 1`,
-      [roomId]
+      [roomId],
     );
     if (result.rows.length === 0)
       return res.status(404).json({ error: "No confirmed meeting" });

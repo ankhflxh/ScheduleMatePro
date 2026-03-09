@@ -5,11 +5,11 @@ const pool = require("../db");
 const crypto = require("crypto");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const sgMail = require("@sendgrid/mail");
+const { Resend } = require("resend");
 require("dotenv").config();
 
-// SendGrid setup
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+// Resend setup
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // SECURITY: Enforce secret presence
 if (!process.env.JWT_SECRET) {
@@ -42,7 +42,7 @@ const authenticateToken = async (req, res, next) => {
     // 🟢 UPDATED: Now selects 'has_seen_tour'
     const result = await pool.query(
       "SELECT id, username, email, is_verified, has_seen_tour FROM users WHERE id = $1",
-      [userId]
+      [userId],
     );
 
     if (result.rows.length === 0)
@@ -93,7 +93,7 @@ router.post("/register", async (req, res) => {
     await pool.query(
       `INSERT INTO users (username, email, password_hash, is_verified, verification_token, verification_expires, has_seen_tour)
        VALUES ($1, $2, $3, FALSE, $4, $5, FALSE)`,
-      [username, email, passwordHash, verificationToken, expires]
+      [username, email, passwordHash, verificationToken, expires],
     );
 
     res.json({ message: "verification_sent" });
@@ -119,16 +119,18 @@ router.post("/register", async (req, res) => {
 
   try {
     const verifyLink = `${process.env.APP_BASE_URL}/api/auth/verify?token=${verificationToken}`;
-    const msg = {
-      to: email,
-      from: process.env.EMAIL_USER,
-      subject: "Verify Your New Account for ScheduleMate Pro",
-      text: `Hello ${username}, please verify your email here: ${verifyLink}`,
-      html: `<strong>Hello ${username}, please click <a href="${verifyLink}">here</a> to verify your account.</strong>`,
-    };
-    sgMail.send(msg).catch((emailErr) => {
-      console.error("SENDGRID ASYNC ERROR:", emailErr);
-    });
+
+    resend.emails
+      .send({
+        from: process.env.EMAIL_USER, // e.g., 'onboarding@resend.dev' for testing
+        to: email,
+        subject: "Verify Your New Account for ScheduleMate Pro",
+        text: `Hello ${username}, please verify your email here: ${verifyLink}`,
+        html: `<strong>Hello ${username}, please click <a href="${verifyLink}">here</a> to verify your account.</strong>`,
+      })
+      .catch((emailErr) => {
+        console.error("RESEND ASYNC ERROR:", emailErr);
+      });
   } catch (emailError) {
     console.error("Email preparation error:", emailError);
   }
@@ -142,7 +144,7 @@ router.get("/verify", async (req, res) => {
     const result = await pool.query(
       `SELECT * FROM users
        WHERE verification_token = $1 AND verification_expires > NOW()`,
-      [token]
+      [token],
     );
 
     const user = result.rows[0];
@@ -152,8 +154,8 @@ router.get("/verify", async (req, res) => {
         `${
           process.env.APP_BASE_URL
         }/LoginPage/login.html?error=${encodeURIComponent(
-          "Verification link is invalid or expired. Please request a new one."
-        )}`
+          "Verification link is invalid or expired. Please request a new one.",
+        )}`,
       );
     }
 
@@ -161,7 +163,7 @@ router.get("/verify", async (req, res) => {
       `UPDATE users
        SET is_verified = TRUE, verification_token = NULL, verification_expires = NULL
        WHERE id = $1`,
-      [user.id]
+      [user.id],
     );
 
     res.redirect(`${process.env.APP_BASE_URL}/LoginPage/login.html?verified=1`);
@@ -171,8 +173,8 @@ router.get("/verify", async (req, res) => {
       `${
         process.env.APP_BASE_URL
       }/LoginPage/login.html?error=${encodeURIComponent(
-        "An unexpected error occurred during verification."
-      )}`
+        "An unexpected error occurred during verification.",
+      )}`,
     );
   }
 });
@@ -185,7 +187,7 @@ router.post("/login", async (req, res) => {
     const result = await pool.query(
       `SELECT id, username, email, password_hash, is_verified FROM users 
        WHERE username = $1 OR email = $1`,
-      [identifier]
+      [identifier],
     );
 
     const user = result.rows[0];
@@ -251,7 +253,7 @@ router.post("/resend-verification", async (req, res) => {
   try {
     const userResult = await pool.query(
       `SELECT id, username, is_verified FROM users WHERE email = $1`,
-      [email]
+      [email],
     );
 
     const user = userResult.rows[0];
@@ -269,23 +271,24 @@ router.post("/resend-verification", async (req, res) => {
       `UPDATE users
        SET verification_token = $1, verification_expires = $2
        WHERE id = $3`,
-      [newToken, newExpires, user.id]
+      [newToken, newExpires, user.id],
     );
 
     res.json({ message: "Verification link successfully resent." });
 
     const verifyLink = `${process.env.APP_BASE_URL}/api/auth/verify?token=${newToken}`;
-    const msg = {
-      to: email,
-      from: process.env.EMAIL_USER,
-      subject: "New Verification Link for ScheduleMate Pro",
-      text: `Hello ${user.username}, please verify your email here: ${verifyLink}`,
-      html: `<strong>Hello ${user.username}, please click <a href="${verifyLink}">here</a> to verify your account.</strong>`,
-    };
 
-    sgMail.send(msg).catch((emailErr) => {
-      console.error("RESEND EMAIL ASYNC ERROR:", emailErr);
-    });
+    resend.emails
+      .send({
+        from: process.env.EMAIL_USER, // e.g., 'onboarding@resend.dev' for testing
+        to: email,
+        subject: "New Verification Link for ScheduleMate Pro",
+        text: `Hello ${user.username}, please verify your email here: ${verifyLink}`,
+        html: `<strong>Hello ${user.username}, please click <a href="${verifyLink}">here</a> to verify your account.</strong>`,
+      })
+      .catch((emailErr) => {
+        console.error("RESEND EMAIL ASYNC ERROR:", emailErr);
+      });
   } catch (err) {
     console.error("RESEND ERROR:", err);
     if (!res.headersSent) {

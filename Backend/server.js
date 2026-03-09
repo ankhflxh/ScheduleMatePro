@@ -5,7 +5,7 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const cron = require("node-cron");
 const pool = require("./db");
-const sgMail = require("@sendgrid/mail");
+const { Resend } = require("resend");
 require("dotenv").config();
 
 const { router: authRoutes } = require("./Routes/auth");
@@ -18,14 +18,14 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Initialize SendGrid
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Middleware
 app.use(
   cors({
     origin: process.env.APP_BASE_URL,
     credentials: true,
-  })
+  }),
 );
 app.use(express.json());
 
@@ -72,21 +72,21 @@ cron.schedule("* * * * *", async () => {
          AND m.started_email_sent = FALSE
          AND m.start_time <= $2
          AND m.end_time > $2`,
-      [currentDay, currentTime]
+      [currentDay, currentTime],
     );
 
     const meetings = meetingsResult.rows;
 
     if (meetings.length > 0) {
       console.log(
-        `🚀 Sending "Started" emails for ${meetings.length} meetings.`
+        `🚀 Sending "Started" emails for ${meetings.length} meetings.`,
       );
 
       for (const meeting of meetings) {
         // A. Mark as sent FIRST (prevent double-send race conditions)
         await pool.query(
           "UPDATE meetings SET started_email_sent = TRUE WHERE id = $1",
-          [meeting.id]
+          [meeting.id],
         );
 
         // B. Fetch Members
@@ -95,7 +95,7 @@ cron.schedule("* * * * *", async () => {
            FROM room_members rm
            JOIN users u ON rm.user_id = u.id
            WHERE rm.room_id = $1`,
-          [meeting.room_id]
+          [meeting.room_id],
         );
 
         const members = memberResult.rows;
@@ -103,12 +103,12 @@ cron.schedule("* * * * *", async () => {
 
         // C. Send Emails
         const emailPromises = members.map((member) => {
-          const msg = {
-            to: member.email,
-            from: process.env.EMAIL_USER,
-            subject: `Happening Now: Meeting in "${meeting.room_name}"`,
-            text: `Hello ${member.username},\n\nThe meeting for "${meeting.room_name}" has started!\n\nTime: ${cleanTime}\nLocation: ${meeting.location}\n\nHop in!`,
-            html: `
+          return resend.emails.send({
+          to: member.email,
+          from: process.env.EMAIL_USER,
+          subject: `Happening Now: Meeting in "${meeting.room_name}"`,
+          text: `Hello ${member.username},\n\nThe meeting for "${meeting.room_name}" has started!\n\nTime: ${cleanTime}\nLocation: ${meeting.location}\n\nHop in!`,
+          html: `
               <div style="font-family: Arial, sans-serif; color: #333;">
                 <h2 style="color: #10b981;">🚀 Meeting Started!</h2>
                 <p>Hello <strong>${member.username}</strong>,</p>
@@ -120,12 +120,9 @@ cron.schedule("* * * * *", async () => {
                 <p>See you there!</p>
               </div>
             `,
-          };
-          return sgMail
-            .send(msg)
-            .catch((err) =>
-              console.error(`Failed to email ${member.email}:`, err)
-            );
+        }).catch((err) =>
+            console.error(`Failed to email ${member.email}:`, err)
+        );
         });
 
         await Promise.all(emailPromises);
@@ -153,7 +150,7 @@ cron.schedule("0 19 * * *", async () => {
        FROM meetings m
        JOIN rooms r ON m.room_id = r.id
        WHERE m.meeting_day = $1`,
-      [tomorrowDay]
+      [tomorrowDay],
     );
 
     const meetings = meetingsResult.rows;
@@ -169,36 +166,33 @@ cron.schedule("0 19 * * *", async () => {
          FROM room_members rm
          JOIN users u ON rm.user_id = u.id
          WHERE rm.room_id = $1`,
-        [meeting.room_id]
+        [meeting.room_id],
       );
 
       const members = memberResult.rows;
       const cleanTime = meeting.start_time.substring(0, 5);
 
       const emailPromises = members.map((member) => {
-        const msg = {
+        return resend.emails.send({
           to: member.email,
           from: process.env.EMAIL_USER,
-          subject: `Reminder: Meeting Tomorrow for "${meeting.room_name}"`,
-          text: `Hello ${member.username},\n\nJust a reminder that you have a meeting tomorrow!\n\nRoom: ${meeting.room_name}\nTime: ${cleanTime}\nLocation: ${meeting.location}\n\nSee you there!`,
+          subject: `Happening Now: Meeting in "${meeting.room_name}"`,
+          text: `Hello ${member.username},\n\nThe meeting for "${meeting.room_name}" has started!\n\nTime: ${cleanTime}\nLocation: ${meeting.location}\n\nHop in!`,
           html: `
-            <div style="font-family: Arial, sans-serif; color: #333;">
-              <h3 style="color: #6366f1;">📅 Meeting Reminder</h3>
-              <p>Hello <strong>${member.username}</strong>,</p>
-              <p>Don't forget, you have a meeting coming up tomorrow:</p>
-              <div style="background: #f3f4f6; padding: 15px; border-radius: 8px;">
-                <p><strong>Room:</strong> ${meeting.room_name}</p>
-                <p><strong>Time:</strong> ${cleanTime}</p>
-                <p><strong>Location:</strong> ${meeting.location}</p>
+              <div style="font-family: Arial, sans-serif; color: #333;">
+                <h2 style="color: #10b981;">🚀 Meeting Started!</h2>
+                <p>Hello <strong>${member.username}</strong>,</p>
+                <p>The meeting for <strong>${meeting.room_name}</strong> is happening right now.</p>
+                <div style="background: #ecfdf5; padding: 15px; border-radius: 8px; border-left: 5px solid #10b981;">
+                  <p><strong>⏰ Time:</strong> ${cleanTime}</p>
+                  <p><strong>📍 Location:</strong> ${meeting.location}</p>
+                </div>
+                <p>See you there!</p>
               </div>
-            </div>
-          `,
-        };
-        return sgMail
-          .send(msg)
-          .catch((err) =>
+            `,
+        }).catch((err) =>
             console.error(`Failed to email ${member.email}:`, err)
-          );
+        );
       });
 
       await Promise.all(emailPromises);
