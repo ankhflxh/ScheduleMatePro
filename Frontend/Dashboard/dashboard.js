@@ -1,8 +1,8 @@
 // File: Frontend/Dashboard/dashboard.js
 
 // --- PUSH NOTIFICATION KEY ---
-// (Replace this with your actual public key from your .env file)
-const publicVapidKey = "PASTE_YOUR_PUBLIC_KEY_HERE";
+const publicVapidKey =
+  "BIfzy3VGRoVGr4y3_1zUPwv2e224h0KR2KA7rAYgBnXge42f_8PTVFAWY7vCmKXWrqh8j9HwUc_kTNJ0GfDePsc";
 
 // --- DOM ELEMENTS & MODALS ---
 const roomsContainer = document.querySelector("#my-rooms");
