@@ -7,40 +7,129 @@
     <link rel="stylesheet" href="../LandingPage/style.css" />
     <link rel="stylesheet" href="../Form.css" />
     <style>
+      /* Premium Background Setup */
+      #lottie-background {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: -1;
+        overflow: hidden;
+        background-color: #f8fafc;
+      }
+
+      /* Glassmorphism Container */
+      .premium-container {
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(12px);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        border-radius: 16px;
+        padding: 40px;
+        width: 100%;
+        max-width: 420px;
+        margin: 40px auto;
+      }
+
       .otp-input {
         width: 100%;
-        padding: 15px;
-        font-size: 28px;
+        padding: 16px;
+        font-size: 32px;
         text-align: center;
-        letter-spacing: 12px;
-        border-radius: 8px;
-        border: 2px solid #ddd;
-        margin-bottom: 20px;
+        letter-spacing: 16px;
+        border-radius: 10px;
+        border: 2px solid #e2e8f0;
+        margin-bottom: 24px;
         box-sizing: border-box;
+        background: #ffffff;
+        color: #1e293b;
+        font-weight: 700;
+        transition: all 0.3s ease;
       }
+
       .otp-input:focus {
         outline: none;
         border-color: #10b981;
+        box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
       }
+
       .resend-text {
         text-align: center;
-        margin-top: 15px;
+        margin-top: 20px;
         font-size: 14px;
-        color: #666;
+        color: #64748b;
       }
+
       .resend-text a {
         color: #10b981;
         cursor: pointer;
+        text-decoration: none;
+        font-weight: 600;
+        transition: color 0.2s;
+      }
+
+      .resend-text a:hover {
+        color: #059669;
         text-decoration: underline;
+      }
+
+      /* Success Modal Styles */
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(4px);
+        align-items: center;
+        justify-content: center;
+      }
+
+      .modal-content {
+        background-color: #ffffff;
+        padding: 40px 30px;
+        border-radius: 16px;
+        text-align: center;
+        max-width: 400px;
+        width: 90%;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+        animation: modalFadeIn 0.4s ease-out;
+      }
+
+      @keyframes modalFadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      #lottie-success-animation {
+        width: 160px;
+        height: 160px;
+        margin: 0 auto 10px auto;
       }
     </style>
   </head>
   <body>
-    <div class="login-container">
-      <h2 style="text-align: center">Check Your Email</h2>
-      <p style="text-align: center; color: #666; margin-bottom: 20px">
-        We sent a 6-digit code to your email address.
-      </p>
+    <div id="lottie-background"></div>
+
+    <div class="login-container premium-container">
+      <div style="text-align: center; margin-bottom: 25px">
+        <h2 style="color: #0f172a; font-size: 26px; margin-bottom: 8px">
+          Check Your Email
+        </h2>
+        <p style="color: #64748b; font-size: 15px; line-height: 1.5">
+          We've sent a 6-digit verification code to your email address.
+        </p>
+      </div>
 
       <div id="verifyAlert" class="alert"></div>
 
@@ -54,7 +143,20 @@
           autocomplete="off"
           required
         />
-        <button type="submit" id="verifyBtn" class="btn">Verify Account</button>
+        <button
+          type="submit"
+          id="verifyBtn"
+          class="btn"
+          style="
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            border-radius: 10px;
+            font-weight: 600;
+          "
+        >
+          Verify Account
+        </button>
       </form>
 
       <p class="resend-text">
@@ -62,6 +164,31 @@
       </p>
     </div>
 
+    <div id="verificationSuccessModal" class="modal">
+      <div class="modal-content">
+        <div id="lottie-success-animation"></div>
+        <h2 style="color: #0f172a; font-size: 24px; margin-bottom: 10px">
+          Verification Successful!
+        </h2>
+        <p style="color: #64748b; margin-bottom: 25px">
+          Your account is now secure. Welcome to ScheduleMate Pro!
+        </p>
+        <button
+          id="verifyOkBtn"
+          class="btn"
+          style="
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 16px;
+          "
+        >
+          Go to Dashboard
+        </button>
+      </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.12.2/lottie.min.js"></script>
     <script src="verify.js"></script>
   </body>
 </html>
