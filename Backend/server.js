@@ -15,12 +15,16 @@ const meetingRoutes = require("./Routes/meetings");
 const notesRoutes = require("./Routes/notes");
 const webpush = require("web-push");
 
-// Configure Web Push with your keys
-webpush.setVapidDetails(
-  process.env.mailto,
-  process.env.VAPID_PUBLIC_KEY,
-  process.env.VAPID_PRIVATE_KEY,
-);
+// 1. Sanitize the keys (Removes invisible spaces, newlines, or accidental quotes)
+const cleanPublicKey = process.env.VAPID_PUBLIC_KEY
+  ? process.env.VAPID_PUBLIC_KEY.replace(/['"]/g, "").trim()
+  : "";
+const cleanPrivateKey = process.env.VAPID_PRIVATE_KEY
+  ? process.env.VAPID_PRIVATE_KEY.replace(/['"]/g, "").trim()
+  : "";
+
+// 2. Configure Web Push with the cleaned keys
+webpush.setVapidDetails(process.env.mailto, cleanPublicKey, cleanPrivateKey);
 
 const app = express();
 const PORT = process.env.PORT || 5000;
