@@ -68,6 +68,7 @@ if (!token) {
 
       loadRooms(userId);
       loadMeetings(userId);
+      checkSubscriptionStatus(); // Check if user is already subscribed to hide banner
     })
     .catch((err) => {
       console.error("Dashboard Load Error:", err);
@@ -313,18 +314,31 @@ const TourManager = {
         "Start here! Create a secure room for your team or class. You'll get a unique code to share.";
       this.setNextBtn("Next");
     } else if (this.step === 2) {
+      // NEW TOUR STEP: INSTALLATION & NOTIFICATIONS
+      this.highlight(".notification-banner");
+      title.textContent = "2. Stay Updated";
+      const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+      if (isIOS) {
+        text.innerHTML = `To get meeting reminders on iOS, you must install the app. Tap <strong>Share</strong> <span class="material-icons" style="font-size:1em; vertical-align:middle;">ios_share</span> then select <strong>'Add to Home Screen'</strong>. Then launch it from your home screen and enable notifications!`;
+      } else {
+        text.innerHTML = `Click the button above to enable meeting reminders! You can also install the app from your browser menu for a better experience.`;
+      }
+      this.setNextBtn("Next");
+    } else if (this.step === 3) {
       this.highlight(".join-card");
-      title.textContent = "2. Join Rooms";
+      title.textContent = "3. Join Rooms";
       text.textContent =
         "Received a code? Enter it here to join an existing schedule instantly.";
-    } else if (this.step === 3) {
+      this.setNextBtn("Next");
+    } else if (this.step === 4) {
       this.highlight(".rooms-section");
-      title.textContent = "3. Your Hub";
+      title.textContent = "4. Your Hub";
       text.textContent =
         "All your joined rooms appear here. Click 'Enter Room' to vote on times or view notes.";
-    } else if (this.step === 4) {
+      this.setNextBtn("Next");
+    } else if (this.step === 5) {
       this.highlight(".meetings-section");
-      title.textContent = "4. Upcoming";
+      title.textContent = "5. Upcoming";
       text.textContent =
         "Never miss a beat. Your finalized meetings for the week will appear right here.";
       this.setNextBtn("Finish");
@@ -426,9 +440,9 @@ const TourManager = {
     if (topic === "install") {
       const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
       if (isIOS) {
-        text.innerHTML = `<strong>iOS Instructions:</strong><br>1. Tap the <strong>Share</strong> button <span class="material-icons" style="font-size:1em; vertical-align:middle;">ios_share</span> below.<br>2. Scroll down and tap <strong>'Add to Home Screen'</strong>.`;
+        text.innerHTML = `<strong>iOS Instructions:</strong><br>1. Tap the <strong>Share</strong> button <span class="material-icons" style="font-size:1em; vertical-align:middle;">ios_share</span> below.<br>2. Scroll down and tap <strong>'Add to Home Screen'</strong>.<br>3. Open the app from your home screen to enable push notifications.`;
       } else {
-        text.innerHTML = `<strong>Android / Chrome:</strong><br>Tap the menu dots (⋮) and select <strong>'Install App'</strong> or click the Install icon in your address bar.`;
+        text.innerHTML = `<strong>Android / Chrome:</strong><br>Tap the menu dots (⋮) and select <strong>'Install App'</strong> or click the Install icon in your address bar. Once installed, notifications can be enabled.`;
       }
     } else if (topic === "overview") {
       text.textContent =
@@ -458,11 +472,24 @@ const TourManager = {
 // --- WEB PUSH NOTIFICATION SETUP --------------------------------
 // ----------------------------------------------------------------
 
+// Helper to hide banner if subscribed
+async function checkSubscriptionStatus() {
+  const banner = document.querySelector(".notification-banner");
+  if (!banner) return;
+
+  if ("serviceWorker" in navigator && "PushManager" in window) {
+    const registration = await navigator.serviceWorker.ready;
+    const subscription = await registration.pushManager.getSubscription();
+    if (subscription) {
+      banner.style.display = "none";
+    }
+  }
+}
+
 async function setupPushNotifications() {
   if ("serviceWorker" in navigator && "PushManager" in window) {
     try {
       console.log("Registering Service Worker...");
-      // Ensure the path points to where your sw.js is located
       const register = await navigator.serviceWorker.register("/sw.js", {
         scope: "/",
       });
@@ -496,6 +523,10 @@ async function setupPushNotifications() {
           "Content-Type": "application/json",
         },
       });
+
+      // Hide banner after successful subscription
+      const banner = document.querySelector(".notification-banner");
+      if (banner) banner.style.display = "none";
 
       showModal(
         "Success!",
