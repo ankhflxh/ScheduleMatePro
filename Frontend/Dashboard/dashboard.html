@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -64,6 +64,35 @@
           <span class="material-icons">logout</span> Log Out
         </button>
       </header>
+
+      <div
+        class="notification-banner"
+        style="text-align: center; margin: 0 0 1.5rem 0"
+      >
+        <button
+          onclick="setupPushNotifications()"
+          class="btn-action"
+          style="
+            background: #10b981;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: none;
+            font-family: &quot;Outfit&quot;, sans-serif;
+            font-size: 1rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            transition: transform 0.2s;
+          "
+        >
+          <span class="material-icons">notifications_active</span>
+          Enable Meeting Reminders
+        </button>
+      </div>
 
       <section class="dashboard-actions">
         <div class="action-card create-card">

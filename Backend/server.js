@@ -13,11 +13,19 @@ const roomRoutes = require("./Routes/rooms");
 const availabilityRoutes = require("./Routes/availability");
 const meetingRoutes = require("./Routes/meetings");
 const notesRoutes = require("./Routes/notes");
+const webpush = require("web-push");
+
+// Configure Web Push with your keys
+webpush.setVapidDetails(
+  process.env.mailto,
+  process.env.VAPID_PUBLIC_KEY,
+  process.env.VAPID_PRIVATE_KEY,
+);
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Initialize SendGrid
+// Initialize SendGrid / Resend
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Middleware
@@ -63,7 +71,6 @@ cron.schedule("* * * * *", async () => {
   const { currentDay, currentTime } = getSystemTime();
 
   try {
-    // Find meetings that: Match Today, Have Started, Email NOT sent yet
     const meetingsResult = await pool.query(
       `SELECT m.id, m.room_id, m.start_time, m.location, r.name as room_name 
        FROM meetings m
@@ -83,13 +90,11 @@ cron.schedule("* * * * *", async () => {
       );
 
       for (const meeting of meetings) {
-        // A. Mark as sent FIRST (prevent double-send race conditions)
         await pool.query(
           "UPDATE meetings SET started_email_sent = TRUE WHERE id = $1",
           [meeting.id],
         );
 
-        // B. Fetch Members
         const memberResult = await pool.query(
           `SELECT u.email, u.username 
            FROM room_members rm
@@ -101,14 +106,14 @@ cron.schedule("* * * * *", async () => {
         const members = memberResult.rows;
         const cleanTime = meeting.start_time.substring(0, 5);
 
-        // C. Send Emails
         const emailPromises = members.map((member) => {
-          return resend.emails.send({
-          to: member.email,
-          from: process.env.EMAIL_USER,
-          subject: `Happening Now: Meeting in "${meeting.room_name}"`,
-          text: `Hello ${member.username},\n\nThe meeting for "${meeting.room_name}" has started!\n\nTime: ${cleanTime}\nLocation: ${meeting.location}\n\nHop in!`,
-          html: `
+          return resend.emails
+            .send({
+              to: member.email,
+              from: process.env.EMAIL_USER,
+              subject: `Happening Now: Meeting in "${meeting.room_name}"`,
+              text: `Hello ${member.username},\n\nThe meeting for "${meeting.room_name}" has started!\n\nTime: ${cleanTime}\nLocation: ${meeting.location}\n\nHop in!`,
+              html: `
               <div style="font-family: Arial, sans-serif; color: #333;">
                 <h2 style="color: #10b981;">🚀 Meeting Started!</h2>
                 <p>Hello <strong>${member.username}</strong>,</p>
@@ -120,9 +125,10 @@ cron.schedule("* * * * *", async () => {
                 <p>See you there!</p>
               </div>
             `,
-        }).catch((err) =>
-            console.error(`Failed to email ${member.email}:`, err)
-        );
+            })
+            .catch((err) =>
+              console.error(`Failed to email ${member.email}:`, err),
+            );
         });
 
         await Promise.all(emailPromises);
@@ -173,26 +179,27 @@ cron.schedule("0 19 * * *", async () => {
       const cleanTime = meeting.start_time.substring(0, 5);
 
       const emailPromises = members.map((member) => {
-        return resend.emails.send({
-          to: member.email,
-          from: process.env.EMAIL_USER,
-          subject: `Happening Now: Meeting in "${meeting.room_name}"`,
-          text: `Hello ${member.username},\n\nThe meeting for "${meeting.room_name}" has started!\n\nTime: ${cleanTime}\nLocation: ${meeting.location}\n\nHop in!`,
-          html: `
+        return resend.emails
+          .send({
+            to: member.email,
+            from: process.env.EMAIL_USER,
+            subject: `Reminder: Meeting in "${meeting.room_name}" tomorrow!`,
+            text: `Hello ${member.username},\n\nReminder for "${meeting.room_name}" tomorrow!\n\nTime: ${cleanTime}\nLocation: ${meeting.location}\n\nSee you there!`,
+            html: `
               <div style="font-family: Arial, sans-serif; color: #333;">
-                <h2 style="color: #10b981;">🚀 Meeting Started!</h2>
+                <h2 style="color: #10b981;">📅 Meeting Tomorrow!</h2>
                 <p>Hello <strong>${member.username}</strong>,</p>
-                <p>The meeting for <strong>${meeting.room_name}</strong> is happening right now.</p>
+                <p>Don't forget about your meeting for <strong>${meeting.room_name}</strong> tomorrow.</p>
                 <div style="background: #ecfdf5; padding: 15px; border-radius: 8px; border-left: 5px solid #10b981;">
                   <p><strong>⏰ Time:</strong> ${cleanTime}</p>
                   <p><strong>📍 Location:</strong> ${meeting.location}</p>
                 </div>
-                <p>See you there!</p>
               </div>
             `,
-        }).catch((err) =>
-            console.error(`Failed to email ${member.email}:`, err)
-        );
+          })
+          .catch((err) =>
+            console.error(`Failed to email ${member.email}:`, err),
+          );
       });
 
       await Promise.all(emailPromises);
@@ -200,6 +207,73 @@ cron.schedule("0 19 * * *", async () => {
     console.log(`✅ Sent reminders for ${meetings.length} meetings.`);
   } catch (err) {
     console.error("❌ Reminder Cron Error:", err);
+  }
+});
+
+// --- PRODUCTION PUSH NOTIFICATION ROUTES ---
+
+// 1. SAVE THE SUBSCRIPTION (When the user clicks "Allow")
+app.post("/api/notifications/subscribe", async (req, res) => {
+  try {
+    const { subscription, userId } = req.body;
+
+    if (!subscription || !userId) {
+      return res
+        .status(400)
+        .json({ error: "Missing subscription or user ID." });
+    }
+
+    const updateQuery = `
+      UPDATE users 
+      SET push_subscription = $1 
+      WHERE id = $2 
+      RETURNING id, username;
+    `;
+
+    const result = await pool.query(updateQuery, [subscription, userId]);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: "User not found in database." });
+    }
+
+    res
+      .status(201)
+      .json({ message: "Subscription saved securely to database!" });
+  } catch (error) {
+    console.error("Database error saving subscription:", error);
+    res.status(500).json({ error: "Internal server error." });
+  }
+});
+
+// 2. SEND A REMINDER (You will trigger this when a meeting is about to start)
+app.post("/api/notifications/send-reminder", async (req, res) => {
+  try {
+    const { userId, meetingTitle } = req.body;
+
+    const userQuery = await pool.query(
+      "SELECT push_subscription FROM users WHERE id = $1",
+      [userId],
+    );
+
+    if (userQuery.rowCount === 0 || !userQuery.rows[0].push_subscription) {
+      return res
+        .status(404)
+        .json({ error: "User does not have an active push subscription." });
+    }
+
+    const subscription = userQuery.rows[0].push_subscription;
+
+    const payload = JSON.stringify({
+      title: "ScheduleMate Pro Reminder",
+      body: `Your meeting "${meetingTitle}" is starting soon!`,
+    });
+
+    await webpush.sendNotification(subscription, payload);
+
+    res.status(200).json({ message: "Reminder sent successfully!" });
+  } catch (error) {
+    console.error("Error sending push notification:", error);
+    res.status(500).json({ error: "Failed to send notification." });
   }
 });
 

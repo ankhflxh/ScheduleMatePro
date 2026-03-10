@@ -1,6 +1,10 @@
 // File: Frontend/Dashboard/dashboard.js
 
-// ... (Keep ALL existing variable declarations and Modal functions at the top) ...
+// --- PUSH NOTIFICATION KEY ---
+// (Replace this with your actual public key from your .env file)
+const publicVapidKey = "PASTE_YOUR_PUBLIC_KEY_HERE";
+
+// --- DOM ELEMENTS & MODALS ---
 const roomsContainer = document.querySelector("#my-rooms");
 const meetingsList = document.querySelector("#my-meetings");
 const noRoomsMsg = document.querySelector("#no-rooms-message");
@@ -48,7 +52,7 @@ if (!token) {
     })
     .then((user) => {
       const userId = user.user_id || user.id;
-      window.SLOTIFY_USER_ID = userId;
+      window.SLOTIFY_USER_ID = userId; // Used later by Push Notifications!
 
       const titleEl = document.getElementById("dashboard-title");
       const nameToDisplay = user.username || user.user_username || "User";
@@ -59,9 +63,7 @@ if (!token) {
         titleEl.textContent = `${displayName}'s Dashboard`;
       }
 
-      // If has_seen_tour is FALSE (or null), we show the tour.
       const isFirstVisit = !user.has_seen_tour;
-
       TourManager.init(isFirstVisit, displayName);
 
       loadRooms(userId);
@@ -76,7 +78,7 @@ if (!token) {
     });
 }
 
-// ... (Keep helper functions: isUpcoming, loadRooms, loadMeetings unchanged) ...
+// --- CORE DASHBOARD FUNCTIONS ---
 function isUpcoming(dayName, endTimeStr) {
   const days = [
     "Sunday",
@@ -90,6 +92,7 @@ function isUpcoming(dayName, endTimeStr) {
   const now = new Date();
   const currentDayIndex = now.getDay();
   const meetingDayIndex = days.indexOf(dayName);
+
   if (meetingDayIndex === -1) return true;
   if (currentDayIndex === meetingDayIndex) {
     const [hours, minutes] = endTimeStr.split(":");
@@ -148,7 +151,7 @@ function loadMeetings(userId) {
       if (meetingsList) meetingsList.innerHTML = "";
       const upcomingMeetings = meetings.filter(
         (m) =>
-          m.meeting_day && m.end_time && isUpcoming(m.meeting_day, m.end_time)
+          m.meeting_day && m.end_time && isUpcoming(m.meeting_day, m.end_time),
       );
       if (!upcomingMeetings.length) {
         if (noMeetingsMsg) noMeetingsMsg.style.display = "flex";
@@ -170,7 +173,7 @@ function loadMeetings(userId) {
     .catch(console.error);
 }
 
-// ... (Keep Form Listeners: createForm, joinForm, logoutModal, deleteModal unchanged) ...
+// --- FORM EVENT LISTENERS ---
 if (createForm) {
   createForm.addEventListener("submit", (e) => {
     e.preventDefault();
@@ -356,7 +359,6 @@ const TourManager = {
     this.clearHighlights();
     document.getElementById("tour-overlay").classList.remove("active");
 
-    // Mark as complete in Database
     fetch("/api/users/tour-complete", {
       method: "POST",
       headers: { "X-Auth-Token": token },
@@ -396,12 +398,11 @@ const TourManager = {
     const avatar = document.getElementById("amara-avatar");
     const actions = document.getElementById("guide-actions");
     const chatOptions = document.getElementById("chat-options");
-
     const overlay = document.getElementById("tour-overlay");
+
     if (overlay.classList.contains("active")) return;
 
     if (bubble.style.display === "none") {
-      // OPEN
       avatar.style.display = "block";
       bubble.style.display = "block";
       toggle.style.display = "none";
@@ -413,14 +414,12 @@ const TourManager = {
       actions.style.display = "none";
       chatOptions.style.display = "flex";
     } else {
-      // CLOSE
       avatar.style.display = "none";
       bubble.style.display = "none";
       toggle.style.display = "flex";
     }
   },
 
-  // 🟢 UPDATED: Smart OS Detection for Install Answer
   answer: function (topic) {
     const text = document.querySelector("#guide-text-content p");
 
@@ -454,3 +453,77 @@ const TourManager = {
       "How can Amara help you today?";
   },
 };
+
+// ----------------------------------------------------------------
+// --- WEB PUSH NOTIFICATION SETUP --------------------------------
+// ----------------------------------------------------------------
+
+async function setupPushNotifications() {
+  if ("serviceWorker" in navigator && "PushManager" in window) {
+    try {
+      console.log("Registering Service Worker...");
+      // Ensure the path points to where your sw.js is located
+      const register = await navigator.serviceWorker.register("/sw.js", {
+        scope: "/",
+      });
+      console.log("Service Worker Registered!");
+
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        showModal(
+          "Notifications Blocked",
+          "You won't get meeting reminders unless you allow notifications in your browser settings.",
+        );
+        return;
+      }
+
+      console.log("Registering Push...");
+      const subscription = await register.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicVapidKey),
+      });
+      console.log("Push Registered!");
+
+      const currentUserId = window.SLOTIFY_USER_ID;
+
+      await fetch("/api/notifications/subscribe", {
+        method: "POST",
+        body: JSON.stringify({
+          subscription: subscription,
+          userId: currentUserId,
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      showModal(
+        "Success!",
+        "Notifications are enabled. You will now receive meeting reminders!",
+      );
+    } catch (err) {
+      console.error("Error setting up push notifications:", err);
+      showModal(
+        "Error",
+        "Could not enable notifications. Check console for details.",
+      );
+    }
+  } else {
+    showModal(
+      "Unsupported",
+      "Push notifications are not supported in this browser.",
+    );
+  }
+}
+
+// Helper function to convert the string VAPID key into a Uint8Array
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
