@@ -1,7 +1,7 @@
 // File: Frontend/LoginPage/verify.js
 
 document.addEventListener("DOMContentLoaded", () => {
-  // 1. Load the Background Animation immediately
+  // 1. Background Animation Init
   const bgContainer = document.getElementById("lottie-background");
   if (bgContainer && window.lottie) {
     window.lottie.loadAnimation({
@@ -9,7 +9,7 @@ document.addEventListener("DOMContentLoaded", () => {
       renderer: "svg",
       loop: true,
       autoplay: true,
-      path: "/Assets/zpunet icon.json",
+      path: "/Assets/zpunet icon.json", // Ensure this path is correct
       rendererSettings: { preserveAspectRatio: "xMidYMid slice" },
     });
   }
@@ -17,7 +17,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const params = new URLSearchParams(window.location.search);
   const email = params.get("email");
 
-  // Redirect if they try to access this page directly without an email
   if (!email) {
     window.location.href = "login.html";
     return;
@@ -27,25 +26,25 @@ document.addEventListener("DOMContentLoaded", () => {
   const alertBox = document.getElementById("verifyAlert");
   const verifyBtn = document.getElementById("verifyBtn");
   const resendBtn = document.getElementById("resendBtn");
-
-  // Modal Elements
   const verifyModal = document.getElementById("verificationSuccessModal");
   const okBtn = document.getElementById("verifyOkBtn");
-  let userToken = ""; // Store token temporarily until they click 'Go to Dashboard'
+
+  let userToken = "";
 
   function showBanner(msg, type = "error") {
     alertBox.textContent = msg;
     alertBox.className = `alert show ${type}`;
+    alertBox.style.display = "block";
   }
 
-  // 2. Handle OTP Submission
+  // 2. Handle OTP Verification
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const otp = document.getElementById("otpCode").value.trim();
 
     try {
       verifyBtn.disabled = true;
-      verifyBtn.textContent = "Verifying...";
+      verifyBtn.innerHTML = `<span class="spinner"></span> Verifying...`;
 
       const res = await fetch("/api/auth/verify", {
         method: "POST",
@@ -54,34 +53,34 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Verification failed");
+      if (!res.ok) throw new Error(data.error || "Invalid Code");
 
-      // SUCCESS! Store the token but DO NOT redirect yet.
       userToken = data.token;
 
-      // Show the Success Modal
+      // Display Success Modal
       verifyModal.style.display = "flex";
+      setTimeout(() => verifyModal.classList.add("show"), 10);
 
-      // Play the Success Lottie Animation inside the modal
+      // Trigger Success Lottie
       const successAnim = document.getElementById("lottie-success-animation");
       if (successAnim && window.lottie) {
-        successAnim.innerHTML = ""; // Clear just in case
+        successAnim.innerHTML = "";
         window.lottie.loadAnimation({
           container: successAnim,
           renderer: "svg",
-          loop: false, // Play only once!
+          loop: false,
           autoplay: true,
-          path: "/Assets/success.json",
+          path: "/Assets/success.json", // Matches your uploaded files
         });
       }
     } catch (err) {
       showBanner(err.message, "error");
       verifyBtn.disabled = false;
-      verifyBtn.textContent = "Verify Account";
+      verifyBtn.textContent = "Verify & Continue";
     }
   });
 
-  // 3. Handle 'Go to Dashboard' button click inside the Success Modal
+  // 3. Navigate to Dashboard
   if (okBtn) {
     okBtn.addEventListener("click", () => {
       if (userToken) {
@@ -91,11 +90,11 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // 4. Handle Resend Request
+  // 4. Resend Logic
   resendBtn.addEventListener("click", async () => {
     try {
-      resendBtn.textContent = "Sending...";
       resendBtn.style.pointerEvents = "none";
+      resendBtn.textContent = "Sending...";
 
       const res = await fetch("/api/auth/resend-verification", {
         method: "POST",
@@ -103,16 +102,17 @@ document.addEventListener("DOMContentLoaded", () => {
         body: JSON.stringify({ email }),
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error);
+      }
 
-      showBanner("A new code has been sent to your email.", "success");
+      showBanner("A fresh code is on its way!", "success");
 
-      // Prevent spam clicking for 15 seconds
       setTimeout(() => {
         resendBtn.textContent = "Resend Code";
         resendBtn.style.pointerEvents = "auto";
-      }, 15000);
+      }, 30000); // 30s cooldown to prevent spam
     } catch (err) {
       showBanner(err.message, "error");
       resendBtn.textContent = "Resend Code";

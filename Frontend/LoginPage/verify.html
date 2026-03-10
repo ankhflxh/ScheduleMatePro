@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="../LandingPage/style.css" />
     <link rel="stylesheet" href="../Form.css" />
     <style>
-      /* Premium Background Setup */
+      /* Modern Premium Background */
       #lottie-background {
         position: fixed;
         top: 0;
@@ -15,21 +15,36 @@
         width: 100vw;
         height: 100vh;
         z-index: -1;
-        overflow: hidden;
         background-color: #f8fafc;
+        opacity: 0.6; /* Soften the background animation */
       }
 
-      /* Glassmorphism Container */
-      .premium-container {
-        background: rgba(255, 255, 255, 0.9);
-        backdrop-filter: blur(12px);
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.5);
-        border-radius: 16px;
-        padding: 40px;
-        width: 100%;
-        max-width: 420px;
-        margin: 40px auto;
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        margin: 0;
+        font-family: "Inter", sans-serif;
+      }
+
+      /* Premium Glass Container */
+      .premium-verify-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        border-radius: 24px;
+        padding: 48px 32px;
+        width: 90%;
+        max-width: 440px;
+        text-align: center;
+      }
+
+      /* OTP Input Styling */
+      .otp-group {
+        margin: 30px 0;
       }
 
       .otp-input {
@@ -37,151 +52,150 @@
         padding: 16px;
         font-size: 32px;
         text-align: center;
-        letter-spacing: 16px;
-        border-radius: 10px;
+        letter-spacing: 12px;
+        border-radius: 12px;
         border: 2px solid #e2e8f0;
-        margin-bottom: 24px;
-        box-sizing: border-box;
-        background: #ffffff;
-        color: #1e293b;
-        font-weight: 700;
-        transition: all 0.3s ease;
+        background: #f1f5f9;
+        color: #0f172a;
+        font-weight: 800;
+        font-family: monospace;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       }
 
       .otp-input:focus {
         outline: none;
         border-color: #10b981;
-        box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
+        background: #ffffff;
+        box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
       }
 
-      .resend-text {
-        text-align: center;
-        margin-top: 20px;
+      /* Resend Link Styling */
+      .resend-container {
+        margin-top: 24px;
         font-size: 14px;
         color: #64748b;
       }
 
-      .resend-text a {
+      #resendBtn {
         color: #10b981;
+        font-weight: 600;
         cursor: pointer;
         text-decoration: none;
-        font-weight: 600;
-        transition: color 0.2s;
+        transition: all 0.2s;
+        padding: 4px 8px;
+        border-radius: 6px;
       }
 
-      .resend-text a:hover {
+      #resendBtn:hover {
+        background: rgba(16, 185, 129, 0.1);
         color: #059669;
-        text-decoration: underline;
       }
 
-      /* Success Modal Styles */
+      /* Success Modal Refinement */
       .modal {
         display: none;
         position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.7);
+        backdrop-filter: blur(8px);
         z-index: 1000;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(15, 23, 42, 0.6);
-        backdrop-filter: blur(4px);
         align-items: center;
         justify-content: center;
       }
 
       .modal-content {
-        background-color: #ffffff;
-        padding: 40px 30px;
-        border-radius: 16px;
-        text-align: center;
-        max-width: 400px;
+        background: #ffffff;
+        padding: 40px;
+        border-radius: 24px;
         width: 90%;
-        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
-        animation: modalFadeIn 0.4s ease-out;
+        max-width: 400px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        transform: scale(0.9);
+        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
       }
 
-      @keyframes modalFadeIn {
-        from {
-          opacity: 0;
-          transform: translateY(20px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-
-      #lottie-success-animation {
-        width: 160px;
-        height: 160px;
-        margin: 0 auto 10px auto;
+      .modal.show .modal-content {
+        transform: scale(1);
       }
     </style>
   </head>
   <body>
     <div id="lottie-background"></div>
 
-    <div class="login-container premium-container">
-      <div style="text-align: center; margin-bottom: 25px">
-        <h2 style="color: #0f172a; font-size: 26px; margin-bottom: 8px">
-          Check Your Email
+    <main class="premium-verify-card">
+      <div style="margin-bottom: 32px">
+        <h2
+          style="
+            color: #0f172a;
+            font-size: 28px;
+            font-weight: 800;
+            margin-bottom: 12px;
+          "
+        >
+          Confirm Your Identity
         </h2>
-        <p style="color: #64748b; font-size: 15px; line-height: 1.5">
-          We've sent a 6-digit verification code to your email address.
+        <p style="color: #64748b; font-size: 16px; line-height: 1.6">
+          We sent a secure code to your email. Enter it below to continue.
         </p>
       </div>
 
       <div id="verifyAlert" class="alert"></div>
 
       <form id="verifyForm">
-        <input
-          type="text"
-          id="otpCode"
-          class="otp-input"
-          maxlength="6"
-          placeholder="------"
-          autocomplete="off"
-          required
-        />
+        <div class="otp-group">
+          <input
+            type="text"
+            id="otpCode"
+            class="otp-input"
+            maxlength="6"
+            placeholder="000000"
+            autocomplete="one-time-code"
+            required
+          />
+        </div>
         <button
           type="submit"
           id="verifyBtn"
-          class="btn"
+          class="auth-button"
           style="
             width: 100%;
-            padding: 14px;
-            font-size: 16px;
-            border-radius: 10px;
-            font-weight: 600;
+            padding: 16px;
+            font-size: 17px;
+            border-radius: 12px;
           "
         >
-          Verify Account
+          Verify & Continue
         </button>
       </form>
 
-      <p class="resend-text">
-        Didn't get the code? <a id="resendBtn">Resend Code</a>
-      </p>
-    </div>
+      <div class="resend-container">
+        Didn't receive it? <a id="resendBtn">Resend Code</a>
+      </div>
+    </main>
 
     <div id="verificationSuccessModal" class="modal">
       <div class="modal-content">
-        <div id="lottie-success-animation"></div>
-        <h2 style="color: #0f172a; font-size: 24px; margin-bottom: 10px">
-          Verification Successful!
+        <div
+          id="lottie-success-animation"
+          style="width: 140px; height: 140px; margin: 0 auto"
+        ></div>
+        <h2
+          style="
+            color: #0f172a;
+            font-size: 24px;
+            font-weight: 700;
+            margin-top: 20px;
+          "
+        >
+          You're Verified!
         </h2>
-        <p style="color: #64748b; margin-bottom: 25px">
-          Your account is now secure. Welcome to ScheduleMate Pro!
+        <p style="color: #64748b; margin: 12px 0 30px 0; line-height: 1.5">
+          Welcome to the professional circle. Your dashboard is ready.
         </p>
         <button
           id="verifyOkBtn"
-          class="btn"
-          style="
-            width: 100%;
-            padding: 12px;
-            border-radius: 10px;
-            font-size: 16px;
-          "
+          class="auth-button"
+          style="width: 100%; border-radius: 12px"
         >
           Go to Dashboard
         </button>
