@@ -9,7 +9,7 @@ function showBanner(msg, type = "error") {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  // 1. Load Background Animation (I put this back!)
+  // 1. Load Background Animation
   const bgContainer = document.getElementById("lottie-background");
   if (bgContainer && window.lottie) {
     window.lottie.loadAnimation({
@@ -30,17 +30,11 @@ document.addEventListener("DOMContentLoaded", () => {
       ev.preventDefault();
       showBanner("", ""); // Clear any previous errors
 
-      // Grab all the input values
+      // Grab the input values that ACTUALLY exist in your HTML
       const username = document.getElementById("username").value.trim();
       const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value;
-      const confirmPassword = document.getElementById("confirmPassword").value;
       const btn = document.getElementById("registerBtn");
-
-      // Validate Passwords Match
-      if (password !== confirmPassword) {
-        return showBanner("Passwords do not match.", "error");
-      }
 
       // Validate Password Length
       if (password.length < 8) {
@@ -52,7 +46,7 @@ document.addEventListener("DOMContentLoaded", () => {
         btn.disabled = true;
         btn.textContent = "Creating Account...";
 
-        // Send data to your updated backend (No phone number!)
+        // Send data to your backend
         const res = await fetch("/api/auth/register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
