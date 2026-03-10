@@ -1,7 +1,7 @@
 // File: Frontend/LoginPage/verify.js
 
 document.addEventListener("DOMContentLoaded", () => {
-  // 1. Background Animation Init
+  // 1. Background Animation
   const bgContainer = document.getElementById("lottie-background");
   if (bgContainer && window.lottie) {
     window.lottie.loadAnimation({
@@ -9,7 +9,7 @@ document.addEventListener("DOMContentLoaded", () => {
       renderer: "svg",
       loop: true,
       autoplay: true,
-      path: "/Assets/zpunet icon.json", // Ensure this path is correct
+      path: "/Assets/zpunet icon.json",
       rendererSettings: { preserveAspectRatio: "xMidYMid slice" },
     });
   }
@@ -29,22 +29,20 @@ document.addEventListener("DOMContentLoaded", () => {
   const verifyModal = document.getElementById("verificationSuccessModal");
   const okBtn = document.getElementById("verifyOkBtn");
 
-  let userToken = "";
-
   function showBanner(msg, type = "error") {
     alertBox.textContent = msg;
     alertBox.className = `alert show ${type}`;
     alertBox.style.display = "block";
   }
 
-  // 2. Handle OTP Verification
+  // 2. Verification Logic
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const otp = document.getElementById("otpCode").value.trim();
 
     try {
       verifyBtn.disabled = true;
-      verifyBtn.innerHTML = `<span class="spinner"></span> Verifying...`;
+      verifyBtn.textContent = "Verifying...";
 
       const res = await fetch("/api/auth/verify", {
         method: "POST",
@@ -53,15 +51,11 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Invalid Code");
+      if (!res.ok) throw new Error(data.error || "Verification failed");
 
-      userToken = data.token;
-
-      // Display Success Modal
+      // Show Modal and trigger Success Animation
       verifyModal.style.display = "flex";
-      setTimeout(() => verifyModal.classList.add("show"), 10);
 
-      // Trigger Success Lottie
       const successAnim = document.getElementById("lottie-success-animation");
       if (successAnim && window.lottie) {
         successAnim.innerHTML = "";
@@ -70,53 +64,38 @@ document.addEventListener("DOMContentLoaded", () => {
           renderer: "svg",
           loop: false,
           autoplay: true,
-          path: "/Assets/success.json", // Matches your uploaded files
+          path: "/Assets/success.json",
+          rendererSettings: { preserveAspectRatio: "xMidYMid meet" },
         });
       }
     } catch (err) {
       showBanner(err.message, "error");
       verifyBtn.disabled = false;
-      verifyBtn.textContent = "Verify & Continue";
+      verifyBtn.textContent = "Verify Account";
     }
   });
 
-  // 3. Navigate to Dashboard
+  // Redirect to login page instead of dashboard
   if (okBtn) {
     okBtn.addEventListener("click", () => {
-      if (userToken) {
-        localStorage.setItem("sm_token", userToken);
-        window.location.href = "/Dashboard/dashboard.html";
-      }
+      window.location.href = "login.html";
     });
   }
 
-  // 4. Resend Logic
+  // 3. Resend Logic
   resendBtn.addEventListener("click", async () => {
     try {
       resendBtn.style.pointerEvents = "none";
-      resendBtn.textContent = "Sending...";
-
       const res = await fetch("/api/auth/resend-verification", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error);
-      }
-
-      showBanner("A fresh code is on its way!", "success");
-
-      setTimeout(() => {
-        resendBtn.textContent = "Resend Code";
-        resendBtn.style.pointerEvents = "auto";
-      }, 30000); // 30s cooldown to prevent spam
+      if (res.ok) showBanner("New code sent!", "success");
     } catch (err) {
-      showBanner(err.message, "error");
-      resendBtn.textContent = "Resend Code";
-      resendBtn.style.pointerEvents = "auto";
+      showBanner("Error resending code", "error");
+    } finally {
+      setTimeout(() => (resendBtn.style.pointerEvents = "auto"), 5000);
     }
   });
 });
