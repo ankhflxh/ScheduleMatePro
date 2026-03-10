@@ -11,7 +11,6 @@ require("dotenv").config();
 // Resend setup
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// SECURITY: Enforce secret presence
 if (!process.env.JWT_SECRET) {
   console.error("FATAL ERROR: JWT_SECRET is not defined in .env");
   process.exit(1);
@@ -20,45 +19,37 @@ if (!process.env.JWT_SECRET) {
 const JWT_SECRET = process.env.JWT_SECRET;
 const SALT_ROUNDS = 10;
 
-// --- HELPER FUNCTIONS AND MIDDLEWARE ---
+// --- HELPER FUNCTIONS ---
+const generateToken = (id) =>
+  jwt.sign({ userId: id }, JWT_SECRET, { expiresIn: "7d" });
 
-const generateToken = (id) => {
-  return jwt.sign({ userId: id }, JWT_SECRET, { expiresIn: "7d" });
-};
+// Generates a random 6-digit code
+const generateOTP = () =>
+  Math.floor(100000 + Math.random() * 900000).toString();
 
 const authenticateToken = async (req, res, next) => {
   const token = req.headers["x-auth-token"] || req.cookies.sm_auth_token;
-
-  if (!token) {
-    return res
-      .status(401)
-      .json({ message: "Authentication required (No token provided)" });
-  }
+  if (!token)
+    return res.status(401).json({ message: "Authentication required" });
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    const userId = decoded.userId;
-
-    // 🟢 UPDATED: Now selects 'has_seen_tour'
     const result = await pool.query(
       "SELECT id, username, email, is_verified, has_seen_tour FROM users WHERE id = $1",
-      [userId],
+      [decoded.userId],
     );
 
     if (result.rows.length === 0)
-      return res.status(403).json({ message: "Invalid or unauthorized token" });
+      return res.status(403).json({ message: "Invalid token" });
 
     req.user = result.rows[0];
     next();
   } catch (err) {
-    console.error("Token Authentication Error:", err);
     return res.status(403).json({ message: "Invalid or expired token" });
   }
 };
 
-// ----------------------------------------------------
-// ROUTES
-// ----------------------------------------------------
+// --- ROUTES ---
 
 // POST /api/auth/register
 router.post("/register", async (req, res) => {
@@ -67,25 +58,22 @@ router.post("/register", async (req, res) => {
   if (!username || !email || !password) {
     return res.status(400).json({ error: "All fields are required." });
   }
-  if (password.length < 8) {
+  if (password.length < 8)
     return res
       .status(400)
       .json({ error: "Password must be at least 8 characters." });
-  }
-  if (username.length < 3) {
+  if (username.length < 3)
     return res
       .status(400)
       .json({ error: "Username must be at least 3 characters." });
-  }
 
-  const verificationToken = crypto.randomBytes(32).toString("hex");
-  const expires = new Date(Date.now() + 1000 * 60 * 30); // 30 mins
+  const otp = generateOTP();
+  const expires = new Date(Date.now() + 1000 * 60 * 15); // OTP expires in 15 mins
 
   let passwordHash;
   try {
     passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
-  } catch (hashErr) {
-    console.error("BCRYPT HASH ERROR:", hashErr);
+  } catch (err) {
     return res.status(500).json({ error: "Failed to process password." });
   }
 
@@ -93,72 +81,66 @@ router.post("/register", async (req, res) => {
     await pool.query(
       `INSERT INTO users (username, email, password_hash, is_verified, verification_token, verification_expires, has_seen_tour)
        VALUES ($1, $2, $3, FALSE, $4, $5, FALSE)`,
-      [username, email, passwordHash, verificationToken, expires],
+      [username, email, passwordHash, otp, expires],
     );
 
-    res.json({ message: "verification_sent" });
+    res.json({ message: "otp_sent", email: email });
   } catch (err) {
-    console.error("REGISTER ERROR:", err);
     if (err.code === "23505") {
-      if (err.constraint === "users_username_key") {
-        return res
-          .status(400)
-          .json({ error: "The username you entered is already taken." });
-      }
-      if (err.constraint === "users_email_key") {
-        return res
-          .status(400)
-          .json({ error: "That email address is already registered." });
-      }
+      if (err.constraint === "users_username_key")
+        return res.status(400).json({ error: "Username taken." });
+      if (err.constraint === "users_email_key")
+        return res.status(400).json({ error: "Email already registered." });
     }
-    if (!res.headersSent) {
-      res.status(400).json({ error: "Registration failed. Please try again." });
-    }
-    return;
+    return res
+      .status(400)
+      .json({ error: "Registration failed. Please try again." });
   }
 
+  // Send the OTP via Email
   try {
-    const verifyLink = `${process.env.APP_BASE_URL}/api/auth/verify?token=${verificationToken}`;
-
     resend.emails
       .send({
-        from: process.env.EMAIL_USER, // e.g., 'onboarding@resend.dev' for testing
+        from: process.env.EMAIL_USER,
         to: email,
-        subject: "Verify Your New Account for ScheduleMate Pro",
-        text: `Hello ${username}, please verify your email here: ${verifyLink}`,
-        html: `<strong>Hello ${username}, please click <a href="${verifyLink}">here</a> to verify your account.</strong>`,
+        subject: "Your ScheduleMate Pro Verification Code",
+        text: `Hello ${username},\n\nYour 6-digit verification code is: ${otp}\n\nIt expires in 15 minutes.`,
+        html: `
+        <div style="font-family: Arial, sans-serif; text-align: center; color: #333;">
+          <h2>Verify Your Account</h2>
+          <p>Hello <strong>${username}</strong>,</p>
+          <p>Your 6-digit verification code is:</p>
+          <h1 style="background: #f4f4f5; padding: 15px; letter-spacing: 5px; color: #10b981; border-radius: 8px;">${otp}</h1>
+          <p>This code will expire in 15 minutes. Do not share it with anyone.</p>
+        </div>
+      `,
       })
-      .catch((emailErr) => {
-        console.error("RESEND ASYNC ERROR:", emailErr);
-      });
-  } catch (emailError) {
-    console.error("Email preparation error:", emailError);
+      .catch(console.error);
+  } catch (error) {
+    console.error("Email preparation error:", error);
   }
 });
 
-// GET /api/auth/verify
-router.get("/verify", async (req, res) => {
-  const { token } = req.query;
+// POST /api/auth/verify
+router.post("/verify", async (req, res) => {
+  const { email, otp } = req.body;
 
   try {
     const result = await pool.query(
       `SELECT * FROM users
-       WHERE verification_token = $1 AND verification_expires > NOW()`,
-      [token],
+       WHERE email = $1 AND verification_token = $2 AND verification_expires > NOW()`,
+      [email, otp],
     );
 
     const user = result.rows[0];
 
     if (!user) {
-      return res.redirect(
-        `${
-          process.env.APP_BASE_URL
-        }/LoginPage/login.html?error=${encodeURIComponent(
-          "Verification link is invalid or expired. Please request a new one.",
-        )}`,
-      );
+      return res
+        .status(400)
+        .json({ error: "Invalid or expired verification code." });
     }
 
+    // Verify User
     await pool.query(
       `UPDATE users
        SET is_verified = TRUE, verification_token = NULL, verification_expires = NULL
@@ -166,16 +148,16 @@ router.get("/verify", async (req, res) => {
       [user.id],
     );
 
-    res.redirect(`${process.env.APP_BASE_URL}/LoginPage/login.html?verified=1`);
+    // Auto-login after verification
+    const token = generateToken(user.id);
+    res.json({
+      message: "Verification successful!",
+      token: token,
+      user: { user_id: user.id, username: user.username },
+    });
   } catch (err) {
     console.error("VERIFY ERROR:", err);
-    res.redirect(
-      `${
-        process.env.APP_BASE_URL
-      }/LoginPage/login.html?error=${encodeURIComponent(
-        "An unexpected error occurred during verification.",
-      )}`,
-    );
+    res.status(500).json({ error: "An unexpected error occurred." });
   }
 });
 
@@ -191,58 +173,26 @@ router.post("/login", async (req, res) => {
     );
 
     const user = result.rows[0];
-
-    if (!user) {
-      return res.status(400).json({ message: "Invalid username or password." });
-    }
+    if (!user) return res.status(400).json({ message: "Invalid credentials." });
 
     const passwordMatch = await bcrypt.compare(password, user.password_hash);
-
-    if (!passwordMatch) {
-      return res.status(400).json({ message: "Invalid username or password." });
-    }
+    if (!passwordMatch)
+      return res.status(400).json({ message: "Invalid credentials." });
 
     if (user.is_verified === false) {
-      return res.status(403).json({
-        message:
-          "Account not verified. Check your email for the verification link.",
-      });
+      return res
+        .status(403)
+        .json({ message: "Account not verified. Please verify your email." });
     }
 
     const token = generateToken(user.id);
-
     res.json({
       token: token,
       user: { user_id: user.id, username: user.username },
       message: "Login successful",
     });
   } catch (err) {
-    console.error("LOGIN ERROR:", err);
     res.status(500).json({ message: "Server error during login." });
-  }
-});
-
-// GET /api/users/me
-router.get("/me", authenticateToken, (req, res) => {
-  res.json({
-    user_id: req.user.id,
-    user_username: req.user.username,
-    email: req.user.email,
-    is_verified: req.user.is_verified,
-    has_seen_tour: req.user.has_seen_tour, // 🟢 Include this status
-  });
-});
-
-// 🟢 NEW ROUTE: Mark tour as complete
-router.post("/tour-complete", authenticateToken, async (req, res) => {
-  try {
-    await pool.query("UPDATE users SET has_seen_tour = TRUE WHERE id = $1", [
-      req.user.id,
-    ]);
-    res.json({ success: true });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to update status" });
   }
 });
 
@@ -255,49 +205,56 @@ router.post("/resend-verification", async (req, res) => {
       `SELECT id, username, is_verified FROM users WHERE email = $1`,
       [email],
     );
-
     const user = userResult.rows[0];
-    if (!user) {
-      return res.status(404).json({ error: "User not found." });
-    }
-    if (user.is_verified) {
-      return res.status(400).json({ error: "Account is already verified." });
-    }
 
-    const newToken = crypto.randomBytes(32).toString("hex");
-    const newExpires = new Date(Date.now() + 1000 * 60 * 30);
+    if (!user) return res.status(404).json({ error: "User not found." });
+    if (user.is_verified)
+      return res.status(400).json({ error: "Account is already verified." });
+
+    const newOtp = generateOTP();
+    const newExpires = new Date(Date.now() + 1000 * 60 * 15);
 
     await pool.query(
-      `UPDATE users
-       SET verification_token = $1, verification_expires = $2
-       WHERE id = $3`,
-      [newToken, newExpires, user.id],
+      `UPDATE users SET verification_token = $1, verification_expires = $2 WHERE id = $3`,
+      [newOtp, newExpires, user.id],
     );
 
-    res.json({ message: "Verification link successfully resent." });
-
-    const verifyLink = `${process.env.APP_BASE_URL}/api/auth/verify?token=${newToken}`;
+    res.json({ message: "New code sent." });
 
     resend.emails
       .send({
-        from: process.env.EMAIL_USER, // e.g., 'onboarding@resend.dev' for testing
+        from: process.env.EMAIL_USER,
         to: email,
-        subject: "New Verification Link for ScheduleMate Pro",
-        text: `Hello ${user.username}, please verify your email here: ${verifyLink}`,
-        html: `<strong>Hello ${user.username}, please click <a href="${verifyLink}">here</a> to verify your account.</strong>`,
+        subject: "Your New Verification Code",
+        text: `Hello ${user.username},\n\nYour new verification code is: ${newOtp}`,
+        html: `<h2>Your new code is: <span style="color:#10b981;">${newOtp}</span></h2>`,
       })
-      .catch((emailErr) => {
-        console.error("RESEND EMAIL ASYNC ERROR:", emailErr);
-      });
+      .catch(console.error);
   } catch (err) {
-    console.error("RESEND ERROR:", err);
-    if (!res.headersSent) {
-      res.status(500).json({ error: "Failed to resend verification link." });
-    }
+    res.status(500).json({ error: "Failed to resend code." });
   }
 });
 
-module.exports = {
-  router: router,
-  authenticateToken: authenticateToken,
-};
+// GET /api/users/me
+router.get("/me", authenticateToken, (req, res) => {
+  res.json({
+    user_id: req.user.id,
+    user_username: req.user.username,
+    email: req.user.email,
+    is_verified: req.user.is_verified,
+    has_seen_tour: req.user.has_seen_tour,
+  });
+});
+
+router.post("/tour-complete", authenticateToken, async (req, res) => {
+  try {
+    await pool.query("UPDATE users SET has_seen_tour = TRUE WHERE id = $1", [
+      req.user.id,
+    ]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to update status" });
+  }
+});
+
+module.exports = { router, authenticateToken };

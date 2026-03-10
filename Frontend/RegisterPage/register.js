@@ -1,24 +1,15 @@
 // File: Frontend/RegisterPage/register.js
 
-const registerForm = document.getElementById("registerForm");
-const registerAlert = document.getElementById("registerAlert");
-const verificationModal = document.getElementById("verificationModal");
-const goLoginButton = document.getElementById("sm-go-login");
+function showBanner(msg, type = "error") {
+  const alertBox = document.getElementById("registerAlert");
+  if (alertBox) {
+    alertBox.textContent = msg;
+    alertBox.className = `alert show ${type}`;
+  }
+}
 
 document.addEventListener("DOMContentLoaded", () => {
-  // 1. Register Icon Animation (Top of form)
-  const iconContainer = document.getElementById("lottie-register-icon");
-  if (iconContainer && window.lottie) {
-    window.lottie.loadAnimation({
-      container: iconContainer,
-      renderer: "svg",
-      loop: true,
-      autoplay: true,
-      path: "https://lottie.host/79a83508-468e-4a6c-94cc-a83af1057e93/C0B6I4w2b5.json",
-    });
-  }
-
-  // 2. Background Animation (zpunet icon)
+  // 1. Load Background Animation (I put this back!)
   const bgContainer = document.getElementById("lottie-background");
   if (bgContainer && window.lottie) {
     window.lottie.loadAnimation({
@@ -26,81 +17,65 @@ document.addEventListener("DOMContentLoaded", () => {
       renderer: "svg",
       loop: true,
       autoplay: true,
-      path: "/Assets/zpunet icon.json", // Ensure this file exists in Assets
-      rendererSettings: {
-        preserveAspectRatio: "xMidYMid slice",
-      },
+      path: "/Assets/zpunet icon.json",
+      rendererSettings: { preserveAspectRatio: "xMidYMid slice" },
     });
   }
-});
 
-function showBanner(message, type = "error") {
-  registerAlert.textContent = message;
-  registerAlert.className = `alert show ${type}`;
-}
+  // 2. Handle Form Submission
+  const form = document.getElementById("registerForm");
 
-function clearForm() {
-  registerForm.reset();
-  document.querySelectorAll(".input-error").forEach((el) => {
-    el.classList.remove("input-error");
-  });
-}
+  if (form) {
+    form.addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      showBanner("", ""); // Clear any previous errors
 
-function showVerificationModal() {
-  document.querySelector(".auth-container").style.display = "none";
-  verificationModal.hidden = false;
-}
+      // Grab all the input values
+      const username = document.getElementById("username").value.trim();
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+      const confirmPassword = document.getElementById("confirmPassword").value;
+      const btn = document.getElementById("registerBtn");
 
-goLoginButton.onclick = () => {
-  window.location.href = "../LoginPage/login.html";
-};
+      // Validate Passwords Match
+      if (password !== confirmPassword) {
+        return showBanner("Passwords do not match.", "error");
+      }
 
-registerForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  registerAlert.classList.remove("show");
+      // Validate Password Length
+      if (password.length < 8) {
+        return showBanner("Password must be at least 8 characters.", "error");
+      }
 
-  const username = document.getElementById("username").value.trim();
-  const email = document.getElementById("email").value.trim();
-  const password = document.getElementById("password").value;
-  const confirmPassword = document.getElementById("confirm_password").value;
+      try {
+        // Show loading state
+        btn.disabled = true;
+        btn.textContent = "Creating Account...";
 
-  if (password !== confirmPassword) {
-    showBanner("Passwords do not match.", "error");
-    document.getElementById("confirm_password").classList.add("input-error");
-    return;
-  }
-  if (password.length < 8) {
-    showBanner("Password must be at least 8 characters.", "error");
-    document.getElementById("password").classList.add("input-error");
-    return;
-  }
+        // Send data to your updated backend (No phone number!)
+        const res = await fetch("/api/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, email, password }),
+        });
 
-  try {
-    const response = await fetch("/api/auth/register", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        username: username,
-        email: email,
-        password: password,
-      }),
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          throw new Error(data.error || "Registration failed.");
+        }
+
+        // SUCCESS! Redirect to the OTP Verification page with their email in the URL
+        window.location.href = `/LoginPage/verify.html?email=${encodeURIComponent(email)}`;
+      } catch (err) {
+        let msg = err.message;
+        if (msg === "Failed to fetch") msg = "Cannot connect to server.";
+        showBanner(msg, "error");
+      } finally {
+        // Reset button state if it failed
+        btn.disabled = false;
+        btn.textContent = "Sign Up";
+      }
     });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      showBanner(
-        data.error || "Registration failed. Please try again.",
-        "error"
-      );
-    } else {
-      clearForm();
-      showVerificationModal();
-    }
-  } catch (error) {
-    console.error("Registration error:", error);
-    showBanner("Network error. Please try again later.", "error");
   }
 });
