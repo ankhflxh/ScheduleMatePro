@@ -1,11 +1,13 @@
 // File: Backend/Routes/meetings.js
-
 const express = require("express");
 const router = express.Router();
 const pool = require("../db");
 const { authenticateToken } = require("./auth");
 const { Resend } = require("resend");
 require("dotenv").config();
+
+// ✅ Import shared push helper
+const { sendPushToRoomMembers } = require("../pushHelper");
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -36,9 +38,9 @@ router.get("/history/:roomId", authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT meeting_day, start_time, end_time, location, created_at
-             FROM meetings
-             WHERE room_id = $1
-             ORDER BY created_at DESC`,
+       FROM meetings
+       WHERE room_id = $1
+       ORDER BY created_at DESC`,
       [roomId],
     );
     res.json(result.rows);
@@ -51,11 +53,11 @@ router.get("/history/:roomId", authenticateToken, async (req, res) => {
 // POST /api/meetings/:roomId - Confirm a meeting
 router.post("/:roomId", authenticateToken, async (req, res) => {
   const { roomId } = req.params;
-  const { meeting_day, start_time, location } = req.body; // Note: We IGNORE end_time from body
+  const { meeting_day, start_time, location } = req.body;
   const confirmed_by = req.user.id;
 
   try {
-    // 1. Fetch Room Details (Creator & Interval)
+    // 1. Fetch Room Details
     const roomCheck = await pool.query(
       "SELECT creator_id, name, meeting_interval FROM rooms WHERE id = $1",
       [roomId],
@@ -71,14 +73,12 @@ router.post("/:roomId", authenticateToken, async (req, res) => {
       return res.status(403).json({ error: "Only creator can confirm." });
     }
 
-    // 3. Calculate End Time Server-Side (Secure)
+    // 3. Calculate End Time Server-Side
     const intervalHours = parseInt(room.meeting_interval) || 1;
     const [startH, startM] = start_time.split(":").map(Number);
 
-    // Simple hour addition (handling 24h overflow generally handled by new Date logic if needed,
-    // but here we keep it simple as string storage)
     let endH = startH + intervalHours;
-    if (endH >= 24) endH -= 24; // Wrap around midnight if necessary
+    if (endH >= 24) endH -= 24;
 
     const end_time = `${String(endH).padStart(2, "0")}:${String(
       startM,
@@ -87,13 +87,13 @@ router.post("/:roomId", authenticateToken, async (req, res) => {
     // 4. Insert Meeting
     const result = await pool.query(
       `INSERT INTO meetings (room_id, confirmed_by, meeting_day, start_time, end_time, location)
-             VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
       [roomId, confirmed_by, meeting_day, start_time, end_time, location],
     );
 
     const newMeeting = result.rows[0];
 
-    // 5. Send Email Notifications
+    // 5. Get members for notifications
     const memberResult = await pool.query(
       `SELECT u.email, u.username
        FROM room_members rm
@@ -104,13 +104,15 @@ router.post("/:roomId", authenticateToken, async (req, res) => {
 
     const members = memberResult.rows;
 
+    // 6. Send confirmation emails
     const emailPromises = members.map((member) => {
-      return resend.emails.send({
-        to: member.email,
-        from: process.env.EMAIL_USER,
-        subject: `Meeting Confirmed: "${room.name}"`,
-        text: `Hello ${member.username},\n\nA new meeting has been confirmed!\n\nRoom: ${room.name}\nDay: ${meeting_day}\nTime: ${start_time} - ${end_time}\nLocation: ${location}`,
-        html: `
+      return resend.emails
+        .send({
+          to: member.email,
+          from: process.env.EMAIL_USER,
+          subject: `Meeting Confirmed: "${room.name}"`,
+          text: `Hello ${member.username},\n\nA new meeting has been confirmed!\n\nRoom: ${room.name}\nDay: ${meeting_day}\nTime: ${start_time} - ${end_time}\nLocation: ${location}`,
+          html: `
           <div style="font-family: Arial, sans-serif; color: #333;">
             <h2 style="color: #10b981;">✅ Meeting Confirmed!</h2>
             <p>Hello <strong>${member.username}</strong>,</p>
@@ -123,11 +125,19 @@ router.post("/:roomId", authenticateToken, async (req, res) => {
             <p>See you there!</p>
           </div>
         `,
-      }).catch((e) => console.error(`Failed to email ${member.email}:`, e));
+        })
+        .catch((e) => console.error(`Failed to email ${member.email}:`, e));
     });
 
-    // Run emails in background (don't await them to speed up response)
+    // Run emails in background
     Promise.all(emailPromises);
+
+    // ✅ Send push notification to all room members (including creator)
+    await sendPushToRoomMembers(roomId, {
+      title: "✅ Meeting Confirmed!",
+      body: `"${room.name}" is set for ${meeting_day} at ${start_time} — ${location}`,
+      url: `/Rooms/MeetingBoard/board.html`,
+    });
 
     res.json(newMeeting);
   } catch (err) {
@@ -143,7 +153,7 @@ router.get("/confirmed", authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT meeting_day AS day, start_time AS time, location
-             FROM meetings WHERE room_id = $1 ORDER BY created_at DESC LIMIT 1`,
+       FROM meetings WHERE room_id = $1 ORDER BY created_at DESC LIMIT 1`,
       [roomId],
     );
     if (result.rows.length === 0)

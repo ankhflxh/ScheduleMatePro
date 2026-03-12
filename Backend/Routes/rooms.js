@@ -4,21 +4,21 @@ const router = express.Router();
 const pool = require("../db");
 const crypto = require("crypto");
 const { authenticateToken } = require("./auth");
-const { Resend } = require("resend");
 require("dotenv").config();
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// ✅ Import shared push helper
+const { sendPushToRoomMembers } = require("../pushHelper");
 
 // GET /api/rooms/me
 router.get("/me", authenticateToken, async (req, res) => {
   const userId = req.user.id;
   try {
     const result = await pool.query(
-      `SELECT r.*, r.name as room_name, r.id as room_id 
+      `SELECT r.*, r.name as room_name, r.id as room_id
        FROM rooms r
        JOIN room_members rm ON r.id = rm.room_id
        WHERE rm.user_id = $1`,
-      [userId]
+      [userId],
     );
     res.json(result.rows);
   } catch (err) {
@@ -49,11 +49,11 @@ router.get("/:roomId/members", authenticateToken, async (req, res) => {
   const { roomId } = req.params;
   try {
     const result = await pool.query(
-      `SELECT u.id, u.username, u.email 
+      `SELECT u.id, u.username, u.email
        FROM room_members rm
        JOIN users u ON rm.user_id = u.id
        WHERE rm.room_id = $1`,
-      [roomId]
+      [roomId],
     );
     res.json(result.rows);
   } catch (err) {
@@ -67,7 +67,6 @@ router.post("/", authenticateToken, async (req, res) => {
   const { name } = req.body;
   const creatorId = req.user.id;
 
-  // 🛡️ SECURITY: Backend Validation
   if (!name || name.trim().length < 3) {
     return res
       .status(400)
@@ -84,13 +83,13 @@ router.post("/", authenticateToken, async (req, res) => {
   try {
     const roomResult = await pool.query(
       "INSERT INTO rooms (name, code, creator_id) VALUES ($1, $2, $3) RETURNING *",
-      [name.trim(), code, creatorId]
+      [name.trim(), code, creatorId],
     );
     const room = roomResult.rows[0];
 
     await pool.query(
       "INSERT INTO room_members (room_id, user_id) VALUES ($1, $2)",
-      [room.id, creatorId]
+      [room.id, creatorId],
     );
 
     res.json(room);
@@ -116,7 +115,7 @@ router.post("/join", authenticateToken, async (req, res) => {
 
     const memberCheck = await pool.query(
       "SELECT * FROM room_members WHERE room_id = $1 AND user_id = $2",
-      [room.id, userId]
+      [room.id, userId],
     );
 
     if (memberCheck.rows.length > 0) {
@@ -125,7 +124,7 @@ router.post("/join", authenticateToken, async (req, res) => {
 
     await pool.query(
       "INSERT INTO room_members (room_id, user_id) VALUES ($1, $2)",
-      [room.id, userId]
+      [room.id, userId],
     );
 
     res.json(room);
@@ -135,7 +134,7 @@ router.post("/join", authenticateToken, async (req, res) => {
   }
 });
 
-// DELETE /api/rooms/:roomId/leave (UPDATED CLEANUP)
+// DELETE /api/rooms/:roomId/leave
 router.delete("/:roomId/leave", authenticateToken, async (req, res) => {
   const { roomId } = req.params;
   const userId = req.user.id;
@@ -151,7 +150,7 @@ router.delete("/:roomId/leave", authenticateToken, async (req, res) => {
 
     if (String(room.creator_id) === String(userId)) {
       // Creator is deleting the room -> Delete EVERYTHING
-      await pool.query("DELETE FROM notes WHERE room_id = $1", [roomId]); // 🟢 Added Notes
+      await pool.query("DELETE FROM notes WHERE room_id = $1", [roomId]);
       await pool.query("DELETE FROM availability WHERE room_id = $1", [roomId]);
       await pool.query("DELETE FROM room_members WHERE room_id = $1", [roomId]);
       await pool.query("DELETE FROM meetings WHERE room_id = $1", [roomId]);
@@ -161,11 +160,11 @@ router.delete("/:roomId/leave", authenticateToken, async (req, res) => {
       // Member is leaving
       await pool.query(
         "DELETE FROM room_members WHERE room_id = $1 AND user_id = $2",
-        [roomId, userId]
+        [roomId, userId],
       );
       await pool.query(
         "DELETE FROM availability WHERE room_id = $1 AND user_id = $2",
-        [roomId, userId]
+        [roomId, userId],
       );
       return res.json({ message: "Left room" });
     }
@@ -200,47 +199,27 @@ router.patch(
       }
 
       await pool.query(
-        `UPDATE rooms
-         SET meeting_interval = $1, meeting_day = $2
-         WHERE id = $3`,
-        [interval, day, roomId]
+        `UPDATE rooms SET meeting_interval = $1, meeting_day = $2 WHERE id = $3`,
+        [interval, day, roomId],
       );
 
-      const memberResult = await pool.query(
-        `SELECT u.email, u.username
-         FROM room_members rm
-         JOIN users u ON rm.user_id = u.id
-         WHERE rm.room_id = $1 AND u.id != $2`,
-        [roomId, userId]
+      // ✅ Push only — no email for schedule preference updates
+      await sendPushToRoomMembers(
+        roomId,
+        {
+          title: "📅 Meeting Schedule Updated",
+          body: `The meeting day for "${room.name}" has been changed to ${day}. Please update your availability!`,
+          url: `/Rooms/Availability/availability.html`,
+        },
+        userId, // exclude the creator who made the change
       );
-
-      const members = memberResult.rows;
-      if (members.length > 0) {
-        const emailPromises = members.map((member) => {
-          return resend.emails.send({
-            to: member.email,
-            from: process.env.EMAIL_USER,
-            subject: `Update: Meeting Details for "${room.name}" Changed`,
-            text: `Hello ${member.username},\n\nThe meeting day for "${room.name}" has been changed to ${day}. Please log in and update your availability.`,
-            html: `
-              <div style="font-family: Arial, sans-serif; color: #333;">
-                <h3>Meeting Update</h3>
-                <p>Hello <strong>${member.username}</strong>,</p>
-                <p>The meeting day for <strong>${room.name}</strong> has been updated to <strong style="color: #6366f1;">${day}</strong>.</p>
-                <p>Please log in and update your availability.</p>
-              </div>
-            `,
-          }).catch((e) => console.error(e));
-        });
-        Promise.all(emailPromises);
-      }
 
       res.json({ message: "Preferences updated and members notified." });
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: "Failed to update preferences." });
     }
-  }
+  },
 );
 
 module.exports = router;

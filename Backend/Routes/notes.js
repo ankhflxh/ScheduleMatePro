@@ -7,6 +7,9 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 
+// ✅ Import shared push helper
+const { sendPushToRoomMembers } = require("../pushHelper");
+
 // --- MULTER SETUP (SECURED) ---
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -39,7 +42,7 @@ const fileFilter = (req, file, cb) => {
 
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // Limit to 5MB
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
   fileFilter: fileFilter,
 });
 
@@ -48,7 +51,7 @@ router.get("/:roomId", authenticateToken, async (req, res) => {
   const { roomId } = req.params;
   try {
     const result = await pool.query(
-      `SELECT n.*, u.username 
+      `SELECT n.*, u.username
        FROM notes n
        JOIN users u ON n.user_id = u.id
        WHERE n.room_id = $1
@@ -67,14 +70,13 @@ router.post(
   "/:roomId",
   authenticateToken,
   (req, res, next) => {
-    // Wrap upload in a closure to handle multer errors
     upload.single("image")(req, res, function (err) {
       if (err instanceof multer.MulterError) {
         return res
           .status(400)
           .json({ error: "File upload error: " + err.message });
       } else if (err) {
-        return res.status(400).json({ error: err.message }); // "Only images..."
+        return res.status(400).json({ error: err.message });
       }
       next();
     });
@@ -89,20 +91,31 @@ router.post(
     try {
       const result = await pool.query(
         `INSERT INTO notes (room_id, user_id, title, content, color, image_path)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING *`,
-        [
-          roomId,
-          userId,
-          title || "",
-          content || "",
-          color || "#ffffff",
-          imagePath,
-        ]
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING *`,
+        [roomId, userId, title || "", content || "", color || "#ffffff", imagePath]
       );
+
       const newNote = result.rows[0];
-      // Attach username manually for immediate UI update
       newNote.username = req.user.username;
+
+      // ✅ Send push notification to all other room members
+      const roomRes = await pool.query(
+        "SELECT name FROM rooms WHERE id = $1",
+        [roomId]
+      );
+      const roomName = roomRes.rows[0]?.name || "your room";
+
+      await sendPushToRoomMembers(
+        roomId,
+        {
+          title: "📝 New Note Added",
+          body: `${req.user.username} added a note in "${roomName}"`,
+          url: `/Rooms/Notes/notes.html`,
+        },
+        userId // exclude the person who posted it
+      );
+
       res.json(newNote);
     } catch (err) {
       console.error(err);
@@ -129,7 +142,7 @@ router.put(
 
     try {
       const check = await pool.query(
-        "SELECT user_id FROM notes WHERE id = $1",
+        "SELECT user_id, room_id FROM notes WHERE id = $1",
         [noteId]
       );
       if (check.rows.length === 0)
@@ -177,7 +190,7 @@ router.delete("/:noteId", authenticateToken, async (req, res) => {
   }
 });
 
-// GET /api/notes/:roomId/unread-count (Kept same)
+// GET /api/notes/:roomId/unread-count
 router.get("/:roomId/unread-count", authenticateToken, async (req, res) => {
   const { roomId } = req.params;
   const userId = req.user.id;
@@ -204,7 +217,7 @@ router.get("/:roomId/unread-count", authenticateToken, async (req, res) => {
   }
 });
 
-// POST /api/notes/:roomId/mark-read (Kept same)
+// POST /api/notes/:roomId/mark-read
 router.post("/:roomId/mark-read", authenticateToken, async (req, res) => {
   const { roomId } = req.params;
   const userId = req.user.id;

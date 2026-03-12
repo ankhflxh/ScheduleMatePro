@@ -13,19 +13,14 @@ const roomRoutes = require("./Routes/rooms");
 const availabilityRoutes = require("./Routes/availability");
 const meetingRoutes = require("./Routes/meetings");
 const notesRoutes = require("./Routes/notes");
-const webpush = require("web-push");
 
-// Configure Web Push with your keys
-webpush.setVapidDetails(
-  process.env.mailto,
-  process.env.VAPID_PUBLIC_KEY,
-  process.env.VAPID_PRIVATE_KEY,
-);
+// ✅ Use shared push helper (replaces inline webpush setup)
+const { webpush, sendPushToRoomMembers } = require("./pushHelper");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Initialize SendGrid / Resend
+// Initialize Resend
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Middleware
@@ -54,7 +49,9 @@ app.get("/", (req, res) => {
   res.redirect("/LandingPage/index.html");
 });
 
-// --- HELPER: Get Consistent System Time ---
+// ----------------------------------------------------------------
+// HELPER: Get Consistent System Time
+// ----------------------------------------------------------------
 function getSystemTime() {
   const now = new Date();
   const currentDay = now.toLocaleDateString("en-US", { weekday: "long" });
@@ -65,14 +62,24 @@ function getSystemTime() {
 }
 
 // ----------------------------------------------------------------
-// ⏰ CRON JOB 1: Send "Meeting Started" Emails (Runs Every Minute)
+// HELPER: Get a time string X minutes from now (HH:MM:00)
+// ----------------------------------------------------------------
+function getTimeOffsetMinutes(minutesFromNow) {
+  const future = new Date(Date.now() + minutesFromNow * 60 * 1000);
+  const h = String(future.getHours()).padStart(2, "0");
+  const m = String(future.getMinutes()).padStart(2, "0");
+  return `${h}:${m}:00`;
+}
+
+// ----------------------------------------------------------------
+// ⏰ CRON JOB 1: Send "Meeting Started" Emails + Push (Every Minute)
 // ----------------------------------------------------------------
 cron.schedule("* * * * *", async () => {
   const { currentDay, currentTime } = getSystemTime();
 
   try {
     const meetingsResult = await pool.query(
-      `SELECT m.id, m.room_id, m.start_time, m.location, r.name as room_name 
+      `SELECT m.id, m.room_id, m.start_time, m.location, r.name as room_name
        FROM meetings m
        JOIN rooms r ON m.room_id = r.id
        WHERE m.meeting_day = $1
@@ -86,7 +93,7 @@ cron.schedule("* * * * *", async () => {
 
     if (meetings.length > 0) {
       console.log(
-        `🚀 Sending "Started" emails for ${meetings.length} meetings.`,
+        `🚀 Sending "Started" notifications for ${meetings.length} meetings.`,
       );
 
       for (const meeting of meetings) {
@@ -96,7 +103,7 @@ cron.schedule("* * * * *", async () => {
         );
 
         const memberResult = await pool.query(
-          `SELECT u.email, u.username 
+          `SELECT u.email, u.username
            FROM room_members rm
            JOIN users u ON rm.user_id = u.id
            WHERE rm.room_id = $1`,
@@ -106,6 +113,7 @@ cron.schedule("* * * * *", async () => {
         const members = memberResult.rows;
         const cleanTime = meeting.start_time.substring(0, 5);
 
+        // Send emails
         const emailPromises = members.map((member) => {
           return resend.emails
             .send({
@@ -132,6 +140,13 @@ cron.schedule("* * * * *", async () => {
         });
 
         await Promise.all(emailPromises);
+
+        // Send push notifications
+        await sendPushToRoomMembers(meeting.room_id, {
+          title: "🚀 Meeting Starting Now!",
+          body: `"${meeting.room_name}" is happening now — ${meeting.location}`,
+          url: `/Rooms/MeetingBoard/board.html`,
+        });
       }
     }
   } catch (err) {
@@ -148,11 +163,13 @@ cron.schedule("0 19 * * *", async () => {
   const now = new Date();
   const tomorrow = new Date(now);
   tomorrow.setDate(tomorrow.getDate() + 1);
-  const tomorrowDay = tomorrow.toLocaleDateString("en-US", { weekday: "long" });
+  const tomorrowDay = tomorrow.toLocaleDateString("en-US", {
+    weekday: "long",
+  });
 
   try {
     const meetingsResult = await pool.query(
-      `SELECT m.id, m.room_id, m.start_time, m.location, r.name as room_name 
+      `SELECT m.id, m.room_id, m.start_time, m.location, r.name as room_name
        FROM meetings m
        JOIN rooms r ON m.room_id = r.id
        WHERE m.meeting_day = $1`,
@@ -168,7 +185,7 @@ cron.schedule("0 19 * * *", async () => {
 
     for (const meeting of meetings) {
       const memberResult = await pool.query(
-        `SELECT u.email, u.username 
+        `SELECT u.email, u.username
          FROM room_members rm
          JOIN users u ON rm.user_id = u.id
          WHERE rm.room_id = $1`,
@@ -210,9 +227,85 @@ cron.schedule("0 19 * * *", async () => {
   }
 });
 
-// --- PRODUCTION PUSH NOTIFICATION ROUTES ---
+// ----------------------------------------------------------------
+// ⏰ CRON JOB 3: Push Notification 30 Minutes Before Meeting
+// ----------------------------------------------------------------
+cron.schedule("* * * * *", async () => {
+  const { currentDay } = getSystemTime();
+  const targetTime = getTimeOffsetMinutes(30);
 
-// 1. SAVE THE SUBSCRIPTION (When the user clicks "Allow")
+  try {
+    const result = await pool.query(
+      `SELECT m.id, m.room_id, m.start_time, m.location, r.name as room_name
+       FROM meetings m
+       JOIN rooms r ON m.room_id = r.id
+       WHERE m.meeting_day = $1
+         AND m.start_time = $2
+         AND m.reminder_30_sent = FALSE`,
+      [currentDay, targetTime],
+    );
+
+    for (const meeting of result.rows) {
+      await pool.query(
+        "UPDATE meetings SET reminder_30_sent = TRUE WHERE id = $1",
+        [meeting.id],
+      );
+
+      await sendPushToRoomMembers(meeting.room_id, {
+        title: "⏰ Meeting in 30 Minutes",
+        body: `"${meeting.room_name}" starts at ${meeting.start_time.substring(0, 5)} — ${meeting.location}`,
+        url: `/Rooms/MeetingBoard/board.html`,
+      });
+
+      console.log(`✅ Sent 30-min push for meeting ${meeting.id}`);
+    }
+  } catch (err) {
+    console.error("❌ 30-min Push Cron Error:", err);
+  }
+});
+
+// ----------------------------------------------------------------
+// ⏰ CRON JOB 4: Push Notification 5 Minutes Before Meeting
+// ----------------------------------------------------------------
+cron.schedule("* * * * *", async () => {
+  const { currentDay } = getSystemTime();
+  const targetTime = getTimeOffsetMinutes(5);
+
+  try {
+    const result = await pool.query(
+      `SELECT m.id, m.room_id, m.start_time, m.location, r.name as room_name
+       FROM meetings m
+       JOIN rooms r ON m.room_id = r.id
+       WHERE m.meeting_day = $1
+         AND m.start_time = $2
+         AND m.reminder_5_sent = FALSE`,
+      [currentDay, targetTime],
+    );
+
+    for (const meeting of result.rows) {
+      await pool.query(
+        "UPDATE meetings SET reminder_5_sent = TRUE WHERE id = $1",
+        [meeting.id],
+      );
+
+      await sendPushToRoomMembers(meeting.room_id, {
+        title: "🚨 Meeting Starting Soon",
+        body: `"${meeting.room_name}" starts in 5 minutes — ${meeting.location}`,
+        url: `/Rooms/MeetingBoard/board.html`,
+      });
+
+      console.log(`✅ Sent 5-min push for meeting ${meeting.id}`);
+    }
+  } catch (err) {
+    console.error("❌ 5-min Push Cron Error:", err);
+  }
+});
+
+// ----------------------------------------------------------------
+// 🔔 PUSH SUBSCRIPTION ROUTES
+// ----------------------------------------------------------------
+
+// 1. Save subscription when user clicks "Allow"
 app.post("/api/notifications/subscribe", async (req, res) => {
   try {
     const { subscription, userId } = req.body;
@@ -223,14 +316,10 @@ app.post("/api/notifications/subscribe", async (req, res) => {
         .json({ error: "Missing subscription or user ID." });
     }
 
-    const updateQuery = `
-      UPDATE users 
-      SET push_subscription = $1 
-      WHERE id = $2 
-      RETURNING id, username;
-    `;
-
-    const result = await pool.query(updateQuery, [subscription, userId]);
+    const result = await pool.query(
+      `UPDATE users SET push_subscription = $1 WHERE id = $2 RETURNING id, username;`,
+      [subscription, userId],
+    );
 
     if (result.rowCount === 0) {
       return res.status(404).json({ error: "User not found in database." });
@@ -245,7 +334,7 @@ app.post("/api/notifications/subscribe", async (req, res) => {
   }
 });
 
-// 2. SEND A REMINDER (You will trigger this when a meeting is about to start)
+// 2. Manually trigger a push reminder (utility route)
 app.post("/api/notifications/send-reminder", async (req, res) => {
   try {
     const { userId, meetingTitle } = req.body;
@@ -266,6 +355,7 @@ app.post("/api/notifications/send-reminder", async (req, res) => {
     const payload = JSON.stringify({
       title: "ScheduleMate Pro Reminder",
       body: `Your meeting "${meetingTitle}" is starting soon!`,
+      url: `/Dashboard/dashboard.html`,
     });
 
     await webpush.sendNotification(subscription, payload);
