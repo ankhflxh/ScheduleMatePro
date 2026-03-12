@@ -128,14 +128,14 @@ function loadRooms(userId) {
           ? `Code: <span style="font-family:monospace; background:#edf2f7; padding:2px 5px; border-radius:4px;">${room.code}</span>`
           : "";
         card.innerHTML = `
-          <div><div class="room-name">${roomName}</div><div class="room-code">${codeDisplay}</div></div>
+          <div class="room-name">${roomName}</div>
           <div class="card-actions">
+            <button class="btn-share share-room-btn" data-room-id="${roomId}" data-room-name="${roomName}" data-room-code="${room.code}" title="Share room code">
+              <span class="material-icons">share</span>
+            </button>
             <a href="/Rooms/EnterRooms/enterrooms.html?roomId=${roomId}" class="btn-enter">
               Enter Room <span class="material-icons" style="font-size:1.2rem">arrow_forward</span>
             </a>
-            <button class="btn-delete delete-room-btn" data-room-id="${roomId}">
-              <span class="material-icons">delete_outline</span>
-            </button>
           </div>`;
         if (roomsContainer) roomsContainer.appendChild(card);
       });
@@ -223,44 +223,83 @@ if (joinForm) {
   });
 }
 
-const logoutModal = document.getElementById("logoutModal");
-const logoutBtn = document.getElementById("logout-button");
-if (logoutBtn) logoutBtn.onclick = () => (logoutModal.style.display = "grid");
-window.closeLogoutModal = () => (logoutModal.style.display = "none");
-window.confirmLogout = () => {
-  localStorage.removeItem("sm_token");
-  window.location.href = "../../LandingPage/index.html";
-};
+// --- SHARE MODAL ---
+let shareTargetCode = "";
+let shareTargetName = "";
+let shareTargetLink = "";
 
-let deleteTargetId = null;
-const deleteModal = document.getElementById("deleteRoomModal");
 document.addEventListener("click", (e) => {
-  const btn = e.target.closest(".delete-room-btn");
+  const btn = e.target.closest(".share-room-btn");
   if (btn) {
-    deleteTargetId = btn.dataset.roomId;
-    if (deleteModal) deleteModal.style.display = "grid";
+    window.openShareModal(btn.dataset.roomName, btn.dataset.roomCode);
   }
 });
-window.closeDeleteModal = () => {
-  if (deleteModal) deleteModal.style.display = "none";
+
+window.openShareModal = (roomName, code) => {
+  shareTargetCode = code;
+  shareTargetName = roomName;
+  document.getElementById("shareModalRoomName").textContent = roomName;
+  document.getElementById("shareModalCode").textContent = code;
+
+  // Build the deep link so the recipient can tap and join directly
+  const joinLink = `https://schedulematepro.onrender.com/LoginPage/login.html?joinCode=${code}`;
+  shareTargetLink = joinLink;
+
+  // Generate QR code using qrcode library (toCanvas API)
+  const qrContainer = document.getElementById("qrCodeContainer");
+  qrContainer.innerHTML = "";
+  const canvas = document.createElement("canvas");
+  qrContainer.appendChild(canvas);
+  QRCode.toCanvas(
+    canvas,
+    joinLink,
+    {
+      width: 160,
+      margin: 2,
+      color: { dark: "#1e293b", light: "#ffffff" },
+    },
+    (err) => {
+      if (err) console.error("QR generation failed:", err);
+    },
+  );
+
+  document.getElementById("shareModal").style.display = "grid";
 };
-const confirmDeleteBtn = document.getElementById("confirmDeleteBtn");
-if (confirmDeleteBtn) {
-  confirmDeleteBtn.onclick = () => {
-    if (!deleteTargetId) return;
-    fetch(`/api/rooms/${deleteTargetId}/leave`, {
-      method: "DELETE",
-      headers: { "X-Auth-Token": token },
-    }).then((res) => {
-      if (res.ok) {
-        loadRooms(window.SLOTIFY_USER_ID);
-        closeDeleteModal();
-      } else {
-        alert("Failed to delete room.");
+
+window.closeShareModal = () => {
+  document.getElementById("shareModal").style.display = "none";
+};
+
+window.copyRoomCode = () => {
+  navigator.clipboard.writeText(shareTargetCode).then(() => {
+    showModal("Copied!", `Room code "${shareTargetCode}" copied to clipboard.`);
+    window.closeShareModal();
+  });
+};
+
+window.nativeShare = async () => {
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: "Join my room on ScheduleMate Pro!",
+        text: `Hey! Join my room "${shareTargetName}" on ScheduleMate Pro.\n\nRoom Code: ${shareTargetCode}\n\nTap the link to open the app and enter the code:\n${shareTargetLink}`,
+      });
+    } catch (err) {
+      if (err.name !== "AbortError") {
+        showModal("Error", "Could not open share sheet.");
       }
+    }
+  } else {
+    // Fallback: copy to clipboard
+    navigator.clipboard.writeText(shareTargetCode).then(() => {
+      showModal(
+        "Copied!",
+        "Sharing isn't supported in this browser, so the code has been copied to your clipboard instead.",
+      );
+      window.closeShareModal();
     });
-  };
-}
+  }
+};
 
 // --- TOUR & CHATBOT MANAGER ---
 const TourManager = {
@@ -308,21 +347,21 @@ const TourManager = {
     const actions = document.getElementById("guide-actions");
 
     if (this.step === 1) {
-      this.highlight(".create-card");
-      title.textContent = "1. Create Rooms";
-      text.textContent =
-        "Start here! Create a secure room for your team or class. You'll get a unique code to share.";
-      this.setNextBtn("Next");
-    } else if (this.step === 2) {
-      // TOUR STEP: NOTIFICATIONS
+      // TOUR STEP 1: NOTIFICATIONS FIRST
       this.highlight(".notification-banner");
-      title.textContent = "2. Enable Notifications 🔔";
+      title.textContent = "1. Enable Notifications 🔔";
       const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
       if (isIOS) {
-        text.innerHTML = `This is <strong>really important!</strong> To receive meeting reminders, you need to install the app first. Tap <strong>Share</strong> <span class="material-icons" style="font-size:1em; vertical-align:middle;">ios_share</span> then <strong>'Add to Home Screen'</strong>, then open it from your home screen and tap <strong>Enable Meeting Reminders</strong>. Without this, you won't get notified when meetings are about to start!`;
+        text.innerHTML = `This is <strong>really important!</strong> To receive meeting reminders, install the app first. Tap <strong>Share</strong> <span class="material-icons" style="font-size:1em; vertical-align:middle;">ios_share</span> then <strong>'Add to Home Screen'</strong>, open it from your home screen and tap <strong>Enable Meeting Reminders</strong>. Without this you won't be notified when meetings are starting!`;
       } else {
-        text.innerHTML = `Don't skip this! Tap <strong>"Enable Meeting Reminders"</strong> above and allow notifications. This is how you'll know when a meeting is <strong>confirmed</strong>, <strong>starting soon</strong>, or when your <strong>schedule has been updated</strong>. You can also install the app from your browser menu for the best experience.`;
+        text.innerHTML = `Don't skip this! Tap <strong>"Enable Meeting Reminders"</strong> above and allow notifications. This is how you'll know when a meeting is <strong>confirmed</strong>, <strong>starting soon</strong>, or when your <strong>schedule has been updated</strong>.`;
       }
+      this.setNextBtn("Next");
+    } else if (this.step === 2) {
+      this.highlight(".create-card");
+      title.textContent = "2. Create Rooms";
+      text.textContent =
+        "Start here! Create a secure room for your team or class. You'll get a unique code to share.";
       this.setNextBtn("Next");
     } else if (this.step === 3) {
       this.highlight(".join-card");
@@ -438,7 +477,7 @@ const TourManager = {
     const text = document.querySelector("#guide-text-content p");
 
     if (topic === "notifications") {
-      text.innerHTML = `Enabling notifications means you'll get <strong>push alerts</strong> directly to your phone or desktop — no need to check the app manually! You'll be notified when a <strong>meeting is confirmed</strong>, when one is <strong>starting in 30 or 5 minutes</strong>, when a <strong>new note</strong> is added to your room, and when the <strong>meeting schedule is updated</strong>. Without it, you could miss important updates from your group.`;
+      text.innerHTML = `Enabling notifications means you'll get <strong>push alerts</strong> directly to your phone — no need to check the app manually! You'll be notified when a <strong>meeting is confirmed</strong>, when one is <strong>starting in 30 or 5 minutes</strong>, when a <strong>new note</strong> is added, and when the <strong>meeting schedule is updated</strong>. Without it, you could miss important updates from your group.`;
     } else if (topic === "install") {
       const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
       if (isIOS) {

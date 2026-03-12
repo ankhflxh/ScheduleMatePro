@@ -60,9 +60,6 @@
             <p class="subtitle">Manage your schedule and teams.</p>
           </div>
         </div>
-        <button id="logout-button" class="logout-pill">
-          <span class="material-icons">logout</span> Log Out
-        </button>
       </header>
 
       <div
@@ -297,28 +294,6 @@
         <button id="infoModalOk" class="modal-btn primary">OK</button>
       </div>
     </div>
-    <div id="logoutModal" class="modal-overlay">
-      <div class="modal-box">
-        <div class="modal-icon danger">
-          <span class="material-icons">logout</span>
-        </div>
-        <h3>Log Out?</h3>
-        <p>Are you sure you want to sign out?</p>
-        <div class="modal-actions">
-          <button
-            onclick="window.closeLogoutModal()"
-            class="modal-btn secondary"
-          >
-            Cancel</button
-          ><button
-            onclick="window.confirmLogout()"
-            class="modal-btn danger-btn"
-          >
-            Yes, Logout
-          </button>
-        </div>
-      </div>
-    </div>
     <div id="deleteRoomModal" class="modal-overlay">
       <div class="modal-box">
         <div class="modal-icon danger">
@@ -342,6 +317,85 @@
       </div>
     </div>
 
+    <!-- Share Room Modal -->
+    <div id="shareModal" class="modal-overlay">
+      <div class="modal-box" style="max-width: 340px">
+        <div class="modal-icon" style="background: #e0e7ff">
+          <span class="material-icons" style="color: #6366f1">share</span>
+        </div>
+        <h3 id="shareModalRoomName" style="margin-bottom: 0.25rem">
+          Share Room
+        </h3>
+        <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 1.25rem">
+          Scan the QR code or tap Share to send the room code.
+        </p>
+
+        <!-- QR Code -->
+        <div
+          id="qrCodeContainer"
+          style="display: flex; justify-content: center; margin-bottom: 1.25rem"
+        ></div>
+
+        <!-- Room code pill -->
+        <div
+          style="
+            background: #f1f5f9;
+            border-radius: 10px;
+            padding: 10px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.25rem;
+          "
+        >
+          <span
+            id="shareModalCode"
+            style="
+              font-family: monospace;
+              font-size: 1.2rem;
+              font-weight: 700;
+              color: #1e293b;
+              letter-spacing: 2px;
+            "
+          ></span>
+          <button
+            onclick="window.copyRoomCode()"
+            class="modal-btn secondary"
+            style="padding: 6px 12px; font-size: 0.8rem"
+          >
+            Copy
+          </button>
+        </div>
+
+        <div class="modal-actions" style="flex-direction: column; gap: 0.75rem">
+          <button
+            onclick="window.nativeShare()"
+            class="modal-btn primary"
+            style="
+              width: 100%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 8px;
+            "
+          >
+            <span class="material-icons" style="font-size: 1.1rem"
+              >ios_share</span
+            >
+            Share via Messages / AirDrop / More
+          </button>
+          <button
+            onclick="window.closeShareModal()"
+            class="modal-btn secondary"
+            style="width: 100%"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
     <script src="dashboard.js"></script>
   </body>
 </html>

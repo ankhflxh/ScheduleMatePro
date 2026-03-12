@@ -747,3 +747,38 @@ body {
     border-radius: 18px;
   }
 }
+
+/* Share button on room cards */
+.btn-share {
+  background: #f1f5f9;
+  border: none;
+  color: #64748b;
+  padding: 8px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-share:hover {
+  background: #e0e7ff;
+  color: var(--primary);
+}
+
+/* --- SHARE BUTTON --- */
+.btn-share {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s;
+}
+.btn-share:hover {
+  background: #e0e7ff;
+  color: var(--primary);
+}
