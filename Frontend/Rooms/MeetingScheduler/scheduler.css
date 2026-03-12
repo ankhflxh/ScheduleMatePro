@@ -286,3 +286,64 @@ body {
   background: #f1f5f9;
   color: #64748b;
 }
+
+/* ================================================================
+   MOBILE RESPONSIVE — scheduler.css
+   ================================================================ */
+
+@media (max-width: 600px) {
+  .scheduler-container {
+    padding: 1rem;
+  }
+
+  .header-content h1 {
+    font-size: 1.4rem;
+  }
+
+  .icon-box {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+  }
+
+  /* Stack insights + entries panels */
+  .content-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .glass-panel {
+    padding: 1.1rem;
+    border-radius: 18px;
+  }
+
+  /* Suggestion cards tighter */
+  .suggestion-card {
+    padding: 0.85rem;
+  }
+
+  .suggestion-card p {
+    font-size: 0.95rem;
+  }
+
+  /* Confirm button */
+  .confirm-fab {
+    padding: 12px;
+    font-size: 0.95rem;
+    border-radius: 12px;
+  }
+
+  /* Entry rows */
+  .entry {
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+    border-radius: 12px;
+  }
+
+  /* Modal */
+  .modal-box {
+    width: 95%;
+    padding: 1.25rem;
+    border-radius: 18px;
+  }
+}

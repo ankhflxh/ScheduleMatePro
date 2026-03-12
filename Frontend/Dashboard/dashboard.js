@@ -472,17 +472,50 @@ const TourManager = {
 // --- WEB PUSH NOTIFICATION SETUP --------------------------------
 // ----------------------------------------------------------------
 
-// Helper to hide banner if subscribed
+// Helper to show/hide banner based on whether THIS user has an active subscription
 async function checkSubscriptionStatus() {
   const banner = document.querySelector(".notification-banner");
   if (!banner) return;
 
-  if ("serviceWorker" in navigator && "PushManager" in window) {
+  // If push isn't supported, leave the banner hidden
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+
+  try {
     const registration = await navigator.serviceWorker.ready;
     const subscription = await registration.pushManager.getSubscription();
-    if (subscription) {
-      banner.style.display = "none";
+
+    // No browser subscription at all → show the banner
+    if (!subscription) {
+      banner.style.display = "block";
+      return;
     }
+
+    // There IS a browser subscription — verify it belongs to THIS user.
+    // This handles re-registration after account deletion (stale subscription).
+    const currentUserId = window.SLOTIFY_USER_ID;
+    const res = await fetch("/api/notifications/check-subscription", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        endpoint: subscription.endpoint,
+        userId: currentUserId,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (data.subscribed) {
+      // Valid subscription for this user — hide banner
+      banner.style.display = "none";
+    } else {
+      // Stale subscription from a deleted account — clear it and show banner
+      await subscription.unsubscribe();
+      banner.style.display = "block";
+    }
+  } catch (err) {
+    // On any error, show the banner so the user can re-subscribe
+    console.warn("Could not verify subscription status:", err);
+    banner.style.display = "block";
   }
 }
 

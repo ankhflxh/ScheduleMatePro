@@ -153,3 +153,61 @@ body {
   font-size: 0.9rem;
   color: #64748b;
 }
+
+/* ================================================================
+   MOBILE RESPONSIVE — board.css
+   ================================================================ */
+
+@media (max-width: 600px) {
+  .board-container {
+    padding: 1rem;
+  }
+
+  /* Header: stack back pill and title */
+  .board-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .board-header h1 {
+    font-size: 1.3rem;
+  }
+
+  /* Stack the three columns vertically */
+  .status-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .status-col {
+    min-height: unset;
+    padding: 0.75rem;
+    border-radius: 12px;
+  }
+
+  .col-header {
+    font-size: 1rem;
+    padding-bottom: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  /* Meeting cards */
+  .meeting-card {
+    padding: 0.75rem;
+    border-radius: 10px;
+  }
+
+  .card-day {
+    font-size: 1rem;
+  }
+
+  .card-time {
+    font-size: 0.9rem;
+  }
+
+  .card-loc {
+    font-size: 0.85rem;
+  }
+}

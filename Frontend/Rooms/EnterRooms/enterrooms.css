@@ -117,7 +117,9 @@ body {
   align-items: center;
   gap: 1rem;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
   border: 1px solid transparent;
 }
 
@@ -198,4 +200,69 @@ body {
   border: 2px solid white;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   z-index: 10;
+}
+
+/* ================================================================
+   MOBILE RESPONSIVE — enterrooms.css
+   ================================================================ */
+
+@media (max-width: 600px) {
+  body {
+    align-items: flex-start;
+    padding: 1rem 0;
+    height: auto;
+    overflow-y: auto;
+  }
+
+  .glass-wrapper {
+    width: 95%;
+    padding: 1.25rem;
+    border-radius: 18px;
+    max-height: none;
+    margin: 0.5rem auto;
+  }
+
+  /* Header: stack back button and title */
+  .hub-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .room-title-block h1 {
+    font-size: 1.2rem;
+    text-align: left;
+  }
+
+  /* Menu cards: slightly smaller */
+  .menu-card {
+    padding: 0.85rem;
+  }
+
+  .card-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+  }
+
+  .card-content h2 {
+    font-size: 1rem;
+  }
+
+  .card-content p {
+    font-size: 0.8rem;
+  }
+
+  /* Status banner */
+  .status-banner {
+    font-size: 0.85rem;
+    padding: 10px;
+  }
+
+  /* Notification badge stays visible */
+  .notification-badge {
+    min-width: 18px;
+    height: 18px;
+    font-size: 0.7rem;
+  }
 }

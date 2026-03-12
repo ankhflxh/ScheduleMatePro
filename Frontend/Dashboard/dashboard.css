@@ -97,7 +97,9 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.9);
   border-radius: 24px;
   padding: 2rem;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -631,6 +633,117 @@ body {
   position: relative;
   z-index: 1001;
   background: white;
-  box-shadow: 0 0 0 4px var(--primary), 0 0 30px rgba(0, 0, 0, 0.5) !important;
+  box-shadow:
+    0 0 0 4px var(--primary),
+    0 0 30px rgba(0, 0, 0, 0.5) !important;
   pointer-events: none;
+}
+
+/* ================================================================
+   MOBILE RESPONSIVE — dashboard.css
+   ================================================================ */
+
+@media (max-width: 600px) {
+  .dashboard-container {
+    padding: 1rem;
+  }
+
+  /* Header: stack title and logout vertically */
+  .dash-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .header-text h1 {
+    font-size: 1.4rem;
+  }
+
+  .subtitle {
+    font-size: 0.85rem;
+  }
+
+  .logout-pill {
+    font-size: 0.85rem;
+    padding: 6px 12px;
+  }
+
+  /* Notification banner button full width */
+  .notification-banner .btn-action {
+    width: 100%;
+    font-size: 0.9rem;
+    padding: 10px 16px;
+  }
+
+  /* Action cards stack */
+  .dashboard-actions {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .action-card {
+    padding: 1.25rem;
+    border-radius: 18px;
+  }
+
+  /* Content grid stacks */
+  .content-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .glass-panel {
+    padding: 1rem;
+    border-radius: 18px;
+    min-height: unset;
+  }
+
+  /* Room cards: tighten up */
+  .room-card {
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+  }
+
+  .room-name {
+    font-size: 0.95rem;
+  }
+
+  .room-code {
+    font-size: 0.8rem;
+  }
+
+  .btn-enter {
+    padding: 6px 10px;
+    font-size: 0.8rem;
+  }
+
+  /* Meeting items */
+  .meeting-item {
+    padding: 0.75rem 1rem;
+  }
+
+  .meeting-info {
+    font-size: 0.9rem;
+  }
+
+  /* Guide bubble narrower on phone */
+  .speech-bubble {
+    width: 240px;
+    padding: 1rem;
+    margin-right: 10px;
+  }
+
+  .guide-wrapper {
+    bottom: 1rem;
+    right: 1rem;
+  }
+
+  /* Modals full-width on phone */
+  .modal-box {
+    width: 95%;
+    padding: 1.5rem;
+    border-radius: 18px;
+  }
 }

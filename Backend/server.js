@@ -334,7 +334,39 @@ app.post("/api/notifications/subscribe", async (req, res) => {
   }
 });
 
-// 2. Manually trigger a push reminder (utility route)
+// 2. Check if a subscription endpoint is saved for a specific user
+app.post("/api/notifications/check-subscription", async (req, res) => {
+  try {
+    const { endpoint, userId } = req.body;
+
+    if (!endpoint || !userId) {
+      return res.status(400).json({ subscribed: false });
+    }
+
+    const result = await pool.query(
+      "SELECT push_subscription FROM users WHERE id = $1 AND push_subscription IS NOT NULL",
+      [userId],
+    );
+
+    if (result.rowCount === 0) {
+      return res.json({ subscribed: false });
+    }
+
+    // push_subscription is stored as JSON — check if the endpoint matches
+    const stored = result.rows[0].push_subscription;
+    const storedEndpoint =
+      typeof stored === "string"
+        ? JSON.parse(stored).endpoint
+        : stored.endpoint;
+
+    res.json({ subscribed: storedEndpoint === endpoint });
+  } catch (error) {
+    console.error("Check subscription error:", error);
+    res.status(500).json({ subscribed: false });
+  }
+});
+
+// 3. Manually trigger a push reminder (utility route)
 app.post("/api/notifications/send-reminder", async (req, res) => {
   try {
     const { userId, meetingTitle } = req.body;

@@ -80,7 +80,9 @@ body {
   flex-direction: column;
   justify-content: space-between;
   min-height: 200px;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
   border: 1px solid rgba(0, 0, 0, 0.05);
   position: relative;
 }
@@ -356,4 +358,80 @@ textarea {
 }
 .note-image:hover {
   opacity: 0.9;
+}
+
+/* ================================================================
+   MOBILE RESPONSIVE — notes.css
+   ================================================================ */
+
+@media (max-width: 600px) {
+  .notes-container {
+    padding: 1rem;
+  }
+
+  /* Header: stack back and title */
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .page-header h1 {
+    font-size: 1.3rem;
+  }
+
+  /* Notes grid: single column */
+  .notes-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .note-card {
+    padding: 1.1rem;
+    border-radius: 12px;
+    min-height: unset;
+  }
+
+  .note-title {
+    font-size: 1rem;
+  }
+
+  .note-content {
+    font-size: 0.9rem;
+  }
+
+  /* Always show note actions on mobile (no hover) */
+  .note-actions {
+    opacity: 1;
+  }
+
+  /* Note image smaller */
+  .note-image {
+    height: 120px;
+  }
+
+  /* FAB stays but moves in a bit */
+  .fab {
+    bottom: 1.25rem;
+    right: 1.25rem;
+    width: 52px;
+    height: 52px;
+  }
+
+  /* Modal full width */
+  .glass-modal {
+    width: 95%;
+    padding: 1.25rem;
+    border-radius: 16px;
+  }
+
+  .color-options {
+    gap: 6px;
+  }
+
+  .color-dot {
+    width: 20px;
+    height: 20px;
+  }
 }

@@ -280,3 +280,60 @@ label {
   background: #f1f5f9;
   color: var(--text-light);
 }
+
+/* ================================================================
+   MOBILE RESPONSIVE — availability.css
+   ================================================================ */
+
+@media (max-width: 600px) {
+  body {
+    padding: 1rem 0.75rem;
+  }
+
+  .glass-card {
+    padding: 1.25rem;
+    border-radius: 22px;
+  }
+
+  .title-group h1 {
+    font-size: 1.4rem;
+  }
+
+  .icon-box {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+  }
+
+  /* Stack the time + location row on mobile */
+  .row-group {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .glass-input,
+  .read-only-field {
+    padding: 11px 14px;
+    font-size: 0.95rem;
+  }
+
+  label {
+    font-size: 0.85rem;
+  }
+
+  .submit-btn {
+    padding: 12px;
+    font-size: 0.95rem;
+  }
+
+  .creator-panel {
+    padding: 1rem;
+  }
+
+  /* Modals */
+  .modal-box {
+    width: 95%;
+    padding: 1.25rem;
+    border-radius: 18px;
+  }
+}
