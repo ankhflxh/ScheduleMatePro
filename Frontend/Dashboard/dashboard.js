@@ -314,14 +314,14 @@ const TourManager = {
         "Start here! Create a secure room for your team or class. You'll get a unique code to share.";
       this.setNextBtn("Next");
     } else if (this.step === 2) {
-      // NEW TOUR STEP: INSTALLATION & NOTIFICATIONS
+      // TOUR STEP: NOTIFICATIONS
       this.highlight(".notification-banner");
-      title.textContent = "2. Stay Updated";
+      title.textContent = "2. Enable Notifications 🔔";
       const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
       if (isIOS) {
-        text.innerHTML = `To get meeting reminders on iOS, you must install the app. Tap <strong>Share</strong> <span class="material-icons" style="font-size:1em; vertical-align:middle;">ios_share</span> then select <strong>'Add to Home Screen'</strong>. Then launch it from your home screen and enable notifications!`;
+        text.innerHTML = `This is <strong>really important!</strong> To receive meeting reminders, you need to install the app first. Tap <strong>Share</strong> <span class="material-icons" style="font-size:1em; vertical-align:middle;">ios_share</span> then <strong>'Add to Home Screen'</strong>, then open it from your home screen and tap <strong>Enable Meeting Reminders</strong>. Without this, you won't get notified when meetings are about to start!`;
       } else {
-        text.innerHTML = `Click the button above to enable meeting reminders! You can also install the app from your browser menu for a better experience.`;
+        text.innerHTML = `Don't skip this! Tap <strong>"Enable Meeting Reminders"</strong> above and allow notifications. This is how you'll know when a meeting is <strong>confirmed</strong>, <strong>starting soon</strong>, or when your <strong>schedule has been updated</strong>. You can also install the app from your browser menu for the best experience.`;
       }
       this.setNextBtn("Next");
     } else if (this.step === 3) {
@@ -437,7 +437,9 @@ const TourManager = {
   answer: function (topic) {
     const text = document.querySelector("#guide-text-content p");
 
-    if (topic === "install") {
+    if (topic === "notifications") {
+      text.innerHTML = `Enabling notifications means you'll get <strong>push alerts</strong> directly to your phone or desktop — no need to check the app manually! You'll be notified when a <strong>meeting is confirmed</strong>, when one is <strong>starting in 30 or 5 minutes</strong>, when a <strong>new note</strong> is added to your room, and when the <strong>meeting schedule is updated</strong>. Without it, you could miss important updates from your group.`;
+    } else if (topic === "install") {
       const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
       if (isIOS) {
         text.innerHTML = `<strong>iOS Instructions:</strong><br>1. Tap the <strong>Share</strong> button <span class="material-icons" style="font-size:1em; vertical-align:middle;">ios_share</span> below.<br>2. Scroll down and tap <strong>'Add to Home Screen'</strong>.<br>3. Open the app from your home screen to enable push notifications.`;
@@ -477,21 +479,17 @@ async function checkSubscriptionStatus() {
   const banner = document.querySelector(".notification-banner");
   if (!banner) return;
 
-  // If push isn't supported, leave the banner hidden
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
 
   try {
     const registration = await navigator.serviceWorker.ready;
     const subscription = await registration.pushManager.getSubscription();
 
-    // No browser subscription at all → show the banner
     if (!subscription) {
       banner.style.display = "block";
       return;
     }
 
-    // There IS a browser subscription — verify it belongs to THIS user.
-    // This handles re-registration after account deletion (stale subscription).
     const currentUserId = window.SLOTIFY_USER_ID;
     const res = await fetch("/api/notifications/check-subscription", {
       method: "POST",
@@ -505,15 +503,12 @@ async function checkSubscriptionStatus() {
     const data = await res.json();
 
     if (data.subscribed) {
-      // Valid subscription for this user — hide banner
       banner.style.display = "none";
     } else {
-      // Stale subscription from a deleted account — clear it and show banner
       await subscription.unsubscribe();
       banner.style.display = "block";
     }
   } catch (err) {
-    // On any error, show the banner so the user can re-subscribe
     console.warn("Could not verify subscription status:", err);
     banner.style.display = "block";
   }

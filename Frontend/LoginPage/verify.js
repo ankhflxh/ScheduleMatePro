@@ -26,7 +26,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const alertBox = document.getElementById("verifyAlert");
   const verifyBtn = document.getElementById("verifyBtn");
   const resendBtn = document.getElementById("resendBtn");
-  const verifyModal = document.getElementById("verificationSuccessModal");
   const okBtn = document.getElementById("verifyOkBtn");
 
   function showBanner(msg, type = "error") {
@@ -53,8 +52,10 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Verification failed");
 
-      // Show Modal and trigger Success Animation
-      verifyModal.style.display = "flex";
+      // Hide the form, show inline success state — no dark overlay
+      document.getElementById("formState").style.display = "none";
+      const successState = document.getElementById("successState");
+      successState.style.display = "flex";
 
       const successAnim = document.getElementById("lottie-success-animation");
       if (successAnim && window.lottie) {

@@ -14,13 +14,13 @@ const availabilityRoutes = require("./Routes/availability");
 const meetingRoutes = require("./Routes/meetings");
 const notesRoutes = require("./Routes/notes");
 
-// ✅ Use shared push helper (replaces inline webpush setup)
+// ✅ Shared push helper
 const { webpush, sendPushToRoomMembers } = require("./pushHelper");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Initialize Resend
+// Resend — kept strictly for auth verification emails
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Middleware
@@ -31,8 +31,6 @@ app.use(
   }),
 );
 app.use(express.json());
-
-// Serve Frontend
 app.use(express.static(path.join(__dirname, "..", "Frontend")));
 app.use(cookieParser());
 
@@ -72,7 +70,8 @@ function getTimeOffsetMinutes(minutesFromNow) {
 }
 
 // ----------------------------------------------------------------
-// ⏰ CRON JOB 1: Send "Meeting Started" Emails + Push (Every Minute)
+// ⏰ CRON JOB 1: Push when meeting starts (Every Minute)
+// ✅ Email removed — push only
 // ----------------------------------------------------------------
 cron.schedule("* * * * *", async () => {
   const { currentDay, currentTime } = getSystemTime();
@@ -89,146 +88,28 @@ cron.schedule("* * * * *", async () => {
       [currentDay, currentTime],
     );
 
-    const meetings = meetingsResult.rows;
-
-    if (meetings.length > 0) {
-      console.log(
-        `🚀 Sending "Started" notifications for ${meetings.length} meetings.`,
+    for (const meeting of meetingsResult.rows) {
+      // Mark as sent so it doesn't fire again
+      await pool.query(
+        "UPDATE meetings SET started_email_sent = TRUE WHERE id = $1",
+        [meeting.id],
       );
 
-      for (const meeting of meetings) {
-        await pool.query(
-          "UPDATE meetings SET started_email_sent = TRUE WHERE id = $1",
-          [meeting.id],
-        );
-
-        const memberResult = await pool.query(
-          `SELECT u.email, u.username
-           FROM room_members rm
-           JOIN users u ON rm.user_id = u.id
-           WHERE rm.room_id = $1`,
-          [meeting.room_id],
-        );
-
-        const members = memberResult.rows;
-        const cleanTime = meeting.start_time.substring(0, 5);
-
-        // Send emails
-        const emailPromises = members.map((member) => {
-          return resend.emails
-            .send({
-              to: member.email,
-              from: process.env.EMAIL_USER,
-              subject: `Happening Now: Meeting in "${meeting.room_name}"`,
-              text: `Hello ${member.username},\n\nThe meeting for "${meeting.room_name}" has started!\n\nTime: ${cleanTime}\nLocation: ${meeting.location}\n\nHop in!`,
-              html: `
-              <div style="font-family: Arial, sans-serif; color: #333;">
-                <h2 style="color: #10b981;">🚀 Meeting Started!</h2>
-                <p>Hello <strong>${member.username}</strong>,</p>
-                <p>The meeting for <strong>${meeting.room_name}</strong> is happening right now.</p>
-                <div style="background: #ecfdf5; padding: 15px; border-radius: 8px; border-left: 5px solid #10b981;">
-                  <p><strong>⏰ Time:</strong> ${cleanTime}</p>
-                  <p><strong>📍 Location:</strong> ${meeting.location}</p>
-                </div>
-                <p>See you there!</p>
-              </div>
-            `,
-            })
-            .catch((err) =>
-              console.error(`Failed to email ${member.email}:`, err),
-            );
-        });
-
-        await Promise.all(emailPromises);
-
-        // Send push notifications
-        await sendPushToRoomMembers(meeting.room_id, {
-          title: "🚀 Meeting Starting Now!",
-          body: `"${meeting.room_name}" is happening now — ${meeting.location}`,
-          url: `/Rooms/MeetingBoard/board.html`,
-        });
-      }
-    }
-  } catch (err) {
-    console.error("❌ In-Progress Cron Error:", err);
-  }
-});
-
-// ----------------------------------------------------------------
-// ⏰ CRON JOB 2: Send Reminder Emails at 7:00 PM Every Day
-// ----------------------------------------------------------------
-cron.schedule("0 19 * * *", async () => {
-  console.log("⏰ Running Daily Meeting Reminder Check...");
-
-  const now = new Date();
-  const tomorrow = new Date(now);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const tomorrowDay = tomorrow.toLocaleDateString("en-US", {
-    weekday: "long",
-  });
-
-  try {
-    const meetingsResult = await pool.query(
-      `SELECT m.id, m.room_id, m.start_time, m.location, r.name as room_name
-       FROM meetings m
-       JOIN rooms r ON m.room_id = r.id
-       WHERE m.meeting_day = $1`,
-      [tomorrowDay],
-    );
-
-    const meetings = meetingsResult.rows;
-
-    if (meetings.length === 0) {
-      console.log(`No meetings found for tomorrow (${tomorrowDay}).`);
-      return;
-    }
-
-    for (const meeting of meetings) {
-      const memberResult = await pool.query(
-        `SELECT u.email, u.username
-         FROM room_members rm
-         JOIN users u ON rm.user_id = u.id
-         WHERE rm.room_id = $1`,
-        [meeting.room_id],
-      );
-
-      const members = memberResult.rows;
-      const cleanTime = meeting.start_time.substring(0, 5);
-
-      const emailPromises = members.map((member) => {
-        return resend.emails
-          .send({
-            to: member.email,
-            from: process.env.EMAIL_USER,
-            subject: `Reminder: Meeting in "${meeting.room_name}" tomorrow!`,
-            text: `Hello ${member.username},\n\nReminder for "${meeting.room_name}" tomorrow!\n\nTime: ${cleanTime}\nLocation: ${meeting.location}\n\nSee you there!`,
-            html: `
-              <div style="font-family: Arial, sans-serif; color: #333;">
-                <h2 style="color: #10b981;">📅 Meeting Tomorrow!</h2>
-                <p>Hello <strong>${member.username}</strong>,</p>
-                <p>Don't forget about your meeting for <strong>${meeting.room_name}</strong> tomorrow.</p>
-                <div style="background: #ecfdf5; padding: 15px; border-radius: 8px; border-left: 5px solid #10b981;">
-                  <p><strong>⏰ Time:</strong> ${cleanTime}</p>
-                  <p><strong>📍 Location:</strong> ${meeting.location}</p>
-                </div>
-              </div>
-            `,
-          })
-          .catch((err) =>
-            console.error(`Failed to email ${member.email}:`, err),
-          );
+      await sendPushToRoomMembers(meeting.room_id, {
+        title: "🚀 Meeting Starting Now!",
+        body: `"${meeting.room_name}" is happening now — ${meeting.location}`,
+        url: `/Rooms/MeetingBoard/board.html`,
       });
 
-      await Promise.all(emailPromises);
+      console.log(`✅ Sent start push for meeting ${meeting.id}`);
     }
-    console.log(`✅ Sent reminders for ${meetings.length} meetings.`);
   } catch (err) {
-    console.error("❌ Reminder Cron Error:", err);
+    console.error("❌ Meeting Started Cron Error:", err);
   }
 });
 
 // ----------------------------------------------------------------
-// ⏰ CRON JOB 3: Push Notification 30 Minutes Before Meeting
+// ⏰ CRON JOB 2: Push 30 minutes before meeting
 // ----------------------------------------------------------------
 cron.schedule("* * * * *", async () => {
   const { currentDay } = getSystemTime();
@@ -265,7 +146,7 @@ cron.schedule("* * * * *", async () => {
 });
 
 // ----------------------------------------------------------------
-// ⏰ CRON JOB 4: Push Notification 5 Minutes Before Meeting
+// ⏰ CRON JOB 3: Push 5 minutes before meeting
 // ----------------------------------------------------------------
 cron.schedule("* * * * *", async () => {
   const { currentDay } = getSystemTime();
@@ -352,7 +233,6 @@ app.post("/api/notifications/check-subscription", async (req, res) => {
       return res.json({ subscribed: false });
     }
 
-    // push_subscription is stored as JSON — check if the endpoint matches
     const stored = result.rows[0].push_subscription;
     const storedEndpoint =
       typeof stored === "string"
@@ -384,13 +264,14 @@ app.post("/api/notifications/send-reminder", async (req, res) => {
 
     const subscription = userQuery.rows[0].push_subscription;
 
-    const payload = JSON.stringify({
-      title: "ScheduleMate Pro Reminder",
-      body: `Your meeting "${meetingTitle}" is starting soon!`,
-      url: `/Dashboard/dashboard.html`,
-    });
-
-    await webpush.sendNotification(subscription, payload);
+    await webpush.sendNotification(
+      subscription,
+      JSON.stringify({
+        title: "ScheduleMate Pro Reminder",
+        body: `Your meeting "${meetingTitle}" is starting soon!`,
+        url: `/Dashboard/dashboard.html`,
+      }),
+    );
 
     res.status(200).json({ message: "Reminder sent successfully!" });
   } catch (error) {

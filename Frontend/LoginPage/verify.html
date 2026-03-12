@@ -69,28 +69,11 @@
         box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
       }
 
-      /* Success Modal: Fixed positioning to prevent "cut off" effect */
-      .modal {
+      /* Inline success state — no overlay, no blur */
+      .success-state {
         display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(15, 23, 42, 0.7);
-        backdrop-filter: blur(8px);
-        z-index: 9999;
+        flex-direction: column;
         align-items: center;
-        justify-content: center;
-      }
-
-      .modal-content {
-        background: #ffffff;
-        padding: 40px;
-        border-radius: 24px;
-        width: 90%;
-        max-width: 400px;
-        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
         text-align: center;
       }
     </style>
@@ -99,58 +82,62 @@
     <div id="lottie-background"></div>
 
     <main class="premium-verify-card">
-      <h2
-        style="
-          color: #0f172a;
-          font-size: 28px;
-          font-weight: 800;
-          margin-bottom: 12px;
-        "
-      >
-        Check Your Email
-      </h2>
-      <p style="color: #64748b; font-size: 16px; margin-bottom: 30px">
-        Enter the 6-digit code we sent to your inbox.
-      </p>
-
-      <div id="verifyAlert" class="alert"></div>
-
-      <form id="verifyForm">
-        <input
-          type="text"
-          id="otpCode"
-          class="otp-input"
-          maxlength="6"
-          placeholder="000000"
-          required
-        />
-        <button
-          type="submit"
-          id="verifyBtn"
-          class="auth-button"
+      <div id="formState">
+        <h2
           style="
-            width: 100%;
-            margin-top: 24px;
-            padding: 16px;
-            border-radius: 12px;
+            color: #0f172a;
+            font-size: 28px;
+            font-weight: 800;
+            margin-bottom: 12px;
           "
         >
-          Verify Account
-        </button>
-      </form>
+          Check Your Email
+        </h2>
+        <p style="color: #64748b; font-size: 16px; margin-bottom: 8px">
+          Enter the 6-digit code we sent to your inbox.
+        </p>
+        <p style="color: #94a3b8; font-size: 13px; margin-bottom: 30px">
+          📌 Can't find it? Check your <strong>spam or junk folder</strong>.
+        </p>
 
-      <p style="margin-top: 24px; font-size: 14px; color: #64748b">
-        Didn't get a code?
-        <a
-          id="resendBtn"
-          style="color: #10b981; font-weight: 600; cursor: pointer"
-          >Resend</a
-        >
-      </p>
-    </main>
+        <div id="verifyAlert" class="alert"></div>
 
-    <div id="verificationSuccessModal" class="modal">
-      <div class="modal-content">
+        <form id="verifyForm">
+          <input
+            type="text"
+            id="otpCode"
+            class="otp-input"
+            maxlength="6"
+            placeholder="000000"
+            required
+          />
+          <button
+            type="submit"
+            id="verifyBtn"
+            class="auth-button"
+            style="
+              width: 100%;
+              margin-top: 24px;
+              padding: 16px;
+              border-radius: 12px;
+            "
+          >
+            Verify Account
+          </button>
+        </form>
+
+        <p style="margin-top: 24px; font-size: 14px; color: #64748b">
+          Didn't get a code?
+          <a
+            id="resendBtn"
+            style="color: #10b981; font-weight: 600; cursor: pointer"
+            >Resend</a
+          >
+        </p>
+      </div>
+
+      <!-- Shown after successful verification — no dark overlay -->
+      <div id="successState" class="success-state">
         <div
           id="lottie-success-animation"
           style="width: 140px; height: 140px; margin: 0 auto"
@@ -176,7 +163,7 @@
           Continue to Sign In
         </button>
       </div>
-    </div>
+    </main>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.12.2/lottie.min.js"></script>
     <script src="verify.js"></script>

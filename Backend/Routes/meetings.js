@@ -3,13 +3,9 @@ const express = require("express");
 const router = express.Router();
 const pool = require("../db");
 const { authenticateToken } = require("./auth");
-const { Resend } = require("resend");
-require("dotenv").config();
 
-// ✅ Import shared push helper
+// ✅ Push only — Resend removed entirely from this file
 const { sendPushToRoomMembers } = require("../pushHelper");
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 // GET /api/meetings/me - Get meetings for the logged-in user
 router.get("/me", authenticateToken, async (req, res) => {
@@ -76,13 +72,9 @@ router.post("/:roomId", authenticateToken, async (req, res) => {
     // 3. Calculate End Time Server-Side
     const intervalHours = parseInt(room.meeting_interval) || 1;
     const [startH, startM] = start_time.split(":").map(Number);
-
     let endH = startH + intervalHours;
     if (endH >= 24) endH -= 24;
-
-    const end_time = `${String(endH).padStart(2, "0")}:${String(
-      startM,
-    ).padStart(2, "0")}`;
+    const end_time = `${String(endH).padStart(2, "0")}:${String(startM).padStart(2, "0")}`;
 
     // 4. Insert Meeting
     const result = await pool.query(
@@ -93,46 +85,7 @@ router.post("/:roomId", authenticateToken, async (req, res) => {
 
     const newMeeting = result.rows[0];
 
-    // 5. Get members for notifications
-    const memberResult = await pool.query(
-      `SELECT u.email, u.username
-       FROM room_members rm
-       JOIN users u ON rm.user_id = u.id
-       WHERE rm.room_id = $1`,
-      [roomId],
-    );
-
-    const members = memberResult.rows;
-
-    // 6. Send confirmation emails
-    const emailPromises = members.map((member) => {
-      return resend.emails
-        .send({
-          to: member.email,
-          from: process.env.EMAIL_USER,
-          subject: `Meeting Confirmed: "${room.name}"`,
-          text: `Hello ${member.username},\n\nA new meeting has been confirmed!\n\nRoom: ${room.name}\nDay: ${meeting_day}\nTime: ${start_time} - ${end_time}\nLocation: ${location}`,
-          html: `
-          <div style="font-family: Arial, sans-serif; color: #333;">
-            <h2 style="color: #10b981;">✅ Meeting Confirmed!</h2>
-            <p>Hello <strong>${member.username}</strong>,</p>
-            <p>A new meeting has been scheduled for <strong>${room.name}</strong>.</p>
-            <div style="background: #f0fdf4; padding: 15px; border-radius: 8px; border-left: 5px solid #10b981;">
-              <p><strong>📅 Day:</strong> ${meeting_day}</p>
-              <p><strong>⏰ Time:</strong> ${start_time} - ${end_time}</p>
-              <p><strong>📍 Location:</strong> ${location}</p>
-            </div>
-            <p>See you there!</p>
-          </div>
-        `,
-        })
-        .catch((e) => console.error(`Failed to email ${member.email}:`, e));
-    });
-
-    // Run emails in background
-    Promise.all(emailPromises);
-
-    // ✅ Send push notification to all room members (including creator)
+    // 5. ✅ Push notification only — no email
     await sendPushToRoomMembers(roomId, {
       title: "✅ Meeting Confirmed!",
       body: `"${room.name}" is set for ${meeting_day} at ${start_time} — ${location}`,
