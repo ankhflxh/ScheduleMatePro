@@ -317,6 +317,34 @@
       </div>
     </div>
 
+    <!-- Join Via Link Modal -->
+    <div id="joinLinkModal" class="modal-overlay">
+      <div class="modal-box" style="max-width: 360px">
+        <div class="modal-icon" style="background: #ecfdf5">
+          <span class="material-icons" style="color: #10b981">group_add</span>
+        </div>
+        <h3 id="joinLinkTitle">Join Room?</h3>
+        <p id="joinLinkBody" style="color: #64748b; margin: 0.5rem 0 1.5rem">
+          Would you like to join this room?
+        </p>
+        <div class="modal-actions">
+          <button
+            onclick="window.closeJoinLinkModal()"
+            class="modal-btn secondary"
+          >
+            No thanks
+          </button>
+          <button
+            onclick="window.confirmJoinViaLink()"
+            class="modal-btn primary"
+            style="background: #10b981"
+          >
+            Yes, Join!
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Share Room Modal -->
     <div id="shareModal" class="modal-overlay">
       <div class="modal-box" style="max-width: 340px">

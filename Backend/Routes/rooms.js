@@ -9,6 +9,24 @@ require("dotenv").config();
 // ✅ Import shared push helper
 const { sendPushToRoomMembers } = require("../pushHelper");
 
+// GET /api/rooms/lookup?code=XXXX — look up a room name by invite code (no auth needed)
+router.get("/lookup", async (req, res) => {
+  const { code } = req.query;
+  if (!code) return res.status(400).json({ error: "Code required" });
+  try {
+    const result = await pool.query("SELECT name FROM rooms WHERE code = $1", [
+      code.toUpperCase(),
+    ]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Room not found" });
+    }
+    res.json({ name: result.rows[0].name });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Lookup failed" });
+  }
+});
+
 // GET /api/rooms/me
 router.get("/me", authenticateToken, async (req, res) => {
   const userId = req.user.id;

@@ -68,7 +68,8 @@ if (!token) {
 
       loadRooms(userId);
       loadMeetings(userId);
-      checkSubscriptionStatus(); // Check if user is already subscribed to hide banner
+      checkSubscriptionStatus();
+      checkForJoinCode(); // Auto-detect join code from shared link
     })
     .catch((err) => {
       console.error("Dashboard Load Error:", err);
@@ -222,6 +223,75 @@ if (joinForm) {
       .catch((err) => showModal("Error", err.message));
   });
 }
+
+// --- JOIN VIA LINK ---
+let pendingJoinCode = null;
+let pendingRoomName = null;
+
+async function checkForJoinCode() {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get("joinCode");
+  if (!code) return;
+
+  // Clean the URL so refreshing doesn't re-trigger
+  window.history.replaceState({}, document.title, window.location.pathname);
+
+  // Look up the room name from the code so the modal feels personal
+  try {
+    const res = await fetch(`/api/rooms/lookup?code=${code}`, {
+      headers: { "X-Auth-Token": token },
+    });
+    const data = await res.json();
+    if (data.error || !data.name) {
+      showModal("Invalid Code", "This room code doesn't exist or has expired.");
+      return;
+    }
+    pendingJoinCode = code;
+    pendingRoomName = data.name;
+    document.getElementById("joinLinkTitle").textContent =
+      `Join "${data.name}"?`;
+    document.getElementById("joinLinkBody").textContent =
+      `You've been invited to join the room "${data.name}". Would you like to join?`;
+    document.getElementById("joinLinkModal").style.display = "grid";
+  } catch (err) {
+    showModal("Error", "Could not look up that room. Please try again.");
+  }
+}
+
+window.closeJoinLinkModal = () => {
+  document.getElementById("joinLinkModal").style.display = "none";
+  pendingJoinCode = null;
+  pendingRoomName = null;
+};
+
+window.confirmJoinViaLink = async () => {
+  if (!pendingJoinCode) return;
+  try {
+    const res = await fetch("/api/rooms/join", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Auth-Token": token },
+      body: JSON.stringify({ inviteCode: pendingJoinCode }),
+    });
+    const data = await res.json();
+    window.closeJoinLinkModal();
+    if (data.error) {
+      // "Already in room" is still a success state
+      if (data.error.toLowerCase().includes("already")) {
+        showModal(
+          "Already a Member",
+          `You're already in "${pendingRoomName || "this room"}"!`,
+        );
+      } else {
+        showModal("Error", data.error);
+      }
+    } else {
+      showModal("Welcome! 🎉", `You have now joined "${pendingRoomName}"!`);
+      loadRooms(window.SLOTIFY_USER_ID);
+    }
+  } catch (err) {
+    showModal("Error", "Something went wrong. Please try again.");
+  }
+};
 
 // --- SHARE MODAL ---
 let shareTargetCode = "";
