@@ -36,6 +36,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // 2. Handle "Verified" URL param
   const params = new URLSearchParams(window.location.search);
+
+  // If someone arrived here via a shared room link, save the code so it
+  // survives the login redirect back to the dashboard
+  const joinCode = params.get("joinCode");
+  if (joinCode) {
+    sessionStorage.setItem("pendingJoinCode", joinCode);
+  }
+
   if (params.get("verified") === "1") {
     const verifyModal = document.getElementById("verificationSuccessModal");
     if (verifyModal) {
@@ -109,8 +117,13 @@ document.addEventListener("DOMContentLoaded", () => {
           localStorage.setItem("sm_token", data.token);
           sessionStorage.setItem("justLoggedIn", "1");
 
-          // Redirect to Dashboard
-          window.location.href = "/Dashboard/dashboard.html";
+          // If user came via a shared room link, carry the code to the dashboard
+          const pendingCode = sessionStorage.getItem("pendingJoinCode");
+          if (pendingCode) {
+            window.location.href = `/Dashboard/dashboard.html?joinCode=${pendingCode}`;
+          } else {
+            window.location.href = "/Dashboard/dashboard.html";
+          }
         } else {
           throw new Error("Server response missing token.");
         }

@@ -230,11 +230,14 @@ let pendingRoomName = null;
 
 async function checkForJoinCode() {
   const params = new URLSearchParams(window.location.search);
-  const code = params.get("joinCode");
+  // Check URL param first, then fall back to sessionStorage (set by login.js)
+  const code =
+    params.get("joinCode") || sessionStorage.getItem("pendingJoinCode");
   if (!code) return;
 
-  // Clean the URL so refreshing doesn't re-trigger
+  // Clear both so refreshing doesn't re-trigger
   window.history.replaceState({}, document.title, window.location.pathname);
+  sessionStorage.removeItem("pendingJoinCode");
 
   // Look up the room name from the code so the modal feels personal
   try {
