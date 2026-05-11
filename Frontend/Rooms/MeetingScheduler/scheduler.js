@@ -148,6 +148,7 @@ Promise.all([
   .then(([user, room]) => {
     currentUserId = String(user.user_id);
     roomCreatorId = String(room.creator_id);
+    if (currentUserId === roomCreatorId) suggestBtn.style.display = "block";
     fetchAvailabilities();
   })
   .catch((err) => {
@@ -264,7 +265,8 @@ function suggestMeeting(entries) {
   }
 }
 
-if (String(currentRoom?.creator_id) === String(loggedInUserId)) {
+// ✅ REPLACE with this — uses the variables already in your file
+if (String(currentUserId) === String(roomCreatorId)) {
   suggestBtn.style.display = "block";
 }
 
@@ -276,7 +278,10 @@ suggestBtn.addEventListener("click", async () => {
   try {
     const res = await fetch(`/api/suggest/${roomId}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "X-Auth-Token": token,
+      },
       credentials: "include",
     });
 
@@ -314,15 +319,17 @@ acceptBtn.addEventListener("click", () => {
   if (!currentSuggestion) return;
   const s = currentSuggestion;
 
-  // Auto-fill your existing form fields (adjust IDs to match yours)
-  const daySelect = document.getElementById("meetingDay");
-  const timeInput = document.getElementById("startTime");
-  const locationInput = document.getElementById("location");
+  // Override the suggested time and location with AI suggestion
+  mostCommonTime = `${s.suggested_day} ${s.suggested_start_time}`;
+  mostCommonPlace = s.preferred_location || mostCommonPlace;
 
-  if (daySelect) daySelect.value = s.suggested_day;
-  if (timeInput) timeInput.value = s.suggested_start_time;
-  if (locationInput && s.preferred_location)
-    locationInput.value = s.preferred_location;
+  // Update the UI display
+  if (suggestedTimeEl) suggestedTimeEl.textContent = mostCommonTime;
+  if (suggestedLocationEl) suggestedLocationEl.textContent = mostCommonPlace;
+
+  // Show the confirm button
+  if (creatorControls) creatorControls.style.display = "block";
+  if (confirmBtn) confirmBtn.onclick = showConfirmModal;
 
   suggestionCard.style.display = "none";
 });
