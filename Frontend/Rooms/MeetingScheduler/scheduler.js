@@ -18,6 +18,12 @@ const confirmCancelBtn = document.getElementById("confirmCancelBtn");
 const confirmedModal = document.getElementById("confirmedModal");
 const confirmedCloseBtn = document.getElementById("confirmedCloseBtn");
 
+const suggestBtn = document.getElementById("suggestBtn");
+const suggestionCard = document.getElementById("suggestionCard");
+const acceptBtn = document.getElementById("acceptSuggestion");
+const dismissBtn = document.getElementById("dismissSuggestion");
+let currentSuggestion = null;
+
 const roomId = new URLSearchParams(window.location.search).get("roomId");
 if (!roomId) {
   entriesContainer.innerHTML = "<p style='color:red;'>Room ID missing.</p>";
@@ -180,7 +186,7 @@ function renderEntries(entries) {
   entriesContainer.innerHTML = "";
 
   const userEntry = entries.find(
-    (entry) => String(entry.user_id) === currentUserId
+    (entry) => String(entry.user_id) === currentUserId,
   );
 
   if (editBtn) {
@@ -257,3 +263,71 @@ function suggestMeeting(entries) {
     if (suggestedLocationEl) suggestedLocationEl.textContent = "No data yet";
   }
 }
+
+if (String(currentRoom?.creator_id) === String(loggedInUserId)) {
+  suggestBtn.style.display = "block";
+}
+
+suggestBtn.addEventListener("click", async () => {
+  suggestBtn.disabled = true;
+  suggestBtn.textContent = "✨ Thinking...";
+  suggestionCard.style.display = "none";
+
+  try {
+    const res = await fetch(`/api/suggest/${roomId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      alert(data.error || "Could not generate suggestion.");
+      return;
+    }
+
+    currentSuggestion = data.suggestion;
+    const s = currentSuggestion;
+
+    document.getElementById("suggestionBody").textContent =
+      `${s.suggested_day} · ${s.suggested_start_time} – ${s.suggested_end_time}` +
+      (s.preferred_location ? ` · ${s.preferred_location}` : "");
+
+    document.getElementById("suggestionCoverage").textContent =
+      `${s.members_covered}/${s.total_members} members`;
+
+    document.getElementById("suggestionReasoning").textContent = s.reasoning;
+
+    suggestionCard.style.display = "block";
+  } catch (err) {
+    alert("Something went wrong. Please try again.");
+    console.error(err);
+  } finally {
+    suggestBtn.disabled = false;
+    suggestBtn.textContent = "✨ Suggest Best Time with AI";
+  }
+});
+
+// Auto-fill the form when creator accepts suggestion
+acceptBtn.addEventListener("click", () => {
+  if (!currentSuggestion) return;
+  const s = currentSuggestion;
+
+  // Auto-fill your existing form fields (adjust IDs to match yours)
+  const daySelect = document.getElementById("meetingDay");
+  const timeInput = document.getElementById("startTime");
+  const locationInput = document.getElementById("location");
+
+  if (daySelect) daySelect.value = s.suggested_day;
+  if (timeInput) timeInput.value = s.suggested_start_time;
+  if (locationInput && s.preferred_location)
+    locationInput.value = s.preferred_location;
+
+  suggestionCard.style.display = "none";
+});
+
+dismissBtn.addEventListener("click", () => {
+  suggestionCard.style.display = "none";
+  currentSuggestion = null;
+});

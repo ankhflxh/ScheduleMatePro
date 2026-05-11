@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -47,7 +47,10 @@
     <div class="scheduler-container">
       <header class="page-header">
         <button
-          onclick="window.location.href='../EnterRooms/enterrooms.html' + window.location.search"
+          onclick="
+            window.location.href =
+              '../EnterRooms/enterrooms.html' + window.location.search
+          "
           class="back-pill"
         >
           <span class="material-icons">arrow_back</span> Back
@@ -148,6 +151,34 @@
         </button>
       </div>
     </div>
+
+    <!-- AI Suggestion Card -->
+    <div id="suggestionCard" style="display: none" class="suggestion-card">
+      <div class="suggestion-header">
+        <span>✨ AI Suggested Time</span>
+        <span id="suggestionCoverage" class="coverage-badge"></span>
+      </div>
+      <div id="suggestionBody" class="suggestion-body"></div>
+      <div id="suggestionReasoning" class="suggestion-reasoning"></div>
+      <div class="suggestion-actions">
+        <button type="button" id="acceptSuggestion" class="btn-accept">
+          Accept & Auto-fill
+        </button>
+        <button type="button" id="dismissSuggestion" class="btn-dismiss">
+          Dismiss
+        </button>
+      </div>
+    </div>
+
+    <!-- Suggest Button (only visible to creator) -->
+    <button
+      type="button"
+      id="suggestBtn"
+      class="btn-suggest"
+      style="display: none"
+    >
+      ✨ Suggest Best Time with AI
+    </button>
 
     <script src="scheduler.js"></script>
   </body>

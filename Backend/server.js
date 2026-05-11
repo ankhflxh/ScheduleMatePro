@@ -6,6 +6,7 @@ const cookieParser = require("cookie-parser");
 const cron = require("node-cron");
 const pool = require("./db");
 const { Resend } = require("resend");
+const suggestRoutes = require("./Routes/suggest");
 require("dotenv").config();
 
 const { router: authRoutes } = require("./Routes/auth");
@@ -41,6 +42,7 @@ app.use("/api/availability", availabilityRoutes);
 app.use("/api/meetings", meetingRoutes);
 app.use("/api/notes", notesRoutes);
 app.use("/api/users", authRoutes);
+app.use("/api/suggest", suggestRoutes);
 
 // Root Redirect
 app.get("/", (req, res) => {
