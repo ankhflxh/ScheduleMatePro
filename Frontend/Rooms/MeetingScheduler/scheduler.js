@@ -265,11 +265,6 @@ function suggestMeeting(entries) {
   }
 }
 
-// ✅ REPLACE with this — uses the variables already in your file
-if (String(currentUserId) === String(roomCreatorId)) {
-  suggestBtn.style.display = "block";
-}
-
 suggestBtn.addEventListener("click", async () => {
   suggestBtn.disabled = true;
   suggestBtn.textContent = "✨ Thinking...";

@@ -108,7 +108,7 @@ Respond ONLY with a valid JSON object in this exact format, no markdown, no extr
 
     // 7. Call Gemini API
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
     const result = await model.generateContent(prompt);
     const rawText = result.response.text().trim();
@@ -135,7 +135,7 @@ Respond ONLY with a valid JSON object in this exact format, no markdown, no extr
       suggestion,
     });
   } catch (err) {
-    console.error("Suggest Route Error:", err);
+    console.error("Suggest Route Error:", err.message, err.status);
     res.status(500).json({ error: "Failed to generate suggestion." });
   }
 });
