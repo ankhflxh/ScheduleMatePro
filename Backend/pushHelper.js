@@ -9,12 +9,6 @@ webpush.setVapidDetails(
   process.env.VAPID_PRIVATE_KEY,
 );
 
-/**
- * Send a push notification to all members of a room.
- * @param {number|string} roomId - The room ID
- * @param {{ title: string, body: string, url?: string }} payload - Notification content
- * @param {number|string|null} excludeUserId - Optional user ID to exclude (e.g. the sender)
- */
 async function sendPushToRoomMembers(roomId, payload, excludeUserId = null) {
   try {
     let query, params;
@@ -43,8 +37,14 @@ async function sendPushToRoomMembers(roomId, payload, excludeUserId = null) {
     const result = await pool.query(query, params);
 
     const pushPromises = result.rows.map(({ push_subscription }) => {
+      // Always parse to object — DB may store it as a JSON string
+      const sub =
+        typeof push_subscription === "string"
+          ? JSON.parse(push_subscription)
+          : push_subscription;
+
       return webpush
-        .sendNotification(push_subscription, JSON.stringify(payload))
+        .sendNotification(sub, JSON.stringify(payload))
         .catch((err) => {
           console.error("❌ Push notification failed:", err.message);
         });
