@@ -70,14 +70,29 @@
           <div class="suggestions-grid">
             <div class="suggestion-card" id="time-card">
               <span class="label">Best Time</span>
-              <p id="suggested-time-text">Calculating...</p>
+              <p id="suggested-time-text" class="insights-placeholder">—</p>
             </div>
 
             <div class="suggestion-card" id="location-card">
               <span class="label">Best Location</span>
-              <p id="suggested-location-text">Calculating...</p>
+              <p id="suggested-location-text" class="insights-placeholder">—</p>
             </div>
           </div>
+
+          <div id="insights-hint" class="insights-hint">
+            <span class="material-icons">auto_awesome</span>
+            Accept an AI suggestion to populate insights
+          </div>
+
+          <button
+            type="button"
+            id="suggestBtn"
+            class="btn-suggest-inline"
+            style="display: none"
+          >
+            <span class="material-icons">auto_awesome</span>
+            Suggest with AI
+          </button>
 
           <div id="creator-controls" style="display: none">
             <button id="confirmMeetingBtn" class="confirm-fab">
@@ -153,7 +168,7 @@
     </div>
 
     <!-- AI Suggestion Card -->
-    <div id="suggestionCard" style="display: none" class="suggestion-card">
+    <div id="suggestionCard" style="display: none" class="ai-suggestion-card">
       <div class="suggestion-header">
         <span>✨ AI Suggested Time</span>
         <span id="suggestionCoverage" class="coverage-badge"></span>
@@ -164,21 +179,14 @@
         <button type="button" id="acceptSuggestion" class="btn-accept">
           Accept & Auto-fill
         </button>
+        <button type="button" id="shareSuggestion" class="btn-share-suggestion">
+          <span class="material-icons">share</span> Share with Room
+        </button>
         <button type="button" id="dismissSuggestion" class="btn-dismiss">
           Dismiss
         </button>
       </div>
     </div>
-
-    <!-- Suggest Button (only visible to creator) -->
-    <button
-      type="button"
-      id="suggestBtn"
-      class="btn-suggest"
-      style="display: none"
-    >
-      ✨ Suggest Best Time with AI
-    </button>
 
     <script src="scheduler.js"></script>
   </body>

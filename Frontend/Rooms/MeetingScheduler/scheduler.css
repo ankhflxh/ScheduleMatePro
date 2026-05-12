@@ -348,32 +348,75 @@ body {
   }
 }
 
-.btn-suggest {
+/* Insights placeholder state */
+.insights-placeholder {
+  color: #cbd5e1 !important;
+  font-weight: 400 !important;
+  font-size: 1.4rem !important;
+}
+
+.insights-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: #94a3b8;
+  margin-bottom: 1rem;
+  padding: 8px 10px;
+  background: rgba(99, 102, 241, 0.06);
+  border-radius: 10px;
+  border: 1px dashed rgba(99, 102, 241, 0.2);
+}
+.insights-hint .material-icons {
+  font-size: 15px;
+  color: var(--primary);
+}
+.insights-hint.hidden {
+  display: none;
+}
+
+/* Inline AI suggest button — lives inside the insights panel */
+.btn-suggest-inline {
   width: 100%;
-  margin-top: 12px;
-  padding: 12px;
+  margin-bottom: 12px;
+  padding: 10px 14px;
   background: linear-gradient(135deg, #667eea, #764ba2);
   color: white;
   border: none;
-  border-radius: 8px;
-  font-size: 15px;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
+  font-family: "Outfit", sans-serif;
 }
-.btn-suggest:hover {
+.btn-suggest-inline .material-icons {
+  font-size: 17px;
+}
+.btn-suggest-inline:hover {
   opacity: 0.9;
+  transform: translateY(-1px);
 }
-.btn-suggest:disabled {
+.btn-suggest-inline:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
 }
 
-.suggestion-card {
+/* AI Suggestion result card */
+.ai-suggestion-card {
   margin-top: 16px;
   padding: 16px;
-  border-radius: 10px;
+  border-radius: 16px;
   border: 1.5px solid #667eea;
   background: #f7f5ff;
+  display: none;
 }
 .suggestion-header {
   display: flex;
@@ -405,6 +448,7 @@ body {
 .suggestion-actions {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
 }
 .btn-accept {
   flex: 1;
@@ -412,13 +456,35 @@ body {
   background: #667eea;
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
+  font-weight: 600;
+  font-family: "Outfit", sans-serif;
+}
+.btn-share-suggestion {
+  padding: 8px 12px;
+  background: transparent;
+  border: 1px solid #667eea;
+  color: #667eea;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: "Outfit", sans-serif;
+}
+.btn-share-suggestion .material-icons {
+  font-size: 15px;
+}
+.btn-share-suggestion:hover {
+  background: rgba(102, 126, 234, 0.08);
 }
 .btn-dismiss {
-  padding: 8px 16px;
+  padding: 8px 14px;
   background: transparent;
   border: 1px solid #ccc;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
+  font-family: "Outfit", sans-serif;
 }
