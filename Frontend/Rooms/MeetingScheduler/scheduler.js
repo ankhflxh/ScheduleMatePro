@@ -5,7 +5,6 @@ const suggestedTimeEl = document.querySelector("#suggested-time-text");
 const suggestedLocationEl = document.querySelector("#suggested-location-text");
 
 const creatorControls = document.getElementById("creator-controls");
-
 const editBtn = document.getElementById("editAvailabilityBtn");
 const confirmBtn = document.getElementById("confirmMeetingBtn");
 
@@ -23,7 +22,12 @@ const suggestionCard = document.getElementById("suggestionCard");
 const acceptBtn = document.getElementById("acceptSuggestion");
 const dismissBtn = document.getElementById("dismissSuggestion");
 const shareSuggestionBtn = document.getElementById("shareSuggestion");
+
 let currentSuggestion = null;
+let currentUserId = null;
+let roomCreatorId = null;
+let mostCommonTime = "";
+let mostCommonPlace = "";
 
 const roomId = new URLSearchParams(window.location.search).get("roomId");
 if (!roomId) {
@@ -31,136 +35,89 @@ if (!roomId) {
   throw new Error("Missing roomId");
 }
 
-let currentUserId = null;
-let roomCreatorId = null;
-let mostCommonTime = "";
-let mostCommonPlace = "";
 const token = localStorage.getItem("sm_token");
-
+const GET_HEADERS = { headers: { "X-Auth-Token": token } };
 const API_HEADERS = {
   credentials: "include",
-  headers: {
-    "Content-Type": "application/json",
-    "X-Auth-Token": token,
-  },
+  headers: { "Content-Type": "application/json", "X-Auth-Token": token },
 };
-
-// ----------------------------------------------------
-// CREATOR UI TOGGLE
-// ----------------------------------------------------
-function showConfirmIfEligible(entries) {
-  const hasSuggestedTime = mostCommonTime && mostCommonPlace;
-  const isCreator = String(currentUserId) === String(roomCreatorId);
-
-  if (creatorControls) {
-    if (isCreator && entries.length > 0 && hasSuggestedTime) {
-      creatorControls.style.display = "block";
-      if (confirmBtn) confirmBtn.onclick = showConfirmModal;
-    } else {
-      creatorControls.style.display = "none";
-    }
-  }
-}
-
-// ----------------------------------------------------
-// MODAL HANDLERS
-// ----------------------------------------------------
-function showConfirmModal() {
-  const [day, time] = mostCommonTime.split(" ");
-  if (confirmModal && confirmPromptText && confirmLocationInput) {
-    confirmPromptText.textContent = `Confirm meeting at ${day} ${time}?`;
-    confirmLocationInput.value = mostCommonPlace;
-    confirmModal.style.display = "flex";
-  }
-}
-
-if (confirmCancelBtn) {
-  confirmCancelBtn.onclick = () => {
-    if (confirmModal) confirmModal.style.display = "none";
-  };
-}
-
-if (confirmOkBtn) {
-  confirmOkBtn.onclick = () => {
-    const location = confirmLocationInput.value.trim();
-    if (!location) {
-      alert("Location cannot be empty.");
-      return;
-    }
-
-    const originalText = confirmOkBtn.textContent;
-    confirmOkBtn.textContent = "Confirming...";
-    confirmOkBtn.disabled = true;
-
-    const [meeting_day, start_time] = mostCommonTime.split(" ");
-
-    fetch(`/api/meetings/${roomId}`, {
-      method: "POST",
-      ...API_HEADERS,
-      body: JSON.stringify({ meeting_day, start_time, location }),
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to confirm meeting.");
-        return res.json();
-      })
-      .then(() => {
-        if (confirmModal) confirmModal.style.display = "none";
-        if (confirmedModal) confirmedModal.style.display = "flex";
-      })
-      .catch((err) => {
-        console.error(err);
-        alert("Failed to confirm meeting. Check console.");
-      })
-      .finally(() => {
-        confirmOkBtn.textContent = originalText;
-        confirmOkBtn.disabled = false;
-      });
-  };
-}
-
-if (confirmedCloseBtn) {
-  confirmedCloseBtn.onclick = () => {
-    if (confirmedModal) confirmedModal.style.display = "none";
-    window.location.reload();
-  };
-}
 
 // ----------------------------------------------------
 // INITIALIZATION
 // ----------------------------------------------------
-const GET_HEADERS = { headers: { "X-Auth-Token": token } };
-
 Promise.all([
-  fetch("/api/users/me", GET_HEADERS).then((res) => res.json()),
-  fetch(`/api/rooms/${roomId}`, GET_HEADERS).then((res) => res.json()),
+  fetch("/api/users/me", GET_HEADERS).then((r) => r.json()),
+  fetch(`/api/rooms/${roomId}`, GET_HEADERS).then((r) => r.json()),
 ])
   .then(([user, room]) => {
     currentUserId = String(user.user_id);
     roomCreatorId = String(room.creator_id);
-    if (currentUserId === roomCreatorId) suggestBtn.style.display = "flex";
+
+    if (currentUserId === roomCreatorId) {
+      suggestBtn.style.display = "flex";
+    }
+
     fetchAvailabilities();
+    loadSharedSuggestion(); // Always check if creator shared a suggestion
   })
   .catch((err) => {
     console.error("Initialization error:", err);
     entriesContainer.innerHTML = "<p>Please log in to view this room.</p>";
   });
 
+// ----------------------------------------------------
+// LOAD SHARED SUGGESTION FROM DB
+// Runs on page load for all members — shows the card if
+// the creator has shared a suggestion
+// ----------------------------------------------------
+async function loadSharedSuggestion() {
+  try {
+    const res = await fetch(`/api/suggest/${roomId}/shared`, GET_HEADERS);
+    const data = await res.json();
+
+    if (!data.suggestion) return; // Nothing shared yet
+
+    currentSuggestion = data.suggestion;
+    displaySuggestionCard(data.suggestion);
+  } catch (err) {
+    console.error("Could not load shared suggestion:", err);
+  }
+}
+
+// ----------------------------------------------------
+// DISPLAY SUGGESTION CARD
+// ----------------------------------------------------
+function displaySuggestionCard(s) {
+  document.getElementById("suggestionBody").textContent =
+    `${s.suggested_day} · ${s.suggested_start_time} – ${s.suggested_end_time}` +
+    (s.preferred_location ? ` · ${s.preferred_location}` : "");
+
+  document.getElementById("suggestionCoverage").textContent =
+    `${s.members_covered}/${s.total_members} members`;
+
+  document.getElementById("suggestionReasoning").textContent = s.reasoning;
+
+  // Only show share button to the creator
+  if (shareSuggestionBtn) {
+    shareSuggestionBtn.style.display =
+      currentUserId === roomCreatorId ? "flex" : "none";
+  }
+
+  suggestionCard.style.display = "block";
+}
+
+// ----------------------------------------------------
+// FETCH AVAILABILITIES
+// ----------------------------------------------------
 function fetchAvailabilities() {
   fetch(`/api/availability/${roomId}`, GET_HEADERS)
-    .then((res) => res.json())
+    .then((r) => r.json())
     .then((entries) => {
       renderEntries(entries);
       suggestMeeting(entries);
       showConfirmIfEligible(entries);
     })
     .catch((err) => console.error("Error fetching entries:", err));
-
-  fetch(`/api/meetings/confirmed?roomId=${roomId}`, GET_HEADERS)
-    .then((res) => {
-      if (!res.ok) throw new Error("No confirmed meeting");
-      return res.json();
-    })
-    .catch(() => {});
 }
 
 // ----------------------------------------------------
@@ -201,8 +158,7 @@ function renderEntries(entries) {
 }
 
 // ----------------------------------------------------
-// SUGGEST MEETING — computes silently, does NOT update UI
-// Values only appear in insights after creator clicks Accept
+// SUGGEST MEETING — silent calculation only
 // ----------------------------------------------------
 function suggestMeeting(entries) {
   const countMap = {};
@@ -225,7 +181,9 @@ function suggestMeeting(entries) {
   if (preferredLocation) mostCommonPlace = preferredLocation;
 }
 
-// Called only after "Accept & Auto-fill" — reveals the insight values
+// ----------------------------------------------------
+// REVEAL INSIGHTS — only after Accept is clicked
+// ----------------------------------------------------
 function revealInsights(time, location) {
   if (suggestedTimeEl) {
     suggestedTimeEl.textContent = time;
@@ -240,7 +198,87 @@ function revealInsights(time, location) {
 }
 
 // ----------------------------------------------------
-// AI SUGGEST BUTTON
+// CREATOR UI
+// ----------------------------------------------------
+function showConfirmIfEligible(entries) {
+  const isCreator = String(currentUserId) === String(roomCreatorId);
+  if (creatorControls) {
+    if (isCreator && entries.length > 0 && mostCommonTime && mostCommonPlace) {
+      creatorControls.style.display = "block";
+      if (confirmBtn) confirmBtn.onclick = showConfirmModal;
+    } else {
+      creatorControls.style.display = "none";
+    }
+  }
+}
+
+function showConfirmModal() {
+  const [day, time] = mostCommonTime.split(" ");
+  if (confirmModal && confirmPromptText && confirmLocationInput) {
+    confirmPromptText.textContent = `Confirm meeting at ${day} ${time}?`;
+    confirmLocationInput.value = mostCommonPlace;
+    confirmModal.style.display = "flex";
+  }
+}
+
+if (confirmCancelBtn) {
+  confirmCancelBtn.onclick = () => {
+    if (confirmModal) confirmModal.style.display = "none";
+  };
+}
+
+if (confirmOkBtn) {
+  confirmOkBtn.onclick = () => {
+    const location = confirmLocationInput.value.trim();
+    if (!location) {
+      alert("Location cannot be empty.");
+      return;
+    }
+
+    const originalText = confirmOkBtn.textContent;
+    confirmOkBtn.textContent = "Confirming...";
+    confirmOkBtn.disabled = true;
+
+    const [meeting_day, start_time] = mostCommonTime.split(" ");
+
+    fetch(`/api/meetings/${roomId}`, {
+      method: "POST",
+      ...API_HEADERS,
+      body: JSON.stringify({ meeting_day, start_time, location }),
+    })
+      .then((r) => {
+        if (!r.ok) throw new Error("Failed");
+        return r.json();
+      })
+      .then(() => {
+        if (confirmModal) confirmModal.style.display = "none";
+        if (confirmedModal) confirmedModal.style.display = "flex";
+        // Clear the shared suggestion now that the meeting is confirmed
+        fetch(`/api/suggest/${roomId}/shared`, {
+          method: "DELETE",
+          headers: { "X-Auth-Token": token },
+        }).catch(() => {});
+      })
+      .catch((err) => {
+        console.error(err);
+        alert("Failed to confirm meeting.");
+      })
+      .finally(() => {
+        confirmOkBtn.textContent = originalText;
+        confirmOkBtn.disabled = false;
+      });
+  };
+}
+
+if (confirmedCloseBtn) {
+  confirmedCloseBtn.onclick = () => {
+    if (confirmedModal) confirmedModal.style.display = "none";
+    window.location.reload();
+  };
+}
+
+// ----------------------------------------------------
+// AI SUGGEST BUTTON (creator only)
 // ----------------------------------------------------
 suggestBtn.addEventListener("click", async () => {
   suggestBtn.disabled = true;
@@ -262,16 +300,7 @@ suggestBtn.addEventListener("click", async () => {
     }
 
     currentSuggestion = data.suggestion;
-    const s = currentSuggestion;
-
-    document.getElementById("suggestionBody").textContent =
-      `${s.suggested_day} · ${s.suggested_start_time} – ${s.suggested_end_time}` +
-      (s.preferred_location ? ` · ${s.preferred_location}` : "");
-    document.getElementById("suggestionCoverage").textContent =
-      `${s.members_covered}/${s.total_members} members`;
-    document.getElementById("suggestionReasoning").textContent = s.reasoning;
-
-    suggestionCard.style.display = "block";
+    displaySuggestionCard(data.suggestion);
   } catch (err) {
     alert("Something went wrong. Please try again.");
     console.error(err);
@@ -283,7 +312,7 @@ suggestBtn.addEventListener("click", async () => {
 });
 
 // ----------------------------------------------------
-// ACCEPT — reveals insights panel and enables Finalize
+// ACCEPT — reveals insights, enables Finalize
 // ----------------------------------------------------
 acceptBtn.addEventListener("click", () => {
   if (!currentSuggestion) return;
@@ -301,11 +330,10 @@ acceptBtn.addEventListener("click", () => {
 });
 
 // ----------------------------------------------------
-// SHARE — sends AI suggestion reasoning to room via push
+// SHARE — saves to DB and sends push to members
 // ----------------------------------------------------
 shareSuggestionBtn.addEventListener("click", async () => {
   if (!currentSuggestion) return;
-  const s = currentSuggestion;
 
   const originalHTML = shareSuggestionBtn.innerHTML;
   shareSuggestionBtn.disabled = true;
@@ -316,7 +344,7 @@ shareSuggestionBtn.addEventListener("click", async () => {
     const res = await fetch(`/api/suggest/${roomId}/share`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-Auth-Token": token },
-      body: JSON.stringify({ suggestion: s }),
+      body: JSON.stringify({ suggestion: currentSuggestion }),
     });
 
     const data = await res.json();

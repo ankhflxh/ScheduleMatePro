@@ -10,13 +10,11 @@ const RATE_LIMIT_MS = 60 * 1000;
 
 // ---------------------------------------------------------------
 // POST /api/suggest/:roomId
-// Only the room creator can request a suggestion
 // ---------------------------------------------------------------
 router.post("/:roomId", authenticateToken, async (req, res) => {
   const { roomId } = req.params;
   const userId = req.user.id;
 
-  // 1. Rate limit check
   const lastTime = lastRequestTime.get(roomId);
   if (lastTime && Date.now() - lastTime < RATE_LIMIT_MS) {
     const secondsLeft = Math.ceil(
@@ -28,25 +26,21 @@ router.post("/:roomId", authenticateToken, async (req, res) => {
   }
 
   try {
-    // 2. Verify user is the room creator
     const roomRes = await pool.query(
       "SELECT creator_id, name, meeting_interval FROM rooms WHERE id = $1",
       [roomId],
     );
 
-    if (roomRes.rows.length === 0) {
+    if (roomRes.rows.length === 0)
       return res.status(404).json({ error: "Room not found." });
-    }
 
     const room = roomRes.rows[0];
 
-    if (String(room.creator_id) !== String(userId)) {
+    if (String(room.creator_id) !== String(userId))
       return res
         .status(403)
         .json({ error: "Only the room creator can request a suggestion." });
-    }
 
-    // 3. Fetch all members' availability for this room
     const availRes = await pool.query(
       `SELECT a.day, a.start_time, a.end_time, a.location, u.username
        FROM availability a
@@ -55,14 +49,12 @@ router.post("/:roomId", authenticateToken, async (req, res) => {
       [roomId],
     );
 
-    if (availRes.rows.length === 0) {
+    if (availRes.rows.length === 0)
       return res.status(400).json({
         error:
           "No availability has been submitted yet. Ask your members to submit their availability first.",
       });
-    }
 
-    // 4. Get total room member count
     const memberCountRes = await pool.query(
       "SELECT COUNT(*) FROM room_members WHERE room_id = $1",
       [roomId],
@@ -70,7 +62,6 @@ router.post("/:roomId", authenticateToken, async (req, res) => {
     const totalMembers = parseInt(memberCountRes.rows[0].count);
     const submittedCount = availRes.rows.length;
 
-    // 5. Format availability for the prompt
     const availabilityText = availRes.rows
       .map(
         (a) =>
@@ -78,7 +69,6 @@ router.post("/:roomId", authenticateToken, async (req, res) => {
       )
       .join("\n");
 
-    // 6. Build the prompt
     const prompt = `You are a smart scheduling assistant for a university student group called "${room.name}".
 
 The meeting duration is ${room.meeting_interval} hour(s).
@@ -102,9 +92,7 @@ Respond ONLY with a valid JSON object in this exact format, no markdown, no extr
   "reasoning": "Your plain English explanation here."
 }`;
 
-    // 7. Call Claude API
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
     const message = await client.messages.create({
       model: "claude-sonnet-4-5",
       max_tokens: 1024,
@@ -113,7 +101,6 @@ Respond ONLY with a valid JSON object in this exact format, no markdown, no extr
 
     const rawText = message.content[0].text.trim();
 
-    // 8. Parse JSON response safely
     let suggestion;
     try {
       const cleaned = rawText.replace(/```json|```/g, "").trim();
@@ -125,10 +112,7 @@ Respond ONLY with a valid JSON object in this exact format, no markdown, no extr
       });
     }
 
-    // 9. Update rate limit timestamp
     lastRequestTime.set(roomId, Date.now());
-
-    // 10. Return suggestion to frontend
     res.json({ success: true, suggestion });
   } catch (err) {
     console.error("Suggest Route Error:", err.message, err);
@@ -137,17 +121,49 @@ Respond ONLY with a valid JSON object in this exact format, no markdown, no extr
 });
 
 // ---------------------------------------------------------------
+// GET /api/suggest/:roomId/shared
+// Any room member can fetch the currently shared suggestion
+// ---------------------------------------------------------------
+router.get("/:roomId/shared", authenticateToken, async (req, res) => {
+  const { roomId } = req.params;
+
+  try {
+    // Verify user is a member of this room
+    const memberCheck = await pool.query(
+      "SELECT 1 FROM room_members WHERE room_id = $1 AND user_id = $2",
+      [roomId, req.user.id],
+    );
+
+    if (memberCheck.rows.length === 0)
+      return res.status(403).json({ error: "Not a member of this room." });
+
+    const result = await pool.query(
+      "SELECT last_ai_suggestion FROM rooms WHERE id = $1",
+      [roomId],
+    );
+
+    const suggestion = result.rows[0]?.last_ai_suggestion;
+
+    if (!suggestion) return res.json({ suggestion: null });
+
+    res.json({ suggestion });
+  } catch (err) {
+    console.error("Fetch Shared Suggestion Error:", err.message, err);
+    res.status(500).json({ error: "Failed to fetch suggestion." });
+  }
+});
+
+// ---------------------------------------------------------------
 // POST /api/suggest/:roomId/share
-// Creator shares the AI suggestion with all room members via push
+// Saves suggestion to DB and pushes notification to members
 // ---------------------------------------------------------------
 router.post("/:roomId/share", authenticateToken, async (req, res) => {
   const { roomId } = req.params;
   const userId = req.user.id;
   const { suggestion } = req.body;
 
-  if (!suggestion) {
+  if (!suggestion)
     return res.status(400).json({ error: "No suggestion provided." });
-  }
 
   try {
     const roomRes = await pool.query(
@@ -155,17 +171,21 @@ router.post("/:roomId/share", authenticateToken, async (req, res) => {
       [roomId],
     );
 
-    if (roomRes.rows.length === 0) {
+    if (roomRes.rows.length === 0)
       return res.status(404).json({ error: "Room not found." });
-    }
 
     const room = roomRes.rows[0];
 
-    if (String(room.creator_id) !== String(userId)) {
+    if (String(room.creator_id) !== String(userId))
       return res
         .status(403)
         .json({ error: "Only the room creator can share suggestions." });
-    }
+
+    // Save suggestion to the database so members can load it
+    await pool.query("UPDATE rooms SET last_ai_suggestion = $1 WHERE id = $2", [
+      JSON.stringify(suggestion),
+      roomId,
+    ]);
 
     const { sendPushToRoomMembers } = require("../pushHelper");
 
@@ -179,19 +199,45 @@ router.post("/:roomId/share", authenticateToken, async (req, res) => {
       roomId,
       {
         title: `📅 AI Suggestion for "${room.name}"`,
-        body: `${timeStr}${locationStr} — ${coverageStr}. ${suggestion.reasoning}`,
+        body: `${timeStr}${locationStr} — ${coverageStr}. Tap to view reasoning.`,
         url: `/Rooms/MeetingScheduler/scheduler.html?roomId=${roomId}`,
       },
       userId,
     );
 
-    res.json({
-      success: true,
-      message: "Suggestion shared with room members.",
-    });
+    res.json({ success: true });
   } catch (err) {
     console.error("Share Suggestion Error:", err.message, err);
     res.status(500).json({ error: "Failed to share suggestion." });
+  }
+});
+
+// ---------------------------------------------------------------
+// DELETE /api/suggest/:roomId/shared
+// Creator clears the suggestion (e.g. after meeting is finalized)
+// ---------------------------------------------------------------
+router.delete("/:roomId/shared", authenticateToken, async (req, res) => {
+  const { roomId } = req.params;
+
+  try {
+    const roomRes = await pool.query(
+      "SELECT creator_id FROM rooms WHERE id = $1",
+      [roomId],
+    );
+
+    if (String(roomRes.rows[0]?.creator_id) !== String(req.user.id))
+      return res
+        .status(403)
+        .json({ error: "Only the creator can clear suggestions." });
+
+    await pool.query(
+      "UPDATE rooms SET last_ai_suggestion = NULL WHERE id = $1",
+      [roomId],
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to clear suggestion." });
   }
 });
 
