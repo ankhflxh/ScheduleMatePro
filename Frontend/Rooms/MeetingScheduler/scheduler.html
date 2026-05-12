@@ -63,6 +63,39 @@
         </div>
       </header>
 
+      <!-- ✅ MEMBER: Response banner (shown after notification tap) -->
+      <div
+        id="memberResponseBanner"
+        class="member-response-banner"
+        style="display: none"
+      >
+        <div class="response-banner-inner">
+          <div class="response-banner-header">
+            <span class="material-icons">auto_awesome</span>
+            <strong>Your creator suggested a meeting time</strong>
+          </div>
+          <p id="bannerSuggestionText" class="response-banner-time"></p>
+          <p class="response-banner-prompt">
+            Do you accept this suggested time?
+          </p>
+          <div class="response-banner-actions">
+            <button id="responseAcceptBtn" class="btn-response-accept">
+              <span class="material-icons">check_circle</span> Accept
+            </button>
+            <button id="responseDeclineBtn" class="btn-response-decline">
+              <span class="material-icons">cancel</span> Decline
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ✅ MEMBER: Confirmation message after responding -->
+      <p
+        id="responseConfirmation"
+        class="response-confirmation"
+        style="display: none"
+      ></p>
+
       <div class="content-grid">
         <aside class="glass-panel insights">
           <h3><span class="material-icons">analytics</span> Group Insights</h3>
@@ -98,6 +131,18 @@
             <button id="confirmMeetingBtn" class="confirm-fab">
               <span class="material-icons">check_circle</span> Finalize Meeting
             </button>
+          </div>
+
+          <!-- ✅ CREATOR: Member responses panel -->
+          <div
+            id="responsesPanel"
+            class="responses-panel"
+            style="display: none"
+          >
+            <h4><span class="material-icons">people</span> Member Responses</h4>
+            <div id="responsesList" class="responses-list">
+              <p class="no-responses">No responses yet from members.</p>
+            </div>
           </div>
         </aside>
 

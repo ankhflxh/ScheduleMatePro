@@ -9,7 +9,7 @@ const lastRequestTime = new Map();
 const RATE_LIMIT_MS = 60 * 1000;
 
 // ---------------------------------------------------------------
-// POST /api/suggest/:roomId
+// POST /api/suggest/:roomId  — Generate AI suggestion (creator only)
 // ---------------------------------------------------------------
 router.post("/:roomId", authenticateToken, async (req, res) => {
   const { roomId } = req.params;
@@ -128,7 +128,6 @@ router.get("/:roomId/shared", authenticateToken, async (req, res) => {
   const { roomId } = req.params;
 
   try {
-    // Verify user is a member of this room
     const memberCheck = await pool.query(
       "SELECT 1 FROM room_members WHERE room_id = $1 AND user_id = $2",
       [roomId, req.user.id],
@@ -143,7 +142,6 @@ router.get("/:roomId/shared", authenticateToken, async (req, res) => {
     );
 
     const suggestion = result.rows[0]?.last_ai_suggestion;
-
     if (!suggestion) return res.json({ suggestion: null });
 
     res.json({ suggestion });
@@ -181,7 +179,12 @@ router.post("/:roomId/share", authenticateToken, async (req, res) => {
         .status(403)
         .json({ error: "Only the room creator can share suggestions." });
 
-    // Save suggestion to the database so members can load it
+    // Clear any old responses before sharing a fresh suggestion
+    await pool.query("DELETE FROM suggestion_responses WHERE room_id = $1", [
+      roomId,
+    ]);
+
+    // Save suggestion to DB so members can load it on page open
     await pool.query("UPDATE rooms SET last_ai_suggestion = $1 WHERE id = $2", [
       JSON.stringify(suggestion),
       roomId,
@@ -195,12 +198,14 @@ router.post("/:roomId/share", authenticateToken, async (req, res) => {
       : "";
     const coverageStr = `${suggestion.members_covered}/${suggestion.total_members} members available`;
 
+    // ✅ type: "ai_suggestion" tells the service worker to append fromNotification=1
     await sendPushToRoomMembers(
       roomId,
       {
         title: `📅 AI Suggestion for "${room.name}"`,
-        body: `${timeStr}${locationStr} — ${coverageStr}. Tap to view reasoning.`,
+        body: `${timeStr}${locationStr} — ${coverageStr}. Tap to accept or decline.`,
         url: `/Rooms/MeetingScheduler/scheduler.html?roomId=${roomId}`,
+        type: "ai_suggestion",
       },
       userId,
     );
@@ -209,6 +214,124 @@ router.post("/:roomId/share", authenticateToken, async (req, res) => {
   } catch (err) {
     console.error("Share Suggestion Error:", err.message, err);
     res.status(500).json({ error: "Failed to share suggestion." });
+  }
+});
+
+// ---------------------------------------------------------------
+// POST /api/suggest/:roomId/respond
+// Member submits their accept/decline response
+// ---------------------------------------------------------------
+router.post("/:roomId/respond", authenticateToken, async (req, res) => {
+  const { roomId } = req.params;
+  const userId = req.user.id;
+  const { response } = req.body; // "accepted" | "declined"
+
+  if (!["accepted", "declined"].includes(response)) {
+    return res.status(400).json({ error: "Invalid response value." });
+  }
+
+  try {
+    // Verify membership
+    const memberCheck = await pool.query(
+      "SELECT 1 FROM room_members WHERE room_id = $1 AND user_id = $2",
+      [roomId, userId],
+    );
+    if (memberCheck.rows.length === 0)
+      return res.status(403).json({ error: "Not a member of this room." });
+
+    // Verify there's an active suggestion to respond to
+    const suggestionCheck = await pool.query(
+      "SELECT last_ai_suggestion, creator_id, name FROM rooms WHERE id = $1",
+      [roomId],
+    );
+    if (!suggestionCheck.rows[0]?.last_ai_suggestion)
+      return res
+        .status(400)
+        .json({ error: "No active suggestion to respond to." });
+
+    const { creator_id, name: roomName } = suggestionCheck.rows[0];
+
+    // Upsert the member's response
+    await pool.query(
+      `INSERT INTO suggestion_responses (room_id, user_id, response)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (room_id, user_id)
+       DO UPDATE SET response = EXCLUDED.response, responded_at = CURRENT_TIMESTAMP`,
+      [roomId, userId, response],
+    );
+
+    // Get the responding member's username
+    const userRes = await pool.query(
+      "SELECT username FROM users WHERE id = $1",
+      [userId],
+    );
+    const username = userRes.rows[0]?.username || "A member";
+
+    // Push the response to the room creator only
+    const creatorRes = await pool.query(
+      "SELECT push_subscription FROM users WHERE id = $1 AND push_subscription IS NOT NULL",
+      [creator_id],
+    );
+
+    if (creatorRes.rows.length > 0) {
+      const { webpush } = require("../pushHelper");
+      const emoji = response === "accepted" ? "✅" : "❌";
+      const verb = response === "accepted" ? "accepted" : "declined";
+
+      try {
+        const sub = creatorRes.rows[0].push_subscription;
+        const parsedSub = typeof sub === "string" ? JSON.parse(sub) : sub;
+        await webpush.sendNotification(
+          parsedSub,
+          JSON.stringify({
+            title: `${emoji} Suggestion Response`,
+            body: `${username} ${verb} the suggested time in "${roomName}"`,
+            url: `/Rooms/MeetingScheduler/scheduler.html?roomId=${roomId}`,
+          }),
+        );
+      } catch (pushErr) {
+        console.error("Push to creator failed:", pushErr.message);
+      }
+    }
+
+    res.json({ success: true, response });
+  } catch (err) {
+    console.error("Respond to suggestion error:", err);
+    res.status(500).json({ error: "Failed to save response." });
+  }
+});
+
+// ---------------------------------------------------------------
+// GET /api/suggest/:roomId/responses
+// Creator fetches all member responses to the current suggestion
+// ---------------------------------------------------------------
+router.get("/:roomId/responses", authenticateToken, async (req, res) => {
+  const { roomId } = req.params;
+  const userId = req.user.id;
+
+  try {
+    const roomRes = await pool.query(
+      "SELECT creator_id FROM rooms WHERE id = $1",
+      [roomId],
+    );
+    if (String(roomRes.rows[0]?.creator_id) !== String(userId))
+      return res
+        .status(403)
+        .json({ error: "Only the creator can view responses." });
+
+    const result = await pool.query(
+      `SELECT u.username, sr.response, sr.responded_at
+       FROM suggestion_responses sr
+       JOIN users u ON sr.user_id = u.id
+       WHERE sr.room_id = $1
+       ORDER BY sr.responded_at ASC`,
+      [roomId],
+    );
+
+    res.json({ responses: result.rows });
+  } catch (err) {
+    console.error("Fetch responses error:", err);
+    res.status(500).json({ error: "Failed to fetch responses." });
   }
 });
 
@@ -234,6 +357,10 @@ router.delete("/:roomId/shared", authenticateToken, async (req, res) => {
       "UPDATE rooms SET last_ai_suggestion = NULL WHERE id = $1",
       [roomId],
     );
+
+    await pool.query("DELETE FROM suggestion_responses WHERE room_id = $1", [
+      roomId,
+    ]);
 
     res.json({ success: true });
   } catch (err) {

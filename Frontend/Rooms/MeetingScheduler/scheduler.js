@@ -23,13 +23,27 @@ const acceptBtn = document.getElementById("acceptSuggestion");
 const dismissBtn = document.getElementById("dismissSuggestion");
 const shareSuggestionBtn = document.getElementById("shareSuggestion");
 
+// Member-response elements (added to HTML)
+const memberResponseBanner = document.getElementById("memberResponseBanner");
+const responseAcceptBtn = document.getElementById("responseAcceptBtn");
+const responseDeclineBtn = document.getElementById("responseDeclineBtn");
+const responseConfirmation = document.getElementById("responseConfirmation");
+
+// Creator responses panel
+const responsesPanel = document.getElementById("responsesPanel");
+const responsesList = document.getElementById("responsesList");
+
 let currentSuggestion = null;
 let currentUserId = null;
 let roomCreatorId = null;
 let mostCommonTime = "";
 let mostCommonPlace = "";
+let responsePollInterval = null;
 
-const roomId = new URLSearchParams(window.location.search).get("roomId");
+const params = new URLSearchParams(window.location.search);
+const roomId = params.get("roomId");
+const fromNotification = params.get("fromNotification") === "1";
+
 if (!roomId) {
   entriesContainer.innerHTML = "<p style='color:red;'>Room ID missing.</p>";
   throw new Error("Missing roomId");
@@ -58,7 +72,7 @@ Promise.all([
     }
 
     fetchAvailabilities();
-    loadSharedSuggestion(); // Always check if creator shared a suggestion
+    loadSharedSuggestion(); // Always check for a shared suggestion
   })
   .catch((err) => {
     console.error("Initialization error:", err);
@@ -67,18 +81,27 @@ Promise.all([
 
 // ----------------------------------------------------
 // LOAD SHARED SUGGESTION FROM DB
-// Runs on page load for all members — shows the card if
-// the creator has shared a suggestion
 // ----------------------------------------------------
 async function loadSharedSuggestion() {
   try {
     const res = await fetch(`/api/suggest/${roomId}/shared`, GET_HEADERS);
     const data = await res.json();
 
-    if (!data.suggestion) return; // Nothing shared yet
+    if (!data.suggestion) return;
 
     currentSuggestion = data.suggestion;
     displaySuggestionCard(data.suggestion);
+
+    // If this page load came from tapping a push notification,
+    // immediately scroll to and highlight the response banner for members
+    if (fromNotification && currentUserId !== roomCreatorId) {
+      scrollToResponseBanner();
+    }
+
+    // If creator, start polling for member responses
+    if (currentUserId === roomCreatorId) {
+      startResponsePolling();
+    }
   } catch (err) {
     console.error("Could not load shared suggestion:", err);
   }
@@ -97,14 +120,154 @@ function displaySuggestionCard(s) {
 
   document.getElementById("suggestionReasoning").textContent = s.reasoning;
 
-  // Only show share button to the creator
+  // Creator buttons
   if (shareSuggestionBtn) {
     shareSuggestionBtn.style.display =
       currentUserId === roomCreatorId ? "flex" : "none";
   }
+  if (acceptBtn) {
+    acceptBtn.style.display =
+      currentUserId === roomCreatorId ? "inline-flex" : "none";
+  }
+  if (dismissBtn) {
+    dismissBtn.style.display =
+      currentUserId === roomCreatorId ? "inline-flex" : "none";
+  }
 
   suggestionCard.style.display = "block";
+
+  // Member-specific: show the accept/decline response banner
+  if (currentUserId !== roomCreatorId) {
+    showMemberResponseBanner(s);
+  }
+
+  // Creator-specific: show the responses panel
+  if (currentUserId === roomCreatorId && responsesPanel) {
+    responsesPanel.style.display = "block";
+    loadResponses();
+  }
 }
+
+// ----------------------------------------------------
+// MEMBER RESPONSE BANNER
+// ----------------------------------------------------
+function showMemberResponseBanner(s) {
+  if (!memberResponseBanner) return;
+
+  const bannerText = memberResponseBanner.querySelector(
+    "#bannerSuggestionText",
+  );
+  if (bannerText) {
+    bannerText.textContent =
+      `${s.suggested_day} at ${s.suggested_start_time}` +
+      (s.preferred_location ? ` · ${s.preferred_location}` : "");
+  }
+
+  memberResponseBanner.style.display = "block";
+}
+
+function scrollToResponseBanner() {
+  if (!memberResponseBanner) return;
+  setTimeout(() => {
+    memberResponseBanner.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+    memberResponseBanner.classList.add("highlight-pulse");
+  }, 400);
+}
+
+// Member clicks Accept
+if (responseAcceptBtn) {
+  responseAcceptBtn.addEventListener("click", () =>
+    submitMemberResponse("accepted"),
+  );
+}
+
+// Member clicks Decline
+if (responseDeclineBtn) {
+  responseDeclineBtn.addEventListener("click", () =>
+    submitMemberResponse("declined"),
+  );
+}
+
+async function submitMemberResponse(response) {
+  if (responseAcceptBtn) responseAcceptBtn.disabled = true;
+  if (responseDeclineBtn) responseDeclineBtn.disabled = true;
+
+  try {
+    const res = await fetch(`/api/suggest/${roomId}/respond`, {
+      method: "POST",
+      ...API_HEADERS,
+      body: JSON.stringify({ response }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      alert(data.error || "Could not submit your response.");
+      if (responseAcceptBtn) responseAcceptBtn.disabled = false;
+      if (responseDeclineBtn) responseDeclineBtn.disabled = false;
+      return;
+    }
+
+    // Show confirmation message, hide buttons
+    if (memberResponseBanner) memberResponseBanner.style.display = "none";
+    if (responseConfirmation) {
+      const emoji = response === "accepted" ? "✅" : "❌";
+      const verb = response === "accepted" ? "accepted" : "declined";
+      responseConfirmation.textContent = `${emoji} You ${verb} the suggested time. The room creator has been notified.`;
+      responseConfirmation.style.display = "block";
+    }
+  } catch (err) {
+    console.error("Response submission error:", err);
+    alert("Something went wrong. Please try again.");
+    if (responseAcceptBtn) responseAcceptBtn.disabled = false;
+    if (responseDeclineBtn) responseDeclineBtn.disabled = false;
+  }
+}
+
+// ----------------------------------------------------
+// CREATOR: LOAD + POLL MEMBER RESPONSES
+// ----------------------------------------------------
+async function loadResponses() {
+  if (!responsesList || currentUserId !== roomCreatorId) return;
+
+  try {
+    const res = await fetch(`/api/suggest/${roomId}/responses`, GET_HEADERS);
+    const data = await res.json();
+
+    if (!res.ok || !data.responses) return;
+
+    if (data.responses.length === 0) {
+      responsesList.innerHTML =
+        "<p class='no-responses'>No responses yet from members.</p>";
+      return;
+    }
+
+    responsesList.innerHTML = data.responses
+      .map((r) => {
+        const emoji = r.response === "accepted" ? "✅" : "❌";
+        return `<div class="response-item">
+          <span class="response-name">${r.username}</span>
+          <span class="response-badge ${r.response}">${emoji} ${r.response}</span>
+        </div>`;
+      })
+      .join("");
+  } catch (err) {
+    console.error("Load responses error:", err);
+  }
+}
+
+function startResponsePolling() {
+  if (responsePollInterval) clearInterval(responsePollInterval);
+  // Poll every 15 seconds while creator is on the page
+  responsePollInterval = setInterval(loadResponses, 15000);
+}
+
+// Stop polling when user leaves
+window.addEventListener("beforeunload", () => {
+  if (responsePollInterval) clearInterval(responsePollInterval);
+});
 
 // ----------------------------------------------------
 // FETCH AVAILABILITIES
@@ -253,7 +416,7 @@ if (confirmOkBtn) {
       .then(() => {
         if (confirmModal) confirmModal.style.display = "none";
         if (confirmedModal) confirmedModal.style.display = "flex";
-        // Clear the shared suggestion now that the meeting is confirmed
+        // Clear shared suggestion now meeting is confirmed
         fetch(`/api/suggest/${roomId}/shared`, {
           method: "DELETE",
           headers: { "X-Auth-Token": token },
@@ -312,65 +475,79 @@ suggestBtn.addEventListener("click", async () => {
 });
 
 // ----------------------------------------------------
-// ACCEPT — reveals insights, enables Finalize
+// ACCEPT — reveals insights, enables Finalize (creator)
 // ----------------------------------------------------
-acceptBtn.addEventListener("click", () => {
-  if (!currentSuggestion) return;
-  const s = currentSuggestion;
+if (acceptBtn) {
+  acceptBtn.addEventListener("click", () => {
+    if (!currentSuggestion) return;
+    const s = currentSuggestion;
 
-  mostCommonTime = `${s.suggested_day} ${s.suggested_start_time}`;
-  mostCommonPlace = s.preferred_location || mostCommonPlace;
+    mostCommonTime = `${s.suggested_day} ${s.suggested_start_time}`;
+    mostCommonPlace = s.preferred_location || mostCommonPlace;
 
-  revealInsights(mostCommonTime, mostCommonPlace);
+    revealInsights(mostCommonTime, mostCommonPlace);
 
-  if (creatorControls) creatorControls.style.display = "block";
-  if (confirmBtn) confirmBtn.onclick = showConfirmModal;
+    if (creatorControls) creatorControls.style.display = "block";
+    if (confirmBtn) confirmBtn.onclick = showConfirmModal;
 
-  suggestionCard.style.display = "none";
-});
+    suggestionCard.style.display = "none";
+  });
+}
 
 // ----------------------------------------------------
 // SHARE — saves to DB and sends push to members
 // ----------------------------------------------------
-shareSuggestionBtn.addEventListener("click", async () => {
-  if (!currentSuggestion) return;
+if (shareSuggestionBtn) {
+  shareSuggestionBtn.addEventListener("click", async () => {
+    if (!currentSuggestion) return;
 
-  const originalHTML = shareSuggestionBtn.innerHTML;
-  shareSuggestionBtn.disabled = true;
-  shareSuggestionBtn.innerHTML =
-    '<span class="material-icons">hourglass_top</span> Sharing...';
-
-  try {
-    const res = await fetch(`/api/suggest/${roomId}/share`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Auth-Token": token },
-      body: JSON.stringify({ suggestion: currentSuggestion }),
-    });
-
-    const data = await res.json();
-    if (!res.ok) {
-      alert(data.error || "Could not share suggestion.");
-      return;
-    }
-
+    const originalHTML = shareSuggestionBtn.innerHTML;
+    shareSuggestionBtn.disabled = true;
     shareSuggestionBtn.innerHTML =
-      '<span class="material-icons">check</span> Shared!';
-    setTimeout(() => {
+      '<span class="material-icons">hourglass_top</span> Sharing...';
+
+    try {
+      const res = await fetch(`/api/suggest/${roomId}/share`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Auth-Token": token },
+        body: JSON.stringify({ suggestion: currentSuggestion }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Could not share suggestion.");
+        return;
+      }
+
+      shareSuggestionBtn.innerHTML =
+        '<span class="material-icons">check</span> Shared!';
+
+      // Show the responses panel immediately after sharing
+      if (responsesPanel) {
+        responsesPanel.style.display = "block";
+        loadResponses();
+        startResponsePolling();
+      }
+
+      setTimeout(() => {
+        shareSuggestionBtn.innerHTML = originalHTML;
+        shareSuggestionBtn.disabled = false;
+      }, 2500);
+    } catch (err) {
+      alert("Something went wrong sharing the suggestion.");
+      console.error(err);
       shareSuggestionBtn.innerHTML = originalHTML;
       shareSuggestionBtn.disabled = false;
-    }, 2500);
-  } catch (err) {
-    alert("Something went wrong sharing the suggestion.");
-    console.error(err);
-    shareSuggestionBtn.innerHTML = originalHTML;
-    shareSuggestionBtn.disabled = false;
-  }
-});
+    }
+  });
+}
 
 // ----------------------------------------------------
-// DISMISS
+// DISMISS (creator only)
 // ----------------------------------------------------
-dismissBtn.addEventListener("click", () => {
-  suggestionCard.style.display = "none";
-  currentSuggestion = null;
-});
+if (dismissBtn) {
+  dismissBtn.addEventListener("click", () => {
+    suggestionCard.style.display = "none";
+    currentSuggestion = null;
+  });
+}

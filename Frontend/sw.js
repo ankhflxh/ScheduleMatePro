@@ -26,8 +26,8 @@ self.addEventListener("push", (event) => {
     body: payload.body || "",
     icon: "/Images/favicon.png",
     badge: "/Images/favicon.png",
-    // Store url directly as a string in data — simplest and most reliable
-    data: url,
+    // Store full payload data so notificationclick can use type info
+    data: { url, type: payload.type || null },
     requireInteraction: false,
   };
 
@@ -40,29 +40,43 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
-  // data is the url string we stored above
-  const targetPath = event.notification.data || "/Dashboard/dashboard.html";
+  const notifData = event.notification.data || {};
+  let targetPath = notifData.url || "/Dashboard/dashboard.html";
+
+  // If this is an AI suggestion notification, append a flag so the
+  // scheduler page knows to surface the member-response UI immediately
+  if (notifData.type === "ai_suggestion") {
+    const separator = targetPath.includes("?") ? "&" : "?";
+    targetPath = `${targetPath}${separator}fromNotification=1`;
+  }
+
   const absoluteUrl = new URL(targetPath, self.location.origin).href;
 
   event.waitUntil(
     clients
       .matchAll({ type: "window", includeUncontrolled: true })
       .then((windowClients) => {
-        // App is already open on the exact target page — just focus it
+        // Match any window already on the scheduler page (ignore query params)
+        const schedulerBase = new URL(
+          "/Rooms/MeetingScheduler/scheduler.html",
+          self.location.origin,
+        ).href;
+
         for (const client of windowClients) {
-          if (client.url === absoluteUrl && "focus" in client) {
-            return client.focus();
+          const clientBase = client.url.split("?")[0];
+          if (clientBase === schedulerBase && "navigate" in client) {
+            return client.navigate(absoluteUrl).then((c) => c && c.focus());
           }
         }
 
-        // App is open on a different page — navigate to the right one
+        // App open on a different page — navigate it
         for (const client of windowClients) {
           if ("navigate" in client && "focus" in client) {
             return client.navigate(absoluteUrl).then((c) => c && c.focus());
           }
         }
 
-        // App is closed — open it
+        // App closed — open new window
         if (clients.openWindow) {
           return clients.openWindow(absoluteUrl);
         }
