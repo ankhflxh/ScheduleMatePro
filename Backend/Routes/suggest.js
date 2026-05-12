@@ -1,26 +1,17 @@
-// File: Backend/Routes/suggest.js
 const express = require("express");
 const router = express.Router();
 const pool = require("../db");
 const { authenticateToken } = require("./auth");
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const Anthropic = require("@anthropic-ai/sdk");
 
-// ---------------------------------------------------------------
-// Rate limit: max 1 suggestion request per room every 60 seconds
-// Prevents accidental API abuse (e.g. button spamming)
-// ---------------------------------------------------------------
 const lastRequestTime = new Map();
 const RATE_LIMIT_MS = 60 * 1000;
 
-// ---------------------------------------------------------------
-// POST /api/suggest/:roomId
-// Only the room creator can request a suggestion
-// ---------------------------------------------------------------
 router.post("/:roomId", authenticateToken, async (req, res) => {
   const { roomId } = req.params;
   const userId = req.user.id;
 
-  // 1. Rate limit check
+  // Rate limit check
   const lastTime = lastRequestTime.get(roomId);
   if (lastTime && Date.now() - lastTime < RATE_LIMIT_MS) {
     const secondsLeft = Math.ceil(
@@ -32,7 +23,7 @@ router.post("/:roomId", authenticateToken, async (req, res) => {
   }
 
   try {
-    // 2. Verify user is the room creator
+    // Verify user is the room creator
     const roomRes = await pool.query(
       "SELECT creator_id, name, meeting_interval FROM rooms WHERE id = $1",
       [roomId],
@@ -50,7 +41,7 @@ router.post("/:roomId", authenticateToken, async (req, res) => {
         .json({ error: "Only the room creator can request a suggestion." });
     }
 
-    // 3. Fetch all members' availability for this room
+    // Fetch all members' availability
     const availRes = await pool.query(
       `SELECT a.day, a.start_time, a.end_time, a.location, u.username
        FROM availability a
@@ -66,7 +57,7 @@ router.post("/:roomId", authenticateToken, async (req, res) => {
       });
     }
 
-    // 4. Get total room member count for context
+    // Get total room member count
     const memberCountRes = await pool.query(
       "SELECT COUNT(*) FROM room_members WHERE room_id = $1",
       [roomId],
@@ -74,7 +65,7 @@ router.post("/:roomId", authenticateToken, async (req, res) => {
     const totalMembers = parseInt(memberCountRes.rows[0].count);
     const submittedCount = availRes.rows.length;
 
-    // 5. Format availability data for the prompt
+    // Format availability for the prompt
     const availabilityText = availRes.rows
       .map(
         (a) =>
@@ -82,7 +73,6 @@ router.post("/:roomId", authenticateToken, async (req, res) => {
       )
       .join("\n");
 
-    // 6. Build the Gemini prompt
     const prompt = `You are a smart scheduling assistant for a university student group called "${room.name}".
 
 The meeting duration is ${room.meeting_interval} hour(s).
@@ -106,36 +96,34 @@ Respond ONLY with a valid JSON object in this exact format, no markdown, no extr
   "reasoning": "Your plain English explanation here."
 }`;
 
-    // 7. Call Gemini API
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    // Call Claude API
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-    const result = await model.generateContent(prompt);
-    const rawText = result.response.text().trim();
+    const message = await client.messages.create({
+      model: "claude-sonnet-4-5",
+      max_tokens: 1024,
+      messages: [{ role: "user", content: prompt }],
+    });
 
-    // 8. Parse JSON response safely
+    const rawText = message.content[0].text.trim();
+
+    // Parse JSON response safely
     let suggestion;
     try {
-      // Strip markdown code fences if Gemini adds them
       const cleaned = rawText.replace(/```json|```/g, "").trim();
       suggestion = JSON.parse(cleaned);
     } catch {
-      console.error("Gemini raw response:", rawText);
+      console.error("Claude raw response:", rawText);
       return res.status(500).json({
         error: "The AI returned an unexpected response. Please try again.",
       });
     }
 
-    // 9. Update rate limit timestamp
     lastRequestTime.set(roomId, Date.now());
 
-    // 10. Return suggestion to frontend
-    res.json({
-      success: true,
-      suggestion,
-    });
+    res.json({ success: true, suggestion });
   } catch (err) {
-    console.error("Suggest Route Error:", err.message, err.status);
+    console.error("Suggest Route Error:", err.message, err);
     res.status(500).json({ error: "Failed to generate suggestion." });
   }
 });
