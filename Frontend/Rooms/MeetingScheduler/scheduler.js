@@ -14,14 +14,19 @@ const confirmCancelBtn = document.getElementById("confirmCancelBtn");
 const confirmedModal = document.getElementById("confirmedModal");
 const confirmedCloseBtn = document.getElementById("confirmedCloseBtn");
 const suggestBtn = document.getElementById("suggestBtn");
-const suggestionCard = document.getElementById("suggestionCard");
-const acceptBtn = document.getElementById("acceptSuggestion");
-const dismissBtn = document.getElementById("dismissSuggestion");
-const shareSuggestionBtn = document.getElementById("shareSuggestion");
-const memberResponseBanner = document.getElementById("memberResponseBanner");
-const responseAcceptBtn = document.getElementById("responseAcceptBtn");
-const responseDeclineBtn = document.getElementById("responseDeclineBtn");
-const responseConfirmation = document.getElementById("responseConfirmation");
+const viewSuggestionBtn = document.getElementById("viewSuggestionBtn");
+const suggestionModal = document.getElementById("suggestionModal");
+const modalAcceptBtn = document.getElementById("modalAcceptBtn");
+const modalShareBtn = document.getElementById("modalShareBtn");
+const modalDismissBtn = document.getElementById("modalDismissBtn");
+const modalMemberAcceptBtn = document.getElementById("modalMemberAcceptBtn");
+const modalMemberDeclineBtn = document.getElementById("modalMemberDeclineBtn");
+const modalCloseBtn = document.getElementById("modalCloseBtn");
+const creatorModalActions = document.getElementById("creatorModalActions");
+const memberModalActions = document.getElementById("memberModalActions");
+const memberAlreadyResponded = document.getElementById(
+  "memberAlreadyResponded",
+);
 const responsesPanel = document.getElementById("responsesPanel");
 const responsesList = document.getElementById("responsesList");
 
@@ -34,7 +39,6 @@ let responsePollInterval = null;
 
 const params = new URLSearchParams(window.location.search);
 const roomId = params.get("roomId");
-// fromNotification is only true when the user tapped the push notification
 const fromNotification = params.get("fromNotification") === "1";
 
 if (!roomId) {
@@ -49,9 +53,33 @@ const API_HEADERS = {
   headers: { "Content-Type": "application/json", "X-Auth-Token": token },
 };
 
-// ----------------------------------------------------
-// INITIALIZATION
-// ----------------------------------------------------
+// ─── OPEN / CLOSE MODAL ──────────────────────────────────────────
+function openSuggestionModal() {
+  if (suggestionModal) suggestionModal.style.display = "flex";
+}
+function closeSuggestionModal() {
+  if (suggestionModal) suggestionModal.style.display = "none";
+}
+if (modalCloseBtn)
+  modalCloseBtn.addEventListener("click", closeSuggestionModal);
+// Close when clicking the dark backdrop
+if (suggestionModal) {
+  suggestionModal.addEventListener("click", (e) => {
+    if (e.target === suggestionModal) closeSuggestionModal();
+  });
+}
+
+// ─── POPULATE MODAL WITH SUGGESTION DATA ─────────────────────────
+function populateSuggestionModal(s) {
+  document.getElementById("modalSuggestionBody").textContent =
+    `${s.suggested_day} · ${s.suggested_start_time} – ${s.suggested_end_time}` +
+    (s.preferred_location ? ` · ${s.preferred_location}` : "");
+  document.getElementById("modalCoverage").textContent =
+    `${s.members_covered}/${s.total_members} members`;
+  document.getElementById("modalSuggestionReasoning").textContent = s.reasoning;
+}
+
+// ─── INITIALIZATION ───────────────────────────────────────────────
 Promise.all([
   fetch("/api/users/me", GET_HEADERS).then((r) => r.json()),
   fetch(`/api/rooms/${roomId}`, GET_HEADERS).then((r) => r.json()),
@@ -72,117 +100,193 @@ Promise.all([
     entriesContainer.innerHTML = "<p>Please log in to view this room.</p>";
   });
 
-// ----------------------------------------------------
-// LOAD SHARED SUGGESTION FROM DB
-// ----------------------------------------------------
+// ─── LOAD SHARED SUGGESTION FROM DB ──────────────────────────────
 async function loadSharedSuggestion() {
   try {
     const res = await fetch(`/api/suggest/${roomId}/shared`, GET_HEADERS);
     const data = await res.json();
-
     if (!data.suggestion) return;
 
     currentSuggestion = data.suggestion;
+    const isCreator = currentUserId === roomCreatorId;
     const myResponse = data.myResponse; // "accepted" | "declined" | null
 
-    // Show the suggestion card (creator buttons only)
-    displaySuggestionCard(data.suggestion);
-
-    const isCreator = currentUserId === roomCreatorId;
-
-    if (!isCreator) {
-      if (myResponse) {
-        // Already responded before — just show confirmation, no banner
-        showResponseConfirmation(myResponse);
-      } else if (fromNotification) {
-        // Arrived by tapping the push notification — show the response banner
-        showMemberResponseBanner(data.suggestion);
-      }
-      // If neither: member browsed here manually, show nothing extra
-    }
+    populateSuggestionModal(data.suggestion);
 
     if (isCreator) {
+      // Show creator actions in modal
+      if (creatorModalActions) creatorModalActions.style.display = "flex";
+      if (memberModalActions) memberModalActions.style.display = "none";
+      if (memberAlreadyResponded) memberAlreadyResponded.style.display = "none";
+      // Show responses panel
       if (responsesPanel) responsesPanel.style.display = "block";
       loadResponses();
       startResponsePolling();
+      // Auto-open modal if they just generated it (no fromNotification needed for creator)
+    } else {
+      // Member: show "View AI Suggestion" button
+      if (viewSuggestionBtn) viewSuggestionBtn.style.display = "flex";
+
+      if (myResponse) {
+        // Already responded — show that state in modal
+        if (memberModalActions) memberModalActions.style.display = "none";
+        if (creatorModalActions) creatorModalActions.style.display = "none";
+        if (memberAlreadyResponded) {
+          const emoji = myResponse === "accepted" ? "✅" : "❌";
+          const verb = myResponse === "accepted" ? "accepted" : "declined";
+          memberAlreadyResponded.textContent = `${emoji} You already ${verb} this suggested time.`;
+          memberAlreadyResponded.style.display = "block";
+        }
+      } else {
+        // Has not responded yet
+        if (memberModalActions) memberModalActions.style.display = "flex";
+        if (creatorModalActions) creatorModalActions.style.display = "none";
+        if (memberAlreadyResponded)
+          memberAlreadyResponded.style.display = "none";
+      }
+
+      // Auto-open the modal if they tapped the push notification
+      if (fromNotification) openSuggestionModal();
     }
   } catch (err) {
     console.error("Could not load shared suggestion:", err);
   }
 }
 
-// ----------------------------------------------------
-// DISPLAY SUGGESTION CARD (the AI card with reasoning)
-// Only shows creator action buttons — not the member response UI
-// ----------------------------------------------------
-function displaySuggestionCard(s) {
-  document.getElementById("suggestionBody").textContent =
-    `${s.suggested_day} · ${s.suggested_start_time} – ${s.suggested_end_time}` +
-    (s.preferred_location ? ` · ${s.preferred_location}` : "");
-
-  document.getElementById("suggestionCoverage").textContent =
-    `${s.members_covered}/${s.total_members} members`;
-
-  document.getElementById("suggestionReasoning").textContent = s.reasoning;
-
-  const isCreator = currentUserId === roomCreatorId;
-  if (shareSuggestionBtn)
-    shareSuggestionBtn.style.display = isCreator ? "flex" : "none";
-  if (acceptBtn) acceptBtn.style.display = isCreator ? "inline-flex" : "none";
-  if (dismissBtn) dismissBtn.style.display = isCreator ? "inline-flex" : "none";
-
-  suggestionCard.style.display = "block";
+// ─── VIEW SUGGESTION BUTTON (members) ────────────────────────────
+if (viewSuggestionBtn) {
+  viewSuggestionBtn.addEventListener("click", openSuggestionModal);
 }
 
-// ----------------------------------------------------
-// MEMBER RESPONSE BANNER — only shown after notification tap
-// ----------------------------------------------------
-function showMemberResponseBanner(s) {
-  if (!memberResponseBanner) return;
-  const bannerText = document.getElementById("bannerSuggestionText");
-  if (bannerText) {
-    bannerText.textContent =
-      `${s.suggested_day} at ${s.suggested_start_time}` +
-      (s.preferred_location ? ` · ${s.preferred_location}` : "");
-  }
-  memberResponseBanner.style.display = "block";
-  // Smooth scroll to banner after a short delay
-  setTimeout(() => {
-    memberResponseBanner.scrollIntoView({
-      behavior: "smooth",
-      block: "center",
+// ─── CREATOR: SUGGEST BUTTON ─────────────────────────────────────
+suggestBtn.addEventListener("click", async () => {
+  suggestBtn.disabled = true;
+  suggestBtn.innerHTML =
+    '<span class="material-icons">hourglass_top</span> Thinking...';
+
+  try {
+    const res = await fetch(`/api/suggest/${roomId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Auth-Token": token },
+      credentials: "include",
     });
-  }, 300);
+    const data = await res.json();
+    if (!res.ok) {
+      alert(data.error || "Could not generate suggestion.");
+      return;
+    }
+
+    currentSuggestion = data.suggestion;
+    populateSuggestionModal(data.suggestion);
+
+    // Creator sees their own actions
+    if (creatorModalActions) creatorModalActions.style.display = "flex";
+    if (memberModalActions) memberModalActions.style.display = "none";
+    if (memberAlreadyResponded) memberAlreadyResponded.style.display = "none";
+
+    openSuggestionModal();
+  } catch (err) {
+    alert("Something went wrong. Please try again.");
+    console.error(err);
+  } finally {
+    suggestBtn.disabled = false;
+    suggestBtn.innerHTML =
+      '<span class="material-icons">auto_awesome</span> Suggest with AI';
+  }
+});
+
+// ─── CREATOR: ACCEPT & AUTO-FILL ─────────────────────────────────
+if (modalAcceptBtn) {
+  modalAcceptBtn.addEventListener("click", () => {
+    if (!currentSuggestion) return;
+    const s = currentSuggestion;
+    mostCommonTime = `${s.suggested_day} ${s.suggested_start_time}`;
+    mostCommonPlace = s.preferred_location || mostCommonPlace;
+
+    // Populate insights panel
+    if (suggestedTimeEl) {
+      suggestedTimeEl.textContent = mostCommonTime;
+      suggestedTimeEl.classList.remove("insights-placeholder");
+    }
+    if (suggestedLocationEl) {
+      suggestedLocationEl.textContent = mostCommonPlace;
+      suggestedLocationEl.classList.remove("insights-placeholder");
+    }
+    const hint = document.getElementById("insights-hint");
+    if (hint) hint.classList.add("hidden");
+
+    // Show finalize button
+    if (creatorControls) creatorControls.style.display = "block";
+    if (confirmBtn) confirmBtn.onclick = showConfirmModal;
+
+    closeSuggestionModal();
+  });
 }
 
-// ----------------------------------------------------
-// SHOW CONFIRMATION (used on refresh after already responding)
-// ----------------------------------------------------
-function showResponseConfirmation(response) {
-  if (!responseConfirmation) return;
-  const emoji = response === "accepted" ? "✅" : "❌";
-  const verb = response === "accepted" ? "accepted" : "declined";
-  responseConfirmation.textContent = `${emoji} You already ${verb} this suggested time.`;
-  responseConfirmation.style.display = "block";
-  if (memberResponseBanner) memberResponseBanner.style.display = "none";
+// ─── CREATOR: SHARE WITH ROOM ─────────────────────────────────────
+if (modalShareBtn) {
+  modalShareBtn.addEventListener("click", async () => {
+    if (!currentSuggestion) return;
+    const original = modalShareBtn.innerHTML;
+    modalShareBtn.disabled = true;
+    modalShareBtn.innerHTML =
+      '<span class="material-icons">hourglass_top</span> Sharing...';
+
+    try {
+      const res = await fetch(`/api/suggest/${roomId}/share`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Auth-Token": token },
+        body: JSON.stringify({ suggestion: currentSuggestion }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Could not share.");
+        return;
+      }
+
+      modalShareBtn.innerHTML =
+        '<span class="material-icons">check</span> Shared!';
+      if (responsesPanel) {
+        responsesPanel.style.display = "block";
+        loadResponses();
+        startResponsePolling();
+      }
+      setTimeout(() => {
+        modalShareBtn.innerHTML = original;
+        modalShareBtn.disabled = false;
+      }, 2500);
+    } catch (err) {
+      alert("Something went wrong sharing the suggestion.");
+      console.error(err);
+      modalShareBtn.innerHTML = original;
+      modalShareBtn.disabled = false;
+    }
+  });
 }
 
-// Member clicks Accept
-if (responseAcceptBtn) {
-  responseAcceptBtn.addEventListener("click", () =>
+// ─── CREATOR: DISMISS ────────────────────────────────────────────
+if (modalDismissBtn) {
+  modalDismissBtn.addEventListener("click", () => {
+    closeSuggestionModal();
+    currentSuggestion = null;
+  });
+}
+
+// ─── MEMBER: ACCEPT / DECLINE ────────────────────────────────────
+if (modalMemberAcceptBtn) {
+  modalMemberAcceptBtn.addEventListener("click", () =>
     submitMemberResponse("accepted"),
   );
 }
-// Member clicks Decline
-if (responseDeclineBtn) {
-  responseDeclineBtn.addEventListener("click", () =>
+if (modalMemberDeclineBtn) {
+  modalMemberDeclineBtn.addEventListener("click", () =>
     submitMemberResponse("declined"),
   );
 }
 
 async function submitMemberResponse(response) {
-  if (responseAcceptBtn) responseAcceptBtn.disabled = true;
-  if (responseDeclineBtn) responseDeclineBtn.disabled = true;
+  if (modalMemberAcceptBtn) modalMemberAcceptBtn.disabled = true;
+  if (modalMemberDeclineBtn) modalMemberDeclineBtn.disabled = true;
 
   try {
     const res = await fetch(`/api/suggest/${roomId}/respond`, {
@@ -194,30 +298,28 @@ async function submitMemberResponse(response) {
 
     if (!res.ok) {
       alert(data.error || "Could not submit your response.");
-      if (responseAcceptBtn) responseAcceptBtn.disabled = false;
-      if (responseDeclineBtn) responseDeclineBtn.disabled = false;
+      if (modalMemberAcceptBtn) modalMemberAcceptBtn.disabled = false;
+      if (modalMemberDeclineBtn) modalMemberDeclineBtn.disabled = false;
       return;
     }
 
-    // Hide the banner, show confirmation in its place
-    if (memberResponseBanner) memberResponseBanner.style.display = "none";
-    const emoji = response === "accepted" ? "✅" : "❌";
-    const verb = response === "accepted" ? "accepted" : "declined";
-    if (responseConfirmation) {
-      responseConfirmation.textContent = `${emoji} You ${verb} the suggested time. The room creator has been notified.`;
-      responseConfirmation.style.display = "block";
+    // Swap action buttons for confirmation message
+    if (memberModalActions) memberModalActions.style.display = "none";
+    if (memberAlreadyResponded) {
+      const emoji = response === "accepted" ? "✅" : "❌";
+      const verb = response === "accepted" ? "accepted" : "declined";
+      memberAlreadyResponded.textContent = `${emoji} You ${verb} the suggested time. The room creator has been notified.`;
+      memberAlreadyResponded.style.display = "block";
     }
   } catch (err) {
-    console.error("Response submission error:", err);
+    console.error("Response error:", err);
     alert("Something went wrong. Please try again.");
-    if (responseAcceptBtn) responseAcceptBtn.disabled = false;
-    if (responseDeclineBtn) responseDeclineBtn.disabled = false;
+    if (modalMemberAcceptBtn) modalMemberAcceptBtn.disabled = false;
+    if (modalMemberDeclineBtn) modalMemberDeclineBtn.disabled = false;
   }
 }
 
-// ----------------------------------------------------
-// CREATOR: LOAD + POLL MEMBER RESPONSES
-// ----------------------------------------------------
+// ─── CREATOR: LOAD & POLL MEMBER RESPONSES ───────────────────────
 async function loadResponses() {
   if (!responsesList || currentUserId !== roomCreatorId) return;
   try {
@@ -234,9 +336,9 @@ async function loadResponses() {
       .map((r) => {
         const emoji = r.response === "accepted" ? "✅" : "❌";
         return `<div class="response-item">
-          <span class="response-name">${r.username}</span>
-          <span class="response-badge ${r.response}">${emoji} ${r.response}</span>
-        </div>`;
+        <span class="response-name">${r.username}</span>
+        <span class="response-badge ${r.response}">${emoji} ${r.response}</span>
+      </div>`;
       })
       .join("");
   } catch (err) {
@@ -248,14 +350,11 @@ function startResponsePolling() {
   if (responsePollInterval) clearInterval(responsePollInterval);
   responsePollInterval = setInterval(loadResponses, 15000);
 }
-
 window.addEventListener("beforeunload", () => {
   if (responsePollInterval) clearInterval(responsePollInterval);
 });
 
-// ----------------------------------------------------
-// FETCH AVAILABILITIES
-// ----------------------------------------------------
+// ─── FETCH AVAILABILITIES ─────────────────────────────────────────
 function fetchAvailabilities() {
   fetch(`/api/availability/${roomId}`, GET_HEADERS)
     .then((r) => r.json())
@@ -267,9 +366,7 @@ function fetchAvailabilities() {
     .catch((err) => console.error("Error fetching entries:", err));
 }
 
-// ----------------------------------------------------
-// RENDER ENTRIES
-// ----------------------------------------------------
+// ─── RENDER ENTRIES ───────────────────────────────────────────────
 function renderEntries(entries) {
   entriesContainer.innerHTML = "";
   const userEntry = entries.find((e) => String(e.user_id) === currentUserId);
@@ -294,7 +391,6 @@ function renderEntries(entries) {
     entriesContainer.innerHTML = "<p>No availabilities submitted yet.</p>";
     return;
   }
-
   entries.forEach((entry) => {
     const div = document.createElement("div");
     div.classList.add("entry");
@@ -303,9 +399,7 @@ function renderEntries(entries) {
   });
 }
 
-// ----------------------------------------------------
-// SUGGEST MEETING — silent calculation only
-// ----------------------------------------------------
+// ─── SILENT SUGGESTION CALC ───────────────────────────────────────
 function suggestMeeting(entries) {
   const countMap = {};
   const locationMap = {};
@@ -322,30 +416,12 @@ function suggestMeeting(entries) {
     }
   });
 
-  const sortedTimes = Object.entries(countMap).sort((a, b) => b[1] - a[1]);
-  if (sortedTimes.length > 0) mostCommonTime = sortedTimes[0][0];
+  const sorted = Object.entries(countMap).sort((a, b) => b[1] - a[1]);
+  if (sorted.length > 0) mostCommonTime = sorted[0][0];
   if (preferredLocation) mostCommonPlace = preferredLocation;
 }
 
-// ----------------------------------------------------
-// REVEAL INSIGHTS
-// ----------------------------------------------------
-function revealInsights(time, location) {
-  if (suggestedTimeEl) {
-    suggestedTimeEl.textContent = time;
-    suggestedTimeEl.classList.remove("insights-placeholder");
-  }
-  if (suggestedLocationEl) {
-    suggestedLocationEl.textContent = location;
-    suggestedLocationEl.classList.remove("insights-placeholder");
-  }
-  const hint = document.getElementById("insights-hint");
-  if (hint) hint.classList.add("hidden");
-}
-
-// ----------------------------------------------------
-// CREATOR UI
-// ----------------------------------------------------
+// ─── CREATOR CONFIRM FLOW ─────────────────────────────────────────
 function showConfirmIfEligible(entries) {
   const isCreator = String(currentUserId) === String(roomCreatorId);
   if (creatorControls) {
@@ -361,7 +437,7 @@ function showConfirmIfEligible(entries) {
 function showConfirmModal() {
   const [day, time] = mostCommonTime.split(" ");
   if (confirmModal && confirmPromptText && confirmLocationInput) {
-    confirmPromptText.textContent = `Confirm meeting at ${day} ${time}?`;
+    confirmPromptText.textContent = `Confirm meeting on ${day} at ${time}?`;
     confirmLocationInput.value = mostCommonPlace;
     confirmModal.style.display = "flex";
   }
@@ -420,105 +496,4 @@ if (confirmedCloseBtn) {
     if (confirmedModal) confirmedModal.style.display = "none";
     window.location.reload();
   };
-}
-
-// ----------------------------------------------------
-// AI SUGGEST BUTTON (creator only)
-// ----------------------------------------------------
-suggestBtn.addEventListener("click", async () => {
-  suggestBtn.disabled = true;
-  suggestBtn.innerHTML =
-    '<span class="material-icons">hourglass_top</span> Thinking...';
-  suggestionCard.style.display = "none";
-
-  try {
-    const res = await fetch(`/api/suggest/${roomId}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Auth-Token": token },
-      credentials: "include",
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      alert(data.error || "Could not generate suggestion.");
-      return;
-    }
-    currentSuggestion = data.suggestion;
-    displaySuggestionCard(data.suggestion);
-  } catch (err) {
-    alert("Something went wrong. Please try again.");
-    console.error(err);
-  } finally {
-    suggestBtn.disabled = false;
-    suggestBtn.innerHTML =
-      '<span class="material-icons">auto_awesome</span> Suggest with AI';
-  }
-});
-
-// ----------------------------------------------------
-// ACCEPT (creator only)
-// ----------------------------------------------------
-if (acceptBtn) {
-  acceptBtn.addEventListener("click", () => {
-    if (!currentSuggestion) return;
-    const s = currentSuggestion;
-    mostCommonTime = `${s.suggested_day} ${s.suggested_start_time}`;
-    mostCommonPlace = s.preferred_location || mostCommonPlace;
-    revealInsights(mostCommonTime, mostCommonPlace);
-    if (creatorControls) creatorControls.style.display = "block";
-    if (confirmBtn) confirmBtn.onclick = showConfirmModal;
-    suggestionCard.style.display = "none";
-  });
-}
-
-// ----------------------------------------------------
-// SHARE (creator only)
-// ----------------------------------------------------
-if (shareSuggestionBtn) {
-  shareSuggestionBtn.addEventListener("click", async () => {
-    if (!currentSuggestion) return;
-    const originalHTML = shareSuggestionBtn.innerHTML;
-    shareSuggestionBtn.disabled = true;
-    shareSuggestionBtn.innerHTML =
-      '<span class="material-icons">hourglass_top</span> Sharing...';
-
-    try {
-      const res = await fetch(`/api/suggest/${roomId}/share`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-Auth-Token": token },
-        body: JSON.stringify({ suggestion: currentSuggestion }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        alert(data.error || "Could not share suggestion.");
-        return;
-      }
-
-      shareSuggestionBtn.innerHTML =
-        '<span class="material-icons">check</span> Shared!';
-      if (responsesPanel) {
-        responsesPanel.style.display = "block";
-        loadResponses();
-        startResponsePolling();
-      }
-      setTimeout(() => {
-        shareSuggestionBtn.innerHTML = originalHTML;
-        shareSuggestionBtn.disabled = false;
-      }, 2500);
-    } catch (err) {
-      alert("Something went wrong sharing the suggestion.");
-      console.error(err);
-      shareSuggestionBtn.innerHTML = originalHTML;
-      shareSuggestionBtn.disabled = false;
-    }
-  });
-}
-
-// ----------------------------------------------------
-// DISMISS (creator only)
-// ----------------------------------------------------
-if (dismissBtn) {
-  dismissBtn.addEventListener("click", () => {
-    suggestionCard.style.display = "none";
-    currentSuggestion = null;
-  });
 }

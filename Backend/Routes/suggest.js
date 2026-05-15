@@ -103,11 +103,9 @@ Respond ONLY with a valid JSON object in this exact format, no markdown, no extr
       suggestion = JSON.parse(cleaned);
     } catch {
       console.error("Claude raw response:", rawText);
-      return res
-        .status(500)
-        .json({
-          error: "The AI returned an unexpected response. Please try again.",
-        });
+      return res.status(500).json({
+        error: "The AI returned an unexpected response. Please try again.",
+      });
     }
 
     lastRequestTime.set(roomId, Date.now());
@@ -205,7 +203,7 @@ router.post("/:roomId/share", authenticateToken, async (req, res) => {
       {
         title: `📅 AI Suggestion for "${room.name}"`,
         body: `${timeStr}${locationStr} — ${coverageStr}. Tap to accept or decline.`,
-        url: `/Rooms/MeetingScheduler/scheduler.html?roomId=${roomId}`,
+        url: `/Rooms/MeetingScheduler/scheduler.html?roomId=${roomId}&fromNotification=1`,
         type: "ai_suggestion",
       },
       userId,
@@ -279,7 +277,7 @@ router.post("/:roomId/respond", authenticateToken, async (req, res) => {
           JSON.stringify({
             title: `${emoji} Suggestion Response`,
             body: `${username} ${verb} the suggested time in "${roomName}"`,
-            url: `/Rooms/MeetingScheduler/scheduler.html?roomId=${roomId}`,
+            url: `/Rooms/MeetingScheduler/scheduler.html?roomId=${roomId}&fromNotification=1`,
           }),
         );
       } catch (pushErr) {

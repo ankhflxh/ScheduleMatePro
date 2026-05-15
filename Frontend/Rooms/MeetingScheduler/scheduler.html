@@ -4,7 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Meeting Scheduler | ScheduleMate Pro</title>
-
     <link
       href="https://fonts.googleapis.com/icon?family=Material+Icons"
       rel="stylesheet"
@@ -15,7 +14,6 @@
     />
     <link rel="stylesheet" href="scheduler.css" />
     <link rel="icon" type="image/png" href="../../Images/favicon.png" />
-
     <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#6366f1" />
@@ -25,7 +23,7 @@
         window.addEventListener("load", () => {
           navigator.serviceWorker
             .register("/sw.js")
-            .then(() => console.log("App is ready for install"))
+            .then(() => console.log("SW registered"))
             .catch((err) => console.log("SW Fail", err));
         });
       }
@@ -63,39 +61,6 @@
         </div>
       </header>
 
-      <!-- ✅ MEMBER: Response banner (shown after notification tap) -->
-      <div
-        id="memberResponseBanner"
-        class="member-response-banner"
-        style="display: none"
-      >
-        <div class="response-banner-inner">
-          <div class="response-banner-header">
-            <span class="material-icons">auto_awesome</span>
-            <strong>Your creator suggested a meeting time</strong>
-          </div>
-          <p id="bannerSuggestionText" class="response-banner-time"></p>
-          <p class="response-banner-prompt">
-            Do you accept this suggested time?
-          </p>
-          <div class="response-banner-actions">
-            <button id="responseAcceptBtn" class="btn-response-accept">
-              <span class="material-icons">check_circle</span> Accept
-            </button>
-            <button id="responseDeclineBtn" class="btn-response-decline">
-              <span class="material-icons">cancel</span> Decline
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- ✅ MEMBER: Confirmation message after responding -->
-      <p
-        id="responseConfirmation"
-        class="response-confirmation"
-        style="display: none"
-      ></p>
-
       <div class="content-grid">
         <aside class="glass-panel insights">
           <h3><span class="material-icons">analytics</span> Group Insights</h3>
@@ -105,7 +70,6 @@
               <span class="label">Best Time</span>
               <p id="suggested-time-text" class="insights-placeholder">—</p>
             </div>
-
             <div class="suggestion-card" id="location-card">
               <span class="label">Best Location</span>
               <p id="suggested-location-text" class="insights-placeholder">—</p>
@@ -117,6 +81,7 @@
             Accept an AI suggestion to populate insights
           </div>
 
+          <!-- Creator: generate suggestion -->
           <button
             type="button"
             id="suggestBtn"
@@ -127,13 +92,24 @@
             Suggest with AI
           </button>
 
+          <!-- Member: view shared suggestion -->
+          <button
+            type="button"
+            id="viewSuggestionBtn"
+            class="btn-view-suggestion"
+            style="display: none"
+          >
+            <span class="material-icons">visibility</span>
+            View AI Suggestion
+          </button>
+
           <div id="creator-controls" style="display: none">
             <button id="confirmMeetingBtn" class="confirm-fab">
               <span class="material-icons">check_circle</span> Finalize Meeting
             </button>
           </div>
 
-          <!-- ✅ CREATOR: Member responses panel -->
+          <!-- Creator: member responses panel -->
           <div
             id="responsesPanel"
             class="responses-panel"
@@ -157,12 +133,80 @@
               <span class="material-icons">edit</span> Edit Mine
             </button>
           </div>
-
           <div id="entries" class="entries-list"></div>
         </main>
       </div>
     </div>
 
+    <!-- ============================================================
+         AI SUGGESTION MODAL (shared by creator & member)
+         ============================================================ -->
+    <div id="suggestionModal" class="modal-overlay" style="display: none">
+      <div class="modal-box suggestion-modal-box">
+        <div class="suggestion-modal-header">
+          <div class="suggestion-modal-icon">
+            <span class="material-icons">auto_awesome</span>
+          </div>
+          <div>
+            <h2 class="suggestion-modal-title">AI Suggested Time</h2>
+            <span id="modalCoverage" class="coverage-badge"></span>
+          </div>
+        </div>
+
+        <div class="suggestion-modal-time" id="modalSuggestionBody"></div>
+
+        <div class="suggestion-modal-reasoning-label">Claude's reasoning</div>
+        <div
+          class="suggestion-modal-reasoning"
+          id="modalSuggestionReasoning"
+        ></div>
+
+        <!-- CREATOR actions -->
+        <div
+          id="creatorModalActions"
+          class="suggestion-modal-actions"
+          style="display: none"
+        >
+          <button id="modalAcceptBtn" class="modal-btn primary">
+            <span class="material-icons">check_circle</span> Accept & Auto-fill
+          </button>
+          <button id="modalShareBtn" class="btn-share-suggestion">
+            <span class="material-icons">share</span> Share with Room
+          </button>
+          <button id="modalDismissBtn" class="modal-btn secondary">
+            Dismiss
+          </button>
+        </div>
+
+        <!-- MEMBER actions -->
+        <div
+          id="memberModalActions"
+          class="suggestion-modal-actions"
+          style="display: none"
+        >
+          <button id="modalMemberAcceptBtn" class="btn-response-accept">
+            <span class="material-icons">check_circle</span> Accept
+          </button>
+          <button id="modalMemberDeclineBtn" class="btn-response-decline">
+            <span class="material-icons">cancel</span> Decline
+          </button>
+        </div>
+
+        <!-- Already responded state -->
+        <div
+          id="memberAlreadyResponded"
+          class="already-responded"
+          style="display: none"
+        ></div>
+
+        <!-- Close button (always visible) -->
+        <button id="modalCloseBtn" class="modal-close-btn">
+          <span class="material-icons">close</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Confirm Meeting Modal -->
     <div id="confirmModal" class="modal-overlay">
       <div class="modal-box">
         <div class="modal-icon">
@@ -170,7 +214,6 @@
         </div>
         <h2>Confirm Meeting?</h2>
         <p id="confirmPromptText">Confirm this time for everyone?</p>
-
         <div class="input-wrapper">
           <label>Location</label>
           <input
@@ -180,7 +223,6 @@
             placeholder="e.g. Library Room 3"
           />
         </div>
-
         <div class="modal-actions">
           <button id="confirmCancelBtn" class="modal-btn secondary">
             Cancel
@@ -190,6 +232,7 @@
       </div>
     </div>
 
+    <!-- Meeting Confirmed Modal -->
     <div id="confirmedModal" class="modal-overlay">
       <div class="modal-box success">
         <lottie-player
@@ -208,27 +251,6 @@
           style="width: 100%; margin-top: 1rem"
         >
           Awesome
-        </button>
-      </div>
-    </div>
-
-    <!-- AI Suggestion Card -->
-    <div id="suggestionCard" style="display: none" class="ai-suggestion-card">
-      <div class="suggestion-header">
-        <span>✨ AI Suggested Time</span>
-        <span id="suggestionCoverage" class="coverage-badge"></span>
-      </div>
-      <div id="suggestionBody" class="suggestion-body"></div>
-      <div id="suggestionReasoning" class="suggestion-reasoning"></div>
-      <div class="suggestion-actions">
-        <button type="button" id="acceptSuggestion" class="btn-accept">
-          Accept & Auto-fill
-        </button>
-        <button type="button" id="shareSuggestion" class="btn-share-suggestion">
-          <span class="material-icons">share</span> Share with Room
-        </button>
-        <button type="button" id="dismissSuggestion" class="btn-dismiss">
-          Dismiss
         </button>
       </div>
     </div>
