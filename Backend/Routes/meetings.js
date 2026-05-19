@@ -85,6 +85,9 @@ router.post("/:roomId", authenticateToken, async (req, res) => {
 
     const newMeeting = result.rows[0];
 
+    // 4. Clear availability so members can submit fresh for the next meeting
+    await pool.query(`DELETE FROM availability WHERE room_id = $1`, [roomId]);
+
     // 5. ✅ Push notification only — no email
     await sendPushToRoomMembers(roomId, {
       title: "✅ Meeting Confirmed!",

@@ -41,40 +41,69 @@ const UNIVERSITY_BUILDINGS = [
   "International College of Portsmouth",
 ];
 
-// Returns the date of the upcoming/current occurrence of a given day name
-// e.g. getDayWithDate("Tuesday") => "Tuesday 20th May"
-function getDayWithDate(dayName) {
-  const days = [
-    "Sunday",
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-  ];
-  const today = new Date();
-  const targetIdx = days.indexOf(dayName);
-  if (targetIdx === -1) return dayName;
+// ─── DATE HELPERS ─────────────────────────────────────────────────
 
+const DAY_NAMES = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
+
+// Returns the Date object for the next (or current) occurrence of dayName this week
+function getDateForDay(dayName) {
+  const today = new Date();
+  const targetIdx = DAY_NAMES.indexOf(dayName);
+  if (targetIdx === -1) return today;
   const todayIdx = today.getDay();
   let diff = targetIdx - todayIdx;
-  if (diff < 0) diff += 7; // always show current or next occurrence
-
+  if (diff < 0) diff += 7;
   const target = new Date(today);
   target.setDate(today.getDate() + diff);
+  return target;
+}
 
-  const day = target.getDate();
-  const suffix =
-    day === 1 || day === 21 || day === 31
-      ? "st"
-      : day === 2 || day === 22
-        ? "nd"
-        : day === 3 || day === 23
-          ? "rd"
-          : "th";
+// Returns true if dayName has already passed this week (strictly before today)
+function isDayPast(dayName) {
+  const todayIdx = new Date().getDay();
+  const targetIdx = DAY_NAMES.indexOf(dayName);
+  if (targetIdx === -1) return false;
+  return targetIdx - todayIdx < 0;
+}
+
+// Returns ordinal suffix for a date number
+function ordinal(n) {
+  if (n === 1 || n === 21 || n === 31) return "st";
+  if (n === 2 || n === 22) return "nd";
+  if (n === 3 || n === 23) return "rd";
+  return "th";
+}
+
+// Returns a label like "Tuesday 20th May"
+function getDayWithDate(dayName) {
+  const target = getDateForDay(dayName);
+  const d = target.getDate();
   const month = target.toLocaleString("default", { month: "long" });
-  return `${dayName} ${day}${suffix} ${month}`;
+  return `${dayName} ${d}${ordinal(d)} ${month}`;
+}
+
+// Populate the preferred_day select with full dates; disable past days
+function populateDaySelect() {
+  if (!preferredDaySelect) return;
+  const workdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+  preferredDaySelect.innerHTML = '<option value="">Select day...</option>';
+  workdays.forEach((day) => {
+    const opt = document.createElement("option");
+    opt.value = day;
+    const past = isDayPast(day);
+    opt.textContent = getDayWithDate(day);
+    opt.disabled = past;
+    if (past) opt.style.color = "#aaa";
+    preferredDaySelect.appendChild(opt);
+  });
 }
 
 // --- GLOBAL STATE ---
@@ -97,24 +126,36 @@ function populateLocationSelect() {
 }
 
 // Function to generate time options for select fields
-function generateTimeOptions(interval) {
+// Pass selectedDay (e.g. "Tuesday") to disable past times when it's today
+function generateTimeOptions(interval, selectedDay) {
   startSelect.innerHTML = '<option value="">-- Select Start Time --</option>';
   endSelect.innerHTML = '<option value="">-- Select End Time --</option>';
 
   const durationMinutes = interval * 60;
+
+  // Work out whether the selected day is today, so we can grey out past times
+  const now = new Date();
+  const todayIdx = now.getDay();
+  const selectedIdx = DAY_NAMES.indexOf(selectedDay || "");
+  const isToday = selectedIdx !== -1 && selectedIdx === todayIdx;
+  const currentMinutes = isToday ? now.getHours() * 60 + now.getMinutes() : -1;
 
   for (let h = 8; h <= 20; h++) {
     for (let m = 0; m < 60; m += 15) {
       const startHour = String(h).padStart(2, "0");
       const startMinute = String(m).padStart(2, "0");
       const startTimeStr = `${startHour}:${startMinute}`;
+      const slotMinutes = h * 60 + m;
 
       let endTime = new Date(1970, 0, 1, h, m + durationMinutes);
 
       if (endTime.getHours() < 22) {
         const startOption = document.createElement("option");
         startOption.value = startTimeStr;
+        const isPast = isToday && slotMinutes <= currentMinutes;
         startOption.textContent = startTimeStr;
+        startOption.disabled = isPast;
+        if (isPast) startOption.style.color = "#aaa";
         startSelect.appendChild(startOption);
       }
     }
@@ -164,7 +205,7 @@ function checkCreatorInputs() {
   if (interval && day) {
     disabledOverlay.style.display = "none";
     availabilityWrapper.dataset.interval = interval;
-    generateTimeOptions(interval);
+    generateTimeOptions(interval, day);
     if (constrainedDayDisplay)
       constrainedDayDisplay.textContent = getDayWithDate(day);
   } else {
@@ -174,8 +215,15 @@ function checkCreatorInputs() {
 
 if (intervalSelect)
   intervalSelect.addEventListener("change", checkCreatorInputs);
-if (preferredDaySelect)
-  preferredDaySelect.addEventListener("change", checkCreatorInputs);
+if (preferredDaySelect) {
+  preferredDaySelect.addEventListener("change", () => {
+    checkCreatorInputs();
+    // Re-generate time slots with past-disabling aware of the chosen day
+    const interval = parseInt(intervalSelect ? intervalSelect.value : 1) || 1;
+    if (preferredDaySelect.value)
+      generateTimeOptions(interval, preferredDaySelect.value);
+  });
+}
 
 // --- INITIALIZATION AND MAIN LOGIC ---
 
@@ -217,6 +265,7 @@ function showSuccessModal() {
 
 async function initializeAvailabilityPage() {
   populateLocationSelect();
+  populateDaySelect();
 
   try {
     const userRes = await fetch("/api/users/me", {
@@ -269,7 +318,7 @@ async function initializeAvailabilityPage() {
       constrainedDayDisplay.textContent = getDayWithDate(roomData.meeting_day);
 
       availabilityWrapper.dataset.interval = roomData.meeting_interval;
-      generateTimeOptions(roomData.meeting_interval);
+      generateTimeOptions(roomData.meeting_interval, roomData.meeting_day);
 
       loadExistingAvailability(roomData.meeting_interval);
     }

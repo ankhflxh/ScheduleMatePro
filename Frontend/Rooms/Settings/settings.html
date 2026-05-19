@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -48,7 +48,10 @@
     <div class="settings-container">
       <header class="settings-header">
         <button
-          onclick="window.location.href='../EnterRooms/enterrooms.html' + window.location.search"
+          onclick="
+            window.location.href =
+              '../EnterRooms/enterrooms.html' + window.location.search
+          "
           class="back-pill"
         >
           <span class="material-icons">arrow_back</span> Back
@@ -83,36 +86,62 @@
         </section>
 
         <div class="danger-zone">
-          <button id="logoutBtn" class="logout-btn">
-            <span class="material-icons">logout</span> Log Out
+          <button id="leaveRoomBtn" class="logout-btn">
+            <span class="material-icons">exit_to_app</span>
+            <span id="leaveRoomLabel">Leave Room</span>
           </button>
         </div>
       </main>
     </div>
 
-    <div id="logoutModal" class="modal-overlay">
+    <!-- Leave Room Modal (member) -->
+    <div id="leaveModal" class="modal-overlay">
       <div class="modal-box">
         <div class="modal-icon danger">
-          <span class="material-icons">logout</span>
+          <span class="material-icons">exit_to_app</span>
         </div>
-        <h3>Log Out?</h3>
-        <p>Are you sure you want to sign out of ScheduleMate?</p>
+        <h3>Leave Room?</h3>
+        <p>
+          You'll be removed from this room and your availability will be
+          cleared. You can rejoin with the invite code.
+        </p>
         <div class="modal-actions">
-          <button id="cancelLogout" class="modal-btn secondary">Cancel</button>
-          <button id="confirmLogout" class="modal-btn danger-btn">
-            Yes, Logout
+          <button id="cancelLeave" class="modal-btn secondary">Cancel</button>
+          <button id="confirmLeave" class="modal-btn danger-btn">
+            Yes, Leave
           </button>
         </div>
       </div>
     </div>
 
-    <div id="logoutSuccessModal" class="modal-overlay" style="display: none">
-      <div class="modal-box success">
+    <!-- Delete Room Modal (creator) -->
+    <div id="deleteModal" class="modal-overlay">
+      <div class="modal-box">
+        <div class="modal-icon danger">
+          <span class="material-icons">delete_forever</span>
+        </div>
+        <h3>Delete Room?</h3>
+        <p>
+          This will permanently delete the room, all meetings, notes, and
+          availability for every member. This cannot be undone.
+        </p>
+        <div class="modal-actions">
+          <button id="cancelDelete" class="modal-btn secondary">Cancel</button>
+          <button id="confirmDelete" class="modal-btn danger-btn">
+            Yes, Delete
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="leaveSuccessModal" class="modal-overlay" style="display: none">
+      <div class="modal-box">
         <span class="material-icons" style="color: #10b981; font-size: 3rem"
           >check_circle</span
         >
-        <h3>Success</h3>
-        <p>See you next time!</p>
+        <h3>Done!</h3>
+        <p id="leaveSuccessMsg">You've left the room.</p>
       </div>
     </div>
 

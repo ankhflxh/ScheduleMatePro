@@ -14,6 +14,7 @@ const roomRoutes = require("./Routes/rooms");
 const availabilityRoutes = require("./Routes/availability");
 const meetingRoutes = require("./Routes/meetings");
 const notesRoutes = require("./Routes/notes");
+const microsoftRoutes = require("./Routes/microsoft");
 
 // ✅ Shared push helper
 const { webpush, sendPushToRoomMembers } = require("./pushHelper");
@@ -43,6 +44,7 @@ app.use("/api/meetings", meetingRoutes);
 app.use("/api/notes", notesRoutes);
 app.use("/api/users", authRoutes);
 app.use("/api/suggest", suggestRoutes);
+app.use("/api/auth/microsoft", microsoftRoutes);
 
 // Root Redirect
 app.get("/", (req, res) => {
