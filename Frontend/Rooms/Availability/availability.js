@@ -41,6 +41,42 @@ const UNIVERSITY_BUILDINGS = [
   "International College of Portsmouth",
 ];
 
+// Returns the date of the upcoming/current occurrence of a given day name
+// e.g. getDayWithDate("Tuesday") => "Tuesday 20th May"
+function getDayWithDate(dayName) {
+  const days = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ];
+  const today = new Date();
+  const targetIdx = days.indexOf(dayName);
+  if (targetIdx === -1) return dayName;
+
+  const todayIdx = today.getDay();
+  let diff = targetIdx - todayIdx;
+  if (diff < 0) diff += 7; // always show current or next occurrence
+
+  const target = new Date(today);
+  target.setDate(today.getDate() + diff);
+
+  const day = target.getDate();
+  const suffix =
+    day === 1 || day === 21 || day === 31
+      ? "st"
+      : day === 2 || day === 22
+        ? "nd"
+        : day === 3 || day === 23
+          ? "rd"
+          : "th";
+  const month = target.toLocaleString("default", { month: "long" });
+  return `${dayName} ${day}${suffix} ${month}`;
+}
+
 // --- GLOBAL STATE ---
 let currentUserId = null;
 let roomData = null; // Store room data here after fetching
@@ -129,7 +165,8 @@ function checkCreatorInputs() {
     disabledOverlay.style.display = "none";
     availabilityWrapper.dataset.interval = interval;
     generateTimeOptions(interval);
-    if (constrainedDayDisplay) constrainedDayDisplay.textContent = day;
+    if (constrainedDayDisplay)
+      constrainedDayDisplay.textContent = getDayWithDate(day);
   } else {
     disabledOverlay.style.display = "flex";
   }
@@ -199,7 +236,7 @@ async function initializeAvailabilityPage() {
 
     if (!roomRes.ok) {
       showError(
-        "Failed to load room details. Room may not exist or network error."
+        "Failed to load room details. Room may not exist or network error.",
       );
       return;
     }
@@ -229,7 +266,7 @@ async function initializeAvailabilityPage() {
       disabledOverlay.style.display = "none";
       constrainedDayDisplay.style.display = "block";
       constrainedDayDisplay.previousElementSibling.style.display = "block";
-      constrainedDayDisplay.textContent = roomData.meeting_day;
+      constrainedDayDisplay.textContent = getDayWithDate(roomData.meeting_day);
 
       availabilityWrapper.dataset.interval = roomData.meeting_interval;
       generateTimeOptions(roomData.meeting_interval);
@@ -290,7 +327,7 @@ async function submitCreatorPreferences(interval, day) {
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({ error: "Server error" }));
     showError(
-      "Failed to save preferences: " + (errorData.error || "Server error")
+      "Failed to save preferences: " + (errorData.error || "Server error"),
     );
     return false;
   }
@@ -312,13 +349,13 @@ async function submitAvailability(day, start_time, end_time, location) {
 
     if (res.status === 403) {
       showError(
-        errData.error || "Creator must set scheduling preferences first."
+        errData.error || "Creator must set scheduling preferences first.",
       );
     } else if (res.status === 401) {
       showError("You are not logged in.");
     } else {
       showError(
-        "Server responded with error: " + (errData.error || "Unknown error")
+        "Server responded with error: " + (errData.error || "Unknown error"),
       );
     }
     return false;
@@ -356,7 +393,7 @@ form.addEventListener("submit", async (e) => {
       if (currentInterval && currentDay) {
         const prefSaved = await submitCreatorPreferences(
           currentInterval,
-          currentDay
+          currentDay,
         );
         if (!prefSaved) return;
 
@@ -370,11 +407,11 @@ form.addEventListener("submit", async (e) => {
           disabledOverlay.style.display = "none";
           availabilityWrapper.dataset.interval = currentInterval;
           generateTimeOptions(currentInterval);
-          constrainedDayDisplay.textContent = currentDay;
+          constrainedDayDisplay.textContent = getDayWithDate(currentDay);
         }
       } else {
         showError(
-          "Creator must select both Meeting Duration and Preferred Day."
+          "Creator must select both Meeting Duration and Preferred Day.",
         );
         return;
       }
@@ -392,7 +429,7 @@ form.addEventListener("submit", async (e) => {
 
     if (!start_time || !end_time || !location) {
       showError(
-        "Missing required availability fields (Start/End Time or Location)."
+        "Missing required availability fields (Start/End Time or Location).",
       );
       return;
     }
@@ -402,7 +439,7 @@ form.addEventListener("submit", async (e) => {
 
     if ((end.getTime() - start.getTime()) / 60000 !== durationMinutes) {
       showError(
-        `Your selected time slot must be exactly ${currentInterval} hour(s).`
+        `Your selected time slot must be exactly ${currentInterval} hour(s).`,
       );
       return;
     }
@@ -411,11 +448,11 @@ form.addEventListener("submit", async (e) => {
       dayForSubmission,
       start_time,
       end_time,
-      location
+      location,
     );
   } else {
     showError(
-      "Meeting preferences must be set before submitting availability."
+      "Meeting preferences must be set before submitting availability.",
     );
     return;
   }

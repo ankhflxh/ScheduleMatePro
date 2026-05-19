@@ -51,9 +51,9 @@ if (roomId && confirmedBanner) {
         confirmedBanner.innerHTML = `
           <span class="material-icons">check_circle</span>
           <span>Latest confirmed: <strong>${data.day} @ ${data.time.substring(
-          0,
-          5
-        )}</strong> (${data.location})</span>
+            0,
+            5,
+          )}</strong> (${data.location})</span>
         `;
         confirmedBanner.style.display = "flex";
         confirmedBanner.style.alignItems = "center";
@@ -93,5 +93,67 @@ const exitBtn = document.getElementById("exitBtn");
 if (exitBtn) {
   exitBtn.onclick = () => {
     window.location.href = "/Dashboard/dashboard.html";
+  };
+}
+
+// ── LEAVE ROOM ────────────────────────────────────────────────────
+let isCreator = false;
+
+fetch(`/api/rooms/${roomId}`, { headers: { "X-Auth-Token": token } })
+  .then((r) => r.json())
+  .then((room) => {
+    fetch("/api/users/me", { headers: { "X-Auth-Token": token } })
+      .then((r) => r.json())
+      .then((user) => {
+        isCreator = String(user.user_id) === String(room.creator_id);
+        const leaveTitle = document.getElementById("leaveModalTitle");
+        const leaveBody = document.getElementById("leaveModalBody");
+        const leaveConfirm = document.getElementById("leaveConfirmBtn");
+        if (!leaveTitle) return;
+        if (isCreator) {
+          leaveTitle.textContent = "Delete Room?";
+          leaveBody.textContent =
+            "You are the creator. Leaving will permanently delete this room and all its data for everyone. This cannot be undone.";
+          leaveConfirm.textContent = "Delete Room";
+        }
+      });
+  });
+
+const leaveRoomBtn = document.getElementById("leaveRoomBtn");
+const leaveRoomModal = document.getElementById("leaveRoomModal");
+const leaveCancelBtn = document.getElementById("leaveCancelBtn");
+const leaveConfirmBtn = document.getElementById("leaveConfirmBtn");
+
+if (leaveRoomBtn)
+  leaveRoomBtn.onclick = () => {
+    leaveRoomModal.style.display = "flex";
+  };
+if (leaveCancelBtn)
+  leaveCancelBtn.onclick = () => {
+    leaveRoomModal.style.display = "none";
+  };
+
+if (leaveConfirmBtn) {
+  leaveConfirmBtn.onclick = async () => {
+    leaveConfirmBtn.disabled = true;
+    leaveConfirmBtn.textContent = "Processing...";
+    try {
+      const res = await fetch(`/api/rooms/${roomId}/leave`, {
+        method: "DELETE",
+        headers: { "X-Auth-Token": token },
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.error || "Failed to leave room.");
+        leaveConfirmBtn.disabled = false;
+        leaveConfirmBtn.textContent = isCreator ? "Delete Room" : "Leave";
+        return;
+      }
+      window.location.href = "/Dashboard/dashboard.html";
+    } catch (err) {
+      alert("Something went wrong.");
+      leaveConfirmBtn.disabled = false;
+      leaveConfirmBtn.textContent = isCreator ? "Delete Room" : "Leave";
+    }
   };
 }

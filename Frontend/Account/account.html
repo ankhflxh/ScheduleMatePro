@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Account | ScheduleMate Pro</title>
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="account.css" />
+    <link rel="icon" type="image/png" href="/Images/favicon.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#6366f1" />
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("/sw.js").catch(() => {});
+        });
+      }
+    </script>
+  </head>
+  <body>
+    <div class="page-wrap">
+      <header class="acc-header">
+        <button
+          class="back-pill"
+          onclick="window.location.href = '/Dashboard/dashboard.html'"
+        >
+          <span class="material-icons">arrow_back</span> Dashboard
+        </button>
+        <h1>My Account</h1>
+      </header>
+
+      <!-- Avatar + name -->
+      <div class="avatar-block">
+        <div class="avatar" id="avatarCircle">?</div>
+        <div>
+          <div class="avatar-name" id="displayUsername">Loading...</div>
+          <div class="avatar-email" id="displayEmail">—</div>
+        </div>
+      </div>
+
+      <!-- Edit sections -->
+      <div class="card">
+        <div class="card-section">
+          <div class="section-label">
+            <span class="material-icons">badge</span> Username
+          </div>
+          <div class="section-row">
+            <span id="usernameVal">—</span>
+            <button class="edit-btn" onclick="openModal('username')">
+              Edit
+            </button>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div class="card-section">
+          <div class="section-label">
+            <span class="material-icons">email</span> Email
+          </div>
+          <div class="section-row">
+            <span id="emailVal">—</span>
+            <button class="edit-btn" onclick="openModal('email')">Edit</button>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div class="card-section">
+          <div class="section-label">
+            <span class="material-icons">lock</span> Password
+          </div>
+          <div class="section-row">
+            <span>••••••••</span>
+            <button class="edit-btn" onclick="openModal('password')">
+              Change
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Danger zone -->
+      <div class="card danger-card">
+        <button class="action-row logout" id="logoutBtn">
+          <span class="material-icons">logout</span>
+          <span>Log Out</span>
+          <span class="material-icons arrow">chevron_right</span>
+        </button>
+        <div class="divider"></div>
+        <button class="action-row delete" id="deleteBtn">
+          <span class="material-icons">delete_forever</span>
+          <span>Delete Account</span>
+          <span class="material-icons arrow">chevron_right</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal-overlay" style="display: none">
+      <div class="modal-box">
+        <button class="modal-close" onclick="closeModal()">
+          <span class="material-icons">close</span>
+        </button>
+        <h2 id="modalTitle">Edit</h2>
+        <div id="modalFields"></div>
+        <div id="modalError" class="modal-error" style="display: none"></div>
+        <div class="modal-actions">
+          <button class="btn secondary" onclick="closeModal()">Cancel</button>
+          <button class="btn primary" id="modalSaveBtn">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Confirm Delete Modal -->
+    <div id="deleteModal" class="modal-overlay" style="display: none">
+      <div class="modal-box">
+        <div class="danger-icon">
+          <span class="material-icons">warning</span>
+        </div>
+        <h2>Delete Account?</h2>
+        <p class="modal-desc">
+          This is permanent. All your rooms, availability, and data will be
+          deleted. Type your password to confirm.
+        </p>
+        <input
+          type="password"
+          id="deletePassword"
+          class="modal-input"
+          placeholder="Your password"
+        />
+        <div id="deleteError" class="modal-error" style="display: none"></div>
+        <div class="modal-actions">
+          <button
+            class="btn secondary"
+            onclick="
+              document.getElementById('deleteModal').style.display = 'none'
+            "
+          >
+            Cancel
+          </button>
+          <button class="btn danger" id="confirmDeleteBtn">
+            Delete Forever
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="account.js"></script>
+  </body>
+</html>

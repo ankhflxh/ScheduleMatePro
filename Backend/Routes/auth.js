@@ -257,4 +257,101 @@ router.post("/tour-complete", authenticateToken, async (req, res) => {
   }
 });
 
+// PATCH /api/auth/update — update username, email, or password
+router.patch("/update", authenticateToken, async (req, res) => {
+  const { username, email, currentPassword, newPassword } = req.body;
+  const userId = req.user.id;
+
+  try {
+    if (username !== undefined) {
+      if (username.length < 3)
+        return res
+          .status(400)
+          .json({ error: "Username must be at least 3 characters." });
+      await pool.query("UPDATE users SET username = $1 WHERE id = $2", [
+        username,
+        userId,
+      ]);
+      return res.json({ success: true });
+    }
+
+    if (email !== undefined) {
+      if (!email.includes("@"))
+        return res.status(400).json({ error: "Invalid email address." });
+      await pool.query("UPDATE users SET email = $1 WHERE id = $2", [
+        email,
+        userId,
+      ]);
+      return res.json({ success: true });
+    }
+
+    if (newPassword !== undefined) {
+      if (!currentPassword)
+        return res.status(400).json({ error: "Current password is required." });
+      if (newPassword.length < 8)
+        return res
+          .status(400)
+          .json({ error: "New password must be at least 8 characters." });
+
+      const userRes = await pool.query(
+        "SELECT password_hash FROM users WHERE id = $1",
+        [userId],
+      );
+      const match = await bcrypt.compare(
+        currentPassword,
+        userRes.rows[0].password_hash,
+      );
+      if (!match)
+        return res
+          .status(400)
+          .json({ error: "Current password is incorrect." });
+
+      const newHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+      await pool.query("UPDATE users SET password_hash = $1 WHERE id = $2", [
+        newHash,
+        userId,
+      ]);
+      return res.json({ success: true });
+    }
+
+    return res.status(400).json({ error: "No update fields provided." });
+  } catch (err) {
+    if (err.code === "23505") {
+      if (err.constraint === "users_username_key")
+        return res.status(400).json({ error: "Username already taken." });
+      if (err.constraint === "users_email_key")
+        return res.status(400).json({ error: "Email already in use." });
+    }
+    console.error("Update error:", err);
+    res.status(500).json({ error: "Update failed." });
+  }
+});
+
+// DELETE /api/auth/delete — delete account (requires password confirmation)
+router.delete("/delete", authenticateToken, async (req, res) => {
+  const { password } = req.body;
+  const userId = req.user.id;
+
+  if (!password)
+    return res
+      .status(400)
+      .json({ error: "Password is required to delete your account." });
+
+  try {
+    const userRes = await pool.query(
+      "SELECT password_hash FROM users WHERE id = $1",
+      [userId],
+    );
+    const match = await bcrypt.compare(password, userRes.rows[0].password_hash);
+    if (!match) return res.status(400).json({ error: "Incorrect password." });
+
+    // Delete user — cascade handles rooms/availability/notes/members
+    await pool.query("DELETE FROM users WHERE id = $1", [userId]);
+    res.json({ success: true, message: "Account deleted." });
+  } catch (err) {
+    console.error("Delete account error:", err);
+    res.status(500).json({ error: "Failed to delete account." });
+  }
+});
+
 module.exports = { router, authenticateToken };

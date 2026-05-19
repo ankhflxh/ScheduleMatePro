@@ -266,3 +266,54 @@ body {
     font-size: 0.7rem;
   }
 }
+
+/* Leave Room button */
+.leave-room-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1.5px solid rgba(239, 68, 68, 0.4);
+  color: #ef4444;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-family: "Outfit", sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 0.5rem;
+  transition: all 0.2s;
+}
+.leave-room-btn .material-icons {
+  font-size: 16px;
+}
+.leave-room-btn:hover {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: #ef4444;
+}
+
+/* Leave room modal extras */
+.modal-icon-box {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #fef2f2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+}
+.modal-icon-box .material-icons {
+  color: #ef4444;
+  font-size: 28px;
+}
+.modal-btn.danger {
+  background: #ef4444;
+  color: white;
+  border: none;
+}
+.modal-btn.secondary {
+  background: #f1f5f9;
+  color: #64748b;
+  border: none;
+}

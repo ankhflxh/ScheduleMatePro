@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -62,12 +62,20 @@
         id="confirmed-meeting-info"
         class="status-banner"
         style="display: none"
-      ></div>
+      >
+        <button id="leaveRoomBtn" class="leave-room-btn">
+          <span class="material-icons">exit_to_app</span>
+          Leave Room
+        </button>
+      </div>
 
       <main class="action-menu">
         <div
           class="menu-card"
-          onclick="location.href='../MeetingScheduler/scheduler.html' + window.location.search"
+          onclick="
+            location.href =
+              '../MeetingScheduler/scheduler.html' + window.location.search
+          "
         >
           <div class="card-icon schedule-glow">
             <span class="material-icons">schedule</span>
@@ -81,7 +89,10 @@
 
         <div
           class="menu-card"
-          onclick="location.href='../Availability/availability.html' + window.location.search"
+          onclick="
+            location.href =
+              '../Availability/availability.html' + window.location.search
+          "
         >
           <div class="card-icon avail-glow">
             <span class="material-icons">calendar_today</span>
@@ -95,7 +106,9 @@
 
         <div
           class="menu-card"
-          onclick="location.href='../Notes/notes.html' + window.location.search"
+          onclick="
+            location.href = '../Notes/notes.html' + window.location.search
+          "
         >
           <div
             class="card-icon"
@@ -127,7 +140,10 @@
 
         <div
           class="menu-card"
-          onclick="location.href='../MeetingBoard/board.html' + window.location.search"
+          onclick="
+            location.href =
+              '../MeetingBoard/board.html' + window.location.search
+          "
         >
           <div class="card-icon board-glow">
             <span class="material-icons">dashboard</span>
@@ -141,7 +157,9 @@
 
         <div
           class="menu-card"
-          onclick="location.href='../Settings/settings.html' + window.location.search"
+          onclick="
+            location.href = '../Settings/settings.html' + window.location.search
+          "
         >
           <div class="card-icon settings-glow">
             <span class="material-icons">tune</span>
@@ -153,6 +171,25 @@
           <span class="material-icons arrow">arrow_forward_ios</span>
         </div>
       </main>
+    </div>
+
+    <!-- Leave Room Modal -->
+    <div id="leaveRoomModal" class="modal-overlay" style="display: none">
+      <div class="modal">
+        <div class="modal-icon-box">
+          <span class="material-icons">exit_to_app</span>
+        </div>
+        <div class="modal-title" id="leaveModalTitle">Leave Room?</div>
+        <div class="modal-body" id="leaveModalBody">
+          Are you sure you want to leave this room?
+        </div>
+        <div class="modal-actions">
+          <button class="modal-btn secondary" id="leaveCancelBtn">
+            Cancel
+          </button>
+          <button class="modal-btn danger" id="leaveConfirmBtn">Leave</button>
+        </div>
+      </div>
     </div>
 
     <script src="enterrooms.js"></script>
