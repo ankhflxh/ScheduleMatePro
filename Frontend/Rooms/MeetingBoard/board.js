@@ -114,12 +114,25 @@ function loadMeetingHistory() {
         const isCreator = currentUserId === roomCreatorId;
         const canDelete = isCreator && status !== "past";
 
+        // Show join call button only on the day of the meeting
+        const meetingDayIdx = days.indexOf(m.meeting_day);
+        const isToday = meetingDayIdx === currentDayIndex;
+        const canJoin = isToday && status !== "past" && m.daily_room_url;
+
         card.innerHTML = `
                 <div class="card-day">${m.meeting_day}</div>
                 <div class="card-time">${cleanStart} - ${cleanEnd}</div>
                 <div class="card-loc">
                     <span class="material-icons" style="font-size:1rem">place</span> ${m.location}
                 </div>
+                ${
+                  canJoin
+                    ? `
+                <a href="${m.daily_room_url}" target="_blank" class="join-call-btn">
+                  <span class="material-icons">videocam</span> Join Call
+                </a>`
+                    : ""
+                }
                 ${
                   canDelete
                     ? `<button class="delete-meeting-btn" data-id="${m.id}" data-day="${m.meeting_day}" data-time="${cleanStart}">

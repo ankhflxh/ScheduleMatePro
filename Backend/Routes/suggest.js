@@ -222,10 +222,15 @@ router.post("/:roomId/share", authenticateToken, async (req, res) => {
 router.post("/:roomId/respond", authenticateToken, async (req, res) => {
   const { roomId } = req.params;
   const userId = req.user.id;
-  const { response } = req.body;
+  const { response, attendance_mode } = req.body;
 
-  if (!["accepted", "declined"].includes(response))
+  const validResponses = ["accepted", "declined", "cant_attend"];
+  const validModes = ["in_person", "online", "cant_attend"];
+
+  if (!validResponses.includes(response))
     return res.status(400).json({ error: "Invalid response value." });
+  if (attendance_mode && !validModes.includes(attendance_mode))
+    return res.status(400).json({ error: "Invalid attendance mode." });
 
   try {
     const memberCheck = await pool.query(
@@ -247,11 +252,11 @@ router.post("/:roomId/respond", authenticateToken, async (req, res) => {
     const { creator_id, name: roomName } = suggestionCheck.rows[0];
 
     await pool.query(
-      `INSERT INTO suggestion_responses (room_id, user_id, response)
-       VALUES ($1, $2, $3)
+      `INSERT INTO suggestion_responses (room_id, user_id, response, attendance_mode)
+       VALUES ($1, $2, $3, $4)
        ON CONFLICT (room_id, user_id)
-       DO UPDATE SET response = EXCLUDED.response, responded_at = CURRENT_TIMESTAMP`,
-      [roomId, userId, response],
+       DO UPDATE SET response = EXCLUDED.response, attendance_mode = EXCLUDED.attendance_mode, responded_at = CURRENT_TIMESTAMP`,
+      [roomId, userId, response, attendance_mode || "in_person"],
     );
 
     const userRes = await pool.query(
@@ -293,24 +298,23 @@ router.post("/:roomId/respond", authenticateToken, async (req, res) => {
 });
 
 // ---------------------------------------------------------------
-// GET /api/suggest/:roomId/responses  — Creator fetches all responses
+// GET /api/suggest/:roomId/responses  — All members fetch responses
 // ---------------------------------------------------------------
 router.get("/:roomId/responses", authenticateToken, async (req, res) => {
   const { roomId } = req.params;
   const userId = req.user.id;
 
   try {
-    const roomRes = await pool.query(
-      "SELECT creator_id FROM rooms WHERE id = $1",
-      [roomId],
+    // Any room member can see responses (not just creator)
+    const memberCheck = await pool.query(
+      "SELECT 1 FROM room_members WHERE room_id = $1 AND user_id = $2",
+      [roomId, userId],
     );
-    if (String(roomRes.rows[0]?.creator_id) !== String(userId))
-      return res
-        .status(403)
-        .json({ error: "Only the creator can view responses." });
+    if (memberCheck.rows.length === 0)
+      return res.status(403).json({ error: "Not a member of this room." });
 
     const result = await pool.query(
-      `SELECT u.username, sr.response, sr.responded_at
+      `SELECT u.username, sr.response, sr.attendance_mode, sr.responded_at
        FROM suggestion_responses sr
        JOIN users u ON sr.user_id = u.id
        WHERE sr.room_id = $1

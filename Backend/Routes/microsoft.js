@@ -40,7 +40,9 @@ router.get("/", (req, res) => {
     response_type: "code",
     redirect_uri: REDIRECT_URI,
     response_mode: "query",
-    scope: ["openid", "profile", "email", "offline_access"].join(" "),
+    scope: ["openid", "profile", "email", "offline_access", "User.Read"].join(
+      " ",
+    ),
     state,
     // Prompt 'select_account' lets users switch accounts easily
     prompt: "select_account",
@@ -100,25 +102,55 @@ router.get("/callback", async (req, res) => {
       );
     }
 
-    const { access_token, refresh_token } = tokenData;
+    const { access_token, refresh_token, id_token } = tokenData;
 
-    // ── Fetch Microsoft user profile ──────────────────────────────
-    const profileRes = await fetch("https://graph.microsoft.com/v1.0/me", {
-      headers: { Authorization: `Bearer ${access_token}` },
-    });
+    // ── Decode id_token for basic profile (no Graph call needed) ──
+    let email = null;
+    let displayName = null;
 
-    const profile = await profileRes.json();
+    try {
+      const payload = JSON.parse(
+        Buffer.from(id_token.split(".")[1], "base64").toString("utf8"),
+      );
+      email = (
+        payload.email ||
+        payload.preferred_username ||
+        payload.upn ||
+        ""
+      ).toLowerCase();
+      displayName = payload.name || payload.given_name || email.split("@")[0];
+    } catch (e) {
+      console.error("id_token decode failed:", e);
+    }
 
-    if (!profileRes.ok || !profile.mail) {
-      console.error("Profile fetch failed:", profile);
+    // ── Fallback: try Graph API if id_token did not have email ────
+    if (!email) {
+      try {
+        const profileRes = await fetch("https://graph.microsoft.com/v1.0/me", {
+          headers: { Authorization: `Bearer ${access_token}` },
+        });
+        const profile = await profileRes.json();
+        if (profileRes.ok) {
+          email = (
+            profile.mail ||
+            profile.userPrincipalName ||
+            ""
+          ).toLowerCase();
+          displayName =
+            profile.displayName || profile.givenName || email.split("@")[0];
+        } else {
+          console.error("Graph API failed:", profile);
+        }
+      } catch (e) {
+        console.error("Graph fetch error:", e);
+      }
+    }
+
+    if (!email) {
       return res.redirect(
         `${appBase}/LoginPage/login.html?error=profile_failed`,
       );
     }
-
-    const email = (profile.mail || profile.userPrincipalName).toLowerCase();
-    const displayName =
-      profile.displayName || profile.givenName || email.split("@")[0];
 
     // Sanitise display name into a username-safe string
     // e.g. "Ashley King" -> "AshleyKing", then truncate to 30 chars

@@ -304,3 +304,31 @@ body {
 .modal-btn.danger-btn:hover {
   background: #c53030;
 }
+
+/* ── Join Call Button ─────────────────────────────────────────── */
+.join-call-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 0.75rem;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #6366f1, #818cf8);
+  color: white;
+  border-radius: 20px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  font-family: "Outfit", sans-serif;
+  text-decoration: none;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+  transition:
+    transform 0.18s,
+    box-shadow 0.18s;
+}
+.join-call-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(99, 102, 241, 0.45);
+}
+.join-call-btn .material-icons {
+  font-size: 1.1rem;
+}

@@ -33,7 +33,7 @@ router.get("/history/:roomId", authenticateToken, async (req, res) => {
   const { roomId } = req.params;
   try {
     const result = await pool.query(
-      `SELECT id, meeting_day, start_time, end_time, location, created_at
+      `SELECT id, meeting_day, start_time, end_time, location, daily_room_url, created_at
        FROM meetings
        WHERE room_id = $1
        ORDER BY created_at DESC`,
@@ -76,20 +76,95 @@ router.post("/:roomId", authenticateToken, async (req, res) => {
     if (endH >= 24) endH -= 24;
     const end_time = `${String(endH).padStart(2, "0")}:${String(startM).padStart(2, "0")}`;
 
-    // 4. Insert Meeting
+    // 4. Create Daily.co room (available only on meeting day)
+    let daily_room_url = null;
+    let daily_room_name = null;
+
+    try {
+      const DAILY_API_KEY = process.env.DAILY_API_KEY;
+      if (DAILY_API_KEY) {
+        // Work out the next occurrence of meeting_day as a real date
+        const DAY_NAMES = [
+          "Sunday",
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday",
+        ];
+        const today = new Date();
+        const targetIdx = DAY_NAMES.indexOf(meeting_day);
+        const todayIdx = today.getDay();
+        let diff = targetIdx - todayIdx;
+        if (diff < 0) diff += 7;
+        const meetingDate = new Date(today);
+        meetingDate.setDate(today.getDate() + diff);
+
+        // nbf = meeting start time on that day (unix seconds)
+        const [nbfH, nbfM] = start_time.split(":").map(Number);
+        meetingDate.setHours(nbfH, nbfM, 0, 0);
+        const nbf = Math.floor(meetingDate.getTime() / 1000);
+
+        // exp = meeting end time + 30 min buffer
+        const expDate = new Date(meetingDate);
+        expDate.setHours(endH, startM, 0, 0);
+        expDate.setMinutes(expDate.getMinutes() + 30);
+        const exp = Math.floor(expDate.getTime() / 1000);
+
+        const roomSlug = `schedulemate-${roomId}-${Date.now()}`;
+
+        const dailyRes = await fetch("https://api.daily.co/v1/rooms", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${DAILY_API_KEY}`,
+          },
+          body: JSON.stringify({
+            name: roomSlug,
+            properties: {
+              nbf,
+              exp,
+              eject_at_room_exp: true,
+              enable_chat: true,
+              enable_knocking: false,
+            },
+          }),
+        });
+
+        const dailyData = await dailyRes.json();
+        if (dailyRes.ok && dailyData.url) {
+          daily_room_url = dailyData.url;
+          daily_room_name = roomSlug;
+        } else {
+          console.error("Daily.co room creation failed:", dailyData);
+        }
+      }
+    } catch (dailyErr) {
+      console.error("Daily.co error:", dailyErr.message);
+      // Don't fail the meeting confirmation if Daily fails
+    }
+
+    // 5. Insert Meeting
     const result = await pool.query(
-      `INSERT INTO meetings (room_id, confirmed_by, meeting_day, start_time, end_time, location)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [roomId, confirmed_by, meeting_day, start_time, end_time, location],
+      `INSERT INTO meetings (room_id, confirmed_by, meeting_day, start_time, end_time, location, daily_room_url, daily_room_name)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+      [
+        roomId,
+        confirmed_by,
+        meeting_day,
+        start_time,
+        end_time,
+        location,
+        daily_room_url,
+        daily_room_name,
+      ],
     );
 
     const newMeeting = result.rows[0];
 
     // 4. Clear availability so members can submit fresh for the next meeting
-    await pool.query(
-      `DELETE FROM availability WHERE room_id = $1`,
-      [roomId],
-    );
+    await pool.query(`DELETE FROM availability WHERE room_id = $1`, [roomId]);
 
     // 5. ✅ Push notification only — no email
     await sendPushToRoomMembers(roomId, {
@@ -135,7 +210,7 @@ router.delete("/:meetingId", authenticateToken, async (req, res) => {
        FROM meetings m
        JOIN rooms r ON m.room_id = r.id
        WHERE m.id = $1`,
-      [meetingId]
+      [meetingId],
     );
 
     if (meetingRes.rows.length === 0)
@@ -145,9 +220,26 @@ router.delete("/:meetingId", authenticateToken, async (req, res) => {
 
     // 2. Only the room creator can delete
     if (String(meeting.creator_id) !== String(userId))
-      return res.status(403).json({ error: "Only the room creator can cancel a meeting." });
+      return res
+        .status(403)
+        .json({ error: "Only the room creator can cancel a meeting." });
 
-    // 3. Delete the meeting
+    // 3. Delete the Daily.co room if it exists
+    if (meeting.daily_room_name && process.env.DAILY_API_KEY) {
+      try {
+        await fetch(
+          `https://api.daily.co/v1/rooms/${meeting.daily_room_name}`,
+          {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${process.env.DAILY_API_KEY}` },
+          },
+        );
+      } catch (e) {
+        console.error("Failed to delete Daily.co room:", e.message);
+      }
+    }
+
+    // 4. Delete the meeting
     await pool.query("DELETE FROM meetings WHERE id = $1", [meetingId]);
 
     // 4. Push notification to all room members

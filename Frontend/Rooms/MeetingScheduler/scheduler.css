@@ -507,17 +507,18 @@ body {
 
 /* Member response buttons */
 .btn-response-accept,
+.btn-response-online,
 .btn-response-decline {
   flex: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 10px 16px;
+  padding: 10px 12px;
   border: none;
   border-radius: 12px;
   font-family: "Outfit", sans-serif;
-  font-size: 0.95rem;
+  font-size: 0.88rem;
   font-weight: 600;
   cursor: pointer;
   transition:
@@ -528,24 +529,45 @@ body {
   background: #10b981;
   color: white;
 }
+.btn-response-online {
+  background: #6366f1;
+  color: white;
+}
 .btn-response-decline {
   background: #ef4444;
   color: white;
 }
 .btn-response-accept:hover,
+.btn-response-online:hover,
 .btn-response-decline:hover {
   opacity: 0.88;
   transform: translateY(-1px);
 }
 .btn-response-accept:disabled,
+.btn-response-online:disabled,
 .btn-response-decline:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
 }
 .btn-response-accept .material-icons,
+.btn-response-online .material-icons,
 .btn-response-decline .material-icons {
   font-size: 18px;
+}
+
+/* response badge attendance modes */
+.response-badge.in_person {
+  background: #d1fae5;
+  color: #065f46;
+}
+.response-badge.online {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+.response-badge.cant_attend {
+  background: #fee2e2;
+  color: #991b1b;
 }
 
 /* ============================================================

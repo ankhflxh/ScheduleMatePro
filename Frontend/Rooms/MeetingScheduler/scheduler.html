@@ -109,15 +109,15 @@
             </button>
           </div>
 
-          <!-- Creator: member responses panel -->
+          <!-- RSVP board — visible to all members -->
           <div
             id="responsesPanel"
             class="responses-panel"
             style="display: none"
           >
-            <h4><span class="material-icons">people</span> Member Responses</h4>
+            <h4><span class="material-icons">people</span> Who's Coming?</h4>
             <div id="responsesList" class="responses-list">
-              <p class="no-responses">No responses yet from members.</p>
+              <p class="no-responses">No responses yet.</p>
             </div>
           </div>
         </aside>
@@ -184,11 +184,14 @@
           class="suggestion-modal-actions"
           style="display: none"
         >
-          <button id="modalMemberAcceptBtn" class="btn-response-accept">
-            <span class="material-icons">check_circle</span> Accept
+          <button id="modalMemberInPersonBtn" class="btn-response-accept">
+            <span class="material-icons">place</span> In Person
+          </button>
+          <button id="modalMemberOnlineBtn" class="btn-response-online">
+            <span class="material-icons">videocam</span> Online
           </button>
           <button id="modalMemberDeclineBtn" class="btn-response-decline">
-            <span class="material-icons">cancel</span> Decline
+            <span class="material-icons">cancel</span> Can't Attend
           </button>
         </div>
 

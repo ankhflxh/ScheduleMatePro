@@ -19,7 +19,10 @@ const suggestionModal = document.getElementById("suggestionModal");
 const modalAcceptBtn = document.getElementById("modalAcceptBtn");
 const modalShareBtn = document.getElementById("modalShareBtn");
 const modalDismissBtn = document.getElementById("modalDismissBtn");
-const modalMemberAcceptBtn = document.getElementById("modalMemberAcceptBtn");
+const modalMemberInPersonBtn = document.getElementById(
+  "modalMemberInPersonBtn",
+);
+const modalMemberOnlineBtn = document.getElementById("modalMemberOnlineBtn");
 const modalMemberDeclineBtn = document.getElementById("modalMemberDeclineBtn");
 const modalCloseBtn = document.getElementById("modalCloseBtn");
 const creatorModalActions = document.getElementById("creatorModalActions");
@@ -132,9 +135,13 @@ async function loadSharedSuggestion() {
         if (memberModalActions) memberModalActions.style.display = "none";
         if (creatorModalActions) creatorModalActions.style.display = "none";
         if (memberAlreadyResponded) {
-          const emoji = myResponse === "accepted" ? "✅" : "❌";
-          const verb = myResponse === "accepted" ? "accepted" : "declined";
-          memberAlreadyResponded.textContent = `${emoji} You already ${verb} this suggested time.`;
+          const modeLabels = {
+            in_person: "🟢 In Person",
+            online: "🔵 Online",
+            cant_attend: "❌ Can't Attend",
+          };
+          const label = modeLabels[data.myAttendanceMode] || myResponse;
+          memberAlreadyResponded.textContent = `You responded: ${label}. Tap "View AI Suggestion" to change.`;
           memberAlreadyResponded.style.display = "block";
         }
       } else {
@@ -144,6 +151,11 @@ async function loadSharedSuggestion() {
         if (memberAlreadyResponded)
           memberAlreadyResponded.style.display = "none";
       }
+
+      // Show RSVP panel for members too
+      if (responsesPanel) responsesPanel.style.display = "block";
+      loadResponses();
+      startResponsePolling();
 
       // Auto-open the modal if they tapped the push notification
       if (fromNotification) openSuggestionModal();
@@ -272,72 +284,100 @@ if (modalDismissBtn) {
   });
 }
 
-// ─── MEMBER: ACCEPT / DECLINE ────────────────────────────────────
-if (modalMemberAcceptBtn) {
-  modalMemberAcceptBtn.addEventListener("click", () =>
-    submitMemberResponse("accepted"),
+// ─── MEMBER: IN PERSON / ONLINE / CAN'T ATTEND ───────────────────
+if (modalMemberInPersonBtn) {
+  modalMemberInPersonBtn.addEventListener("click", () =>
+    submitMemberResponse("accepted", "in_person"),
+  );
+}
+if (modalMemberOnlineBtn) {
+  modalMemberOnlineBtn.addEventListener("click", () =>
+    submitMemberResponse("accepted", "online"),
   );
 }
 if (modalMemberDeclineBtn) {
   modalMemberDeclineBtn.addEventListener("click", () =>
-    submitMemberResponse("declined"),
+    submitMemberResponse("cant_attend", "cant_attend"),
   );
 }
 
-async function submitMemberResponse(response) {
-  if (modalMemberAcceptBtn) modalMemberAcceptBtn.disabled = true;
-  if (modalMemberDeclineBtn) modalMemberDeclineBtn.disabled = true;
+async function submitMemberResponse(response, attendance_mode) {
+  [modalMemberInPersonBtn, modalMemberOnlineBtn, modalMemberDeclineBtn].forEach(
+    (b) => {
+      if (b) b.disabled = true;
+    },
+  );
 
   try {
     const res = await fetch(`/api/suggest/${roomId}/respond`, {
       method: "POST",
       ...API_HEADERS,
-      body: JSON.stringify({ response }),
+      body: JSON.stringify({ response, attendance_mode }),
     });
     const data = await res.json();
 
     if (!res.ok) {
       alert(data.error || "Could not submit your response.");
-      if (modalMemberAcceptBtn) modalMemberAcceptBtn.disabled = false;
-      if (modalMemberDeclineBtn) modalMemberDeclineBtn.disabled = false;
+      [
+        modalMemberInPersonBtn,
+        modalMemberOnlineBtn,
+        modalMemberDeclineBtn,
+      ].forEach((b) => {
+        if (b) b.disabled = false;
+      });
       return;
     }
 
     // Swap action buttons for confirmation message
     if (memberModalActions) memberModalActions.style.display = "none";
     if (memberAlreadyResponded) {
-      const emoji = response === "accepted" ? "✅" : "❌";
-      const verb = response === "accepted" ? "accepted" : "declined";
-      memberAlreadyResponded.textContent = `${emoji} You ${verb} the suggested time. The room creator has been notified.`;
+      const modeLabels = {
+        in_person: "🟢 In Person",
+        online: "🔵 Online",
+        cant_attend: "❌ Can't Attend",
+      };
+      memberAlreadyResponded.textContent = `You responded: ${modeLabels[attendance_mode]}. You can change this anytime.`;
       memberAlreadyResponded.style.display = "block";
     }
+    loadResponses();
   } catch (err) {
     console.error("Response error:", err);
     alert("Something went wrong. Please try again.");
-    if (modalMemberAcceptBtn) modalMemberAcceptBtn.disabled = false;
-    if (modalMemberDeclineBtn) modalMemberDeclineBtn.disabled = false;
+    [
+      modalMemberInPersonBtn,
+      modalMemberOnlineBtn,
+      modalMemberDeclineBtn,
+    ].forEach((b) => {
+      if (b) b.disabled = false;
+    });
   }
 }
 
 // ─── CREATOR: LOAD & POLL MEMBER RESPONSES ───────────────────────
 async function loadResponses() {
-  if (!responsesList || currentUserId !== roomCreatorId) return;
+  if (!responsesList) return;
   try {
     const res = await fetch(`/api/suggest/${roomId}/responses`, GET_HEADERS);
     const data = await res.json();
     if (!res.ok || !data.responses) return;
 
     if (data.responses.length === 0) {
-      responsesList.innerHTML =
-        "<p class='no-responses'>No responses yet from members.</p>";
+      responsesList.innerHTML = "<p class='no-responses'>No responses yet.</p>";
       return;
     }
+
+    const modeLabels = {
+      in_person: { emoji: "🟢", label: "In Person" },
+      online: { emoji: "🔵", label: "Online" },
+      cant_attend: { emoji: "❌", label: "Can't Attend" },
+    };
+
     responsesList.innerHTML = data.responses
       .map((r) => {
-        const emoji = r.response === "accepted" ? "✅" : "❌";
+        const mode = modeLabels[r.attendance_mode] || modeLabels["in_person"];
         return `<div class="response-item">
         <span class="response-name">${r.username}</span>
-        <span class="response-badge ${r.response}">${emoji} ${r.response}</span>
+        <span class="response-badge ${r.attendance_mode}">${mode.emoji} ${mode.label}</span>
       </div>`;
       })
       .join("");
