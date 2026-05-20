@@ -40,13 +40,7 @@ router.get("/", (req, res) => {
     response_type: "code",
     redirect_uri: REDIRECT_URI,
     response_mode: "query",
-    scope: [
-      "openid",
-      "profile",
-      "email",
-      "offline_access",
-      "Calendars.Read", // for future calendar sync
-    ].join(" "),
+    scope: ["openid", "profile", "email", "offline_access"].join(" "),
     state,
     // Prompt 'select_account' lets users switch accounts easily
     prompt: "select_account",
