@@ -33,7 +33,7 @@ router.get("/history/:roomId", authenticateToken, async (req, res) => {
   const { roomId } = req.params;
   try {
     const result = await pool.query(
-      `SELECT meeting_day, start_time, end_time, location, created_at
+      `SELECT id, meeting_day, start_time, end_time, location, created_at
        FROM meetings
        WHERE room_id = $1
        ORDER BY created_at DESC`,
@@ -86,7 +86,10 @@ router.post("/:roomId", authenticateToken, async (req, res) => {
     const newMeeting = result.rows[0];
 
     // 4. Clear availability so members can submit fresh for the next meeting
-    await pool.query(`DELETE FROM availability WHERE room_id = $1`, [roomId]);
+    await pool.query(
+      `DELETE FROM availability WHERE room_id = $1`,
+      [roomId],
+    );
 
     // 5. ✅ Push notification only — no email
     await sendPushToRoomMembers(roomId, {
@@ -117,6 +120,47 @@ router.get("/confirmed", authenticateToken, async (req, res) => {
     res.json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ error: "Fetch error" });
+  }
+});
+
+// DELETE /api/meetings/:meetingId - Creator cancels a confirmed meeting
+router.delete("/:meetingId", authenticateToken, async (req, res) => {
+  const { meetingId } = req.params;
+  const userId = req.user.id;
+
+  try {
+    // 1. Fetch the meeting and verify it exists
+    const meetingRes = await pool.query(
+      `SELECT m.*, r.name AS room_name, r.creator_id
+       FROM meetings m
+       JOIN rooms r ON m.room_id = r.id
+       WHERE m.id = $1`,
+      [meetingId]
+    );
+
+    if (meetingRes.rows.length === 0)
+      return res.status(404).json({ error: "Meeting not found." });
+
+    const meeting = meetingRes.rows[0];
+
+    // 2. Only the room creator can delete
+    if (String(meeting.creator_id) !== String(userId))
+      return res.status(403).json({ error: "Only the room creator can cancel a meeting." });
+
+    // 3. Delete the meeting
+    await pool.query("DELETE FROM meetings WHERE id = $1", [meetingId]);
+
+    // 4. Push notification to all room members
+    await sendPushToRoomMembers(meeting.room_id, {
+      title: "❌ Meeting Cancelled",
+      body: `The meeting in "${meeting.room_name}" on ${meeting.meeting_day} at ${meeting.start_time} has been cancelled.`,
+      url: `/Rooms/MeetingBoard/board.html`,
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Delete meeting error:", err);
+    res.status(500).json({ error: "Failed to cancel meeting." });
   }
 });
 

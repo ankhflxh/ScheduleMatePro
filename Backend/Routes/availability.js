@@ -143,4 +143,71 @@ router.post("/:roomId", authenticateToken, async (req, res) => {
   }
 });
 
+// DELETE /api/availability/:roomId — Member withdraws their availability
+router.delete("/:roomId", authenticateToken, async (req, res) => {
+  const { roomId } = req.params;
+  const userId = req.user.id;
+
+  try {
+    // 1. Check the entry exists
+    const check = await pool.query(
+      "SELECT * FROM availability WHERE room_id = $1 AND user_id = $2",
+      [roomId, userId],
+    );
+
+    if (check.rows.length === 0)
+      return res
+        .status(404)
+        .json({ error: "No availability found to cancel." });
+
+    // 2. Delete it
+    await pool.query(
+      "DELETE FROM availability WHERE room_id = $1 AND user_id = $2",
+      [roomId, userId],
+    );
+
+    // 3. Notify the creator
+    const roomRes = await pool.query(
+      "SELECT creator_id, name FROM rooms WHERE id = $1",
+      [roomId],
+    );
+    const { creator_id, name: roomName } = roomRes.rows[0];
+
+    // Don't notify if the creator is cancelling their own availability
+    if (String(userId) !== String(creator_id)) {
+      const creatorRes = await pool.query(
+        "SELECT push_subscription FROM users WHERE id = $1 AND push_subscription IS NOT NULL",
+        [creator_id],
+      );
+      const submitterRes = await pool.query(
+        "SELECT username FROM users WHERE id = $1",
+        [userId],
+      );
+      const submitterName = submitterRes.rows[0]?.username || "A member";
+
+      if (creatorRes.rows.length > 0) {
+        const { push_subscription } = creatorRes.rows[0];
+        const { webpush } = require("../pushHelper");
+        await webpush
+          .sendNotification(
+            push_subscription,
+            JSON.stringify({
+              title: "📋 Availability Withdrawn",
+              body: `${submitterName} cancelled their availability in "${roomName}"`,
+              url: `/Rooms/MeetingScheduler/scheduler.html`,
+            }),
+          )
+          .catch((err) =>
+            console.error("Push to creator failed:", err.message),
+          );
+      }
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Cancel availability error:", err);
+    res.status(500).json({ error: "Failed to cancel availability." });
+  }
+});
+
 module.exports = router;

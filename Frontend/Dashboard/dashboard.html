@@ -201,6 +201,35 @@
           </div>
         </section>
       </main>
+
+      <!-- ── CALENDAR SECTION ──────────────────────────────────── -->
+      <section class="glass-panel calendar-section">
+        <div class="cal-header">
+          <button class="cal-nav-btn" id="calPrevBtn">
+            <span class="material-icons">chevron_left</span>
+          </button>
+          <h3 id="calMonthLabel">May 2026</h3>
+          <button class="cal-nav-btn" id="calNextBtn">
+            <span class="material-icons">chevron_right</span>
+          </button>
+        </div>
+        <div class="cal-weekdays">
+          <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span
+          ><span>Fri</span><span>Sat</span><span>Sun</span>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+      </section>
+
+      <!-- Day detail panel (slides up when a day is clicked) -->
+      <div class="day-panel" id="dayPanel" style="display: none">
+        <div class="day-panel-header">
+          <span id="dayPanelTitle">Monday 19th May</span>
+          <button class="day-panel-close" id="dayPanelClose">
+            <span class="material-icons">close</span>
+          </button>
+        </div>
+        <div id="dayPanelContent" class="day-panel-content"></div>
+      </div>
     </div>
 
     <div id="guide-wrapper" class="guide-wrapper">

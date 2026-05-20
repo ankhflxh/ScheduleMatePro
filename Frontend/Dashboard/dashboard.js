@@ -698,3 +698,217 @@ function urlBase64ToUint8Array(base64String) {
   }
   return outputArray;
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// CALENDAR FEATURE
+// ═══════════════════════════════════════════════════════════════════
+(function () {
+  const token = localStorage.getItem("sm_token");
+  const GET_H = { headers: { "X-Auth-Token": token } };
+
+  let calYear, calMonth;
+  let icalEvents = []; // from iCal feeds
+  let appMeetings = []; // from ScheduleMate
+
+  const DAYS = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ];
+  const MONTHS = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+
+  function ordinal(n) {
+    if (n === 1 || n === 21 || n === 31) return "st";
+    if (n === 2 || n === 22) return "nd";
+    if (n === 3 || n === 23) return "rd";
+    return "th";
+  }
+
+  function sameDay(a, b) {
+    return (
+      a.getFullYear() === b.getFullYear() &&
+      a.getMonth() === b.getMonth() &&
+      a.getDate() === b.getDate()
+    );
+  }
+
+  function eventsOnDay(date) {
+    const ical = icalEvents.filter((e) => sameDay(new Date(e.start), date));
+    const app = appMeetings.filter((m) => {
+      // app meetings store meeting_day as "Monday" etc — match to date
+      const dayName = DAYS[date.getDay()];
+      // Only show if the meeting's stored week matches — compare by day name and created_at week
+      return m.meeting_day === dayName;
+    });
+    return { ical, app };
+  }
+
+  // ── Render calendar grid ──────────────────────────────────────
+  function renderCalendar() {
+    const label = document.getElementById("calMonthLabel");
+    const grid = document.getElementById("calGrid");
+    if (!label || !grid) return;
+
+    label.textContent = `${MONTHS[calMonth]} ${calYear}`;
+    grid.innerHTML = "";
+
+    const firstDay = new Date(calYear, calMonth, 1);
+    // Get Monday-based offset (0=Mon, 6=Sun)
+    let startOffset = (firstDay.getDay() + 6) % 7;
+    const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+    const today = new Date();
+
+    // Empty cells before the 1st
+    for (let i = 0; i < startOffset; i++) {
+      const empty = document.createElement("div");
+      empty.className = "cal-cell empty";
+      grid.appendChild(empty);
+    }
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const date = new Date(calYear, calMonth, d);
+      const { ical, app } = eventsOnDay(date);
+      const hasEvents = ical.length > 0 || app.length > 0;
+      const isToday = sameDay(date, today);
+
+      const cell = document.createElement("div");
+      cell.className =
+        "cal-cell" +
+        (isToday ? " today" : "") +
+        (hasEvents ? " has-events" : "");
+      cell.innerHTML = `<span class="cal-day-num">${d}</span>${hasEvents ? '<span class="cal-dot"></span>' : ""}`;
+
+      cell.addEventListener("click", () => showDayPanel(date, ical, app));
+      grid.appendChild(cell);
+    }
+  }
+
+  // ── Day panel ─────────────────────────────────────────────────
+  function showDayPanel(date, icalEvts, appEvts) {
+    const panel = document.getElementById("dayPanel");
+    const title = document.getElementById("dayPanelTitle");
+    const content = document.getElementById("dayPanelContent");
+    if (!panel) return;
+
+    const d = date.getDate();
+    const dayName = DAYS[date.getDay()];
+    title.textContent = `${dayName} ${d}${ordinal(d)} ${MONTHS[date.getMonth()]}`;
+
+    let html = "";
+
+    if (icalEvts.length === 0 && appEvts.length === 0) {
+      html = "<p class='day-empty'>Nothing scheduled for this day.</p>";
+    }
+
+    // iCal events
+    if (icalEvts.length > 0) {
+      html += `<div class="day-section-label"><span class="material-icons">school</span> Timetable & Calendars</div>`;
+      icalEvts.forEach((e) => {
+        const start = new Date(e.start);
+        const end = e.end ? new Date(e.end) : null;
+        const timeStr =
+          start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) +
+          (end
+            ? ` – ${end.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+            : "");
+        html += `
+          <div class="day-event ical-event">
+            <div class="day-event-time">${timeStr}</div>
+            <div class="day-event-body">
+              <div class="day-event-title">${e.summary}</div>
+              ${e.location ? `<div class="day-event-loc"><span class="material-icons">place</span>${e.location}</div>` : ""}
+              <div class="day-event-cal">${e.calendarLabel}</div>
+            </div>
+          </div>`;
+      });
+    }
+
+    // App meetings
+    if (appEvts.length > 0) {
+      html += `<div class="day-section-label"><span class="material-icons">groups</span> ScheduleMate Meetings</div>`;
+      appEvts.forEach((m) => {
+        html += `
+          <div class="day-event app-event">
+            <div class="day-event-time">${m.start_time?.slice(0, 5)} – ${m.end_time?.slice(0, 5)}</div>
+            <div class="day-event-body">
+              <div class="day-event-title">${m.room_name || "Meeting"}</div>
+              ${m.location ? `<div class="day-event-loc"><span class="material-icons">place</span>${m.location}</div>` : ""}
+            </div>
+          </div>`;
+      });
+    }
+
+    content.innerHTML = html;
+    panel.style.display = "block";
+    panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  // ── Load data then render ─────────────────────────────────────
+  async function loadAndRender() {
+    const now = new Date();
+    calYear = calYear ?? now.getFullYear();
+    calMonth = calMonth ?? now.getMonth();
+
+    // Load iCal events
+    try {
+      const r = await fetch("/api/ical/events", GET_H);
+      const d = await r.json();
+      icalEvents = d.events || [];
+    } catch (e) {
+      icalEvents = [];
+    }
+
+    // Load ScheduleMate meetings
+    try {
+      const r = await fetch("/api/meetings/me", GET_H);
+      const d = await r.json();
+      appMeetings = Array.isArray(d) ? d : [];
+    } catch (e) {
+      appMeetings = [];
+    }
+
+    renderCalendar();
+  }
+
+  // ── Nav buttons ───────────────────────────────────────────────
+  document.getElementById("calPrevBtn")?.addEventListener("click", () => {
+    calMonth--;
+    if (calMonth < 0) {
+      calMonth = 11;
+      calYear--;
+    }
+    renderCalendar();
+  });
+  document.getElementById("calNextBtn")?.addEventListener("click", () => {
+    calMonth++;
+    if (calMonth > 11) {
+      calMonth = 0;
+      calYear++;
+    }
+    renderCalendar();
+  });
+
+  document.getElementById("dayPanelClose")?.addEventListener("click", () => {
+    document.getElementById("dayPanel").style.display = "none";
+  });
+
+  // Kick off
+  loadAndRender();
+})();

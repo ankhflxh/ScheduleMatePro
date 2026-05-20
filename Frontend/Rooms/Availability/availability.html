@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -139,7 +139,38 @@
         <button type="submit" class="submit-btn">
           <span class="material-icons">check</span> Confirm Availability
         </button>
+
+        <button
+          type="button"
+          id="cancelAvailabilityBtn"
+          class="cancel-avail-btn"
+          style="display: none"
+        >
+          <span class="material-icons">cancel</span> Cancel My Availability
+        </button>
       </form>
+    </div>
+
+    <!-- Cancel Availability Modal -->
+    <div id="cancelAvailModal" class="modal-overlay" style="display: none">
+      <div class="modal-box">
+        <div class="modal-icon danger">
+          <span class="material-icons">cancel</span>
+        </div>
+        <h3>Cancel Availability?</h3>
+        <p>
+          Your availability will be removed and the room creator will be
+          notified.
+        </p>
+        <div class="modal-actions">
+          <button id="cancelAvailNo" class="modal-btn secondary">
+            Go Back
+          </button>
+          <button id="cancelAvailYes" class="modal-btn danger-btn">
+            Yes, Remove It
+          </button>
+        </div>
+      </div>
     </div>
 
     <div id="errorModal" class="modal-overlay">

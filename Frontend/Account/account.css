@@ -286,3 +286,86 @@ body {
   color: #ef4444;
   font-size: 28px;
 }
+
+/* ── iCal Calendars section ──────────────────────────────────── */
+.ical-hint {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+.ical-links-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+}
+.no-ical {
+  font-size: 0.88rem;
+  color: #94a3b8;
+  margin-bottom: 0.75rem;
+}
+.ical-link-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.65rem 0.85rem;
+}
+.ical-icon {
+  color: #6366f1;
+  font-size: 1.2rem;
+}
+.ical-link-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.ical-link-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+.ical-link-url {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ical-remove-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #fc8181;
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  border-radius: 6px;
+}
+.ical-remove-btn:hover {
+  background: #fff5f5;
+}
+.add-ical-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #eef2ff;
+  color: #6366f1;
+  border: 1.5px dashed #a5b4fc;
+  border-radius: 10px;
+  padding: 9px 16px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: "Outfit", sans-serif;
+  cursor: pointer;
+  width: 100%;
+  justify-content: center;
+  transition: background 0.18s;
+}
+.add-ical-btn:hover {
+  background: #e0e7ff;
+}

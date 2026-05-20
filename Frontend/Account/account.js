@@ -175,3 +175,87 @@ document
       btn.textContent = "Delete Forever";
     }
   });
+
+// ── iCAL LINKS ────────────────────────────────────────────────────
+let icalLinks = []; // { url, label }[]
+
+async function loadIcalLinks() {
+  try {
+    const res = await fetch("/api/ical/links", GET_H);
+    const data = await res.json();
+    icalLinks = data.links || [];
+    renderIcalLinks();
+  } catch (e) {
+    console.error("Failed to load iCal links:", e);
+  }
+}
+loadIcalLinks();
+
+function renderIcalLinks() {
+  const list = document.getElementById("icalLinksList");
+  if (!list) return;
+  if (icalLinks.length === 0) {
+    list.innerHTML = "<p class='no-ical'>No calendars added yet.</p>";
+    return;
+  }
+  list.innerHTML = icalLinks
+    .map(
+      (l, i) => `
+    <div class="ical-link-row">
+      <span class="material-icons ical-icon">event</span>
+      <div class="ical-link-info">
+        <span class="ical-link-label">${l.label || "Calendar"}</span>
+        <span class="ical-link-url">${l.url.length > 45 ? l.url.slice(0, 45) + "…" : l.url}</span>
+      </div>
+      <button class="ical-remove-btn" onclick="removeIcalLink(${i})">
+        <span class="material-icons">delete</span>
+      </button>
+    </div>
+  `,
+    )
+    .join("");
+}
+
+async function saveIcalLinks() {
+  await fetch("/api/ical/links", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Auth-Token": token },
+    body: JSON.stringify({ links: icalLinks }),
+  });
+}
+
+window.removeIcalLink = async function (idx) {
+  icalLinks.splice(idx, 1);
+  renderIcalLinks();
+  await saveIcalLinks();
+};
+
+document.getElementById("addIcalBtn")?.addEventListener("click", () => {
+  document.getElementById("icalLabel").value = "";
+  document.getElementById("icalUrl").value = "";
+  document.getElementById("icalError").style.display = "none";
+  document.getElementById("icalModal").style.display = "flex";
+  setTimeout(() => document.getElementById("icalLabel")?.focus(), 100);
+});
+
+document.getElementById("icalSaveBtn")?.addEventListener("click", async () => {
+  const label = document.getElementById("icalLabel").value.trim();
+  const url = document.getElementById("icalUrl").value.trim();
+  const errEl = document.getElementById("icalError");
+
+  if (!label) {
+    errEl.textContent = "Please enter a name.";
+    errEl.style.display = "block";
+    return;
+  }
+  if (!url.startsWith("http")) {
+    errEl.textContent = "Please enter a valid URL.";
+    errEl.style.display = "block";
+    return;
+  }
+
+  icalLinks.push({ url, label });
+  renderIcalLinks();
+  await saveIcalLinks();
+  document.getElementById("icalModal").style.display = "none";
+});

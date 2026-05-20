@@ -356,6 +356,10 @@ async function loadExistingAvailability(interval) {
 
           // Set end time after options are regenerated
           endSelect.value = cleanEndTime;
+
+          // Show cancel button since user has existing availability
+          const cancelBtn = document.getElementById("cancelAvailabilityBtn");
+          if (cancelBtn) cancelBtn.style.display = "flex";
         }
       })
       .catch((err) => {
@@ -512,3 +516,44 @@ form.addEventListener("submit", async (e) => {
 });
 
 initializeAvailabilityPage();
+
+// ─── CANCEL AVAILABILITY ─────────────────────────────────────────
+const cancelAvailabilityBtn = document.getElementById("cancelAvailabilityBtn");
+const cancelAvailModal = document.getElementById("cancelAvailModal");
+const cancelAvailNo = document.getElementById("cancelAvailNo");
+const cancelAvailYes = document.getElementById("cancelAvailYes");
+
+if (cancelAvailabilityBtn) {
+  cancelAvailabilityBtn.addEventListener("click", () => {
+    if (cancelAvailModal) cancelAvailModal.style.display = "flex";
+  });
+}
+if (cancelAvailNo) {
+  cancelAvailNo.addEventListener("click", () => {
+    if (cancelAvailModal) cancelAvailModal.style.display = "none";
+  });
+}
+if (cancelAvailYes) {
+  cancelAvailYes.addEventListener("click", async () => {
+    if (cancelAvailModal) cancelAvailModal.style.display = "none";
+    cancelAvailYes.disabled = true;
+    try {
+      const res = await fetch(`/api/availability/${roomId}`, {
+        method: "DELETE",
+        headers: { "X-Auth-Token": token },
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.error || "Failed to cancel availability.");
+        cancelAvailYes.disabled = false;
+        return;
+      }
+      // Show success then go back to scheduler
+      window.location.href = `../MeetingScheduler/scheduler.html?roomId=${roomId}`;
+    } catch (err) {
+      console.error("Cancel availability error:", err);
+      alert("Something went wrong. Please try again.");
+      cancelAvailYes.disabled = false;
+    }
+  });
+}

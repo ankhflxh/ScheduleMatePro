@@ -6,6 +6,25 @@ const roomId = new URLSearchParams(window.location.search).get("roomId");
 if (!token) window.location.href = "/LoginPage/login.html";
 if (!roomId) alert("Room ID missing");
 
+let currentUserId = null;
+let roomCreatorId = null;
+
+async function init() {
+  try {
+    const [meRes, roomRes] = await Promise.all([
+      fetch("/api/users/me", { headers: { "X-Auth-Token": token } }),
+      fetch(`/api/rooms/${roomId}`, { headers: { "X-Auth-Token": token } }),
+    ]);
+    const me = await meRes.json();
+    const room = await roomRes.json();
+    currentUserId = String(me.user_id || me.id);
+    roomCreatorId = String(room.creator_id);
+  } catch (e) {
+    console.error("Init error:", e);
+  }
+  loadMeetingHistory();
+}
+
 function loadMeetingHistory() {
   fetch(`/api/meetings/history/${roomId}`, {
     headers: { "X-Auth-Token": token },
@@ -92,21 +111,72 @@ function loadMeetingHistory() {
         const card = document.createElement("div");
         card.className = `meeting-card ${status}-card`;
 
+        const isCreator = currentUserId === roomCreatorId;
+        const canDelete = isCreator && status !== "past";
+
         card.innerHTML = `
                 <div class="card-day">${m.meeting_day}</div>
                 <div class="card-time">${cleanStart} - ${cleanEnd}</div>
                 <div class="card-loc">
                     <span class="material-icons" style="font-size:1rem">place</span> ${m.location}
                 </div>
+                ${
+                  canDelete
+                    ? `<button class="delete-meeting-btn" data-id="${m.id}" data-day="${m.meeting_day}" data-time="${cleanStart}">
+                  <span class="material-icons">cancel</span> Cancel Meeting
+                </button>`
+                    : ""
+                }
             `;
 
         if (status === "active" && activeEl) activeEl.appendChild(card);
         else if (status === "past" && pastEl) pastEl.appendChild(card);
         else if (upcomingEl) upcomingEl.appendChild(card);
       });
+
+      // Attach delete handlers
+      document.querySelectorAll(".delete-meeting-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const meetingId = btn.dataset.id;
+          const day = btn.dataset.day;
+          const time = btn.dataset.time;
+          showDeleteModal(meetingId, day, time);
+        });
+      });
     })
     .catch((err) => console.error("Error loading history:", err));
 }
 
+// ─── DELETE MEETING MODAL ─────────────────────────────────────────
+function showDeleteModal(meetingId, day, time) {
+  const modal = document.getElementById("deleteMeetingModal");
+  const msg = document.getElementById("deleteMeetingMsg");
+  if (msg) msg.textContent = `Cancel the meeting on ${day} at ${time}?`;
+  if (modal) modal.style.display = "flex";
+
+  document.getElementById("confirmDeleteMeeting").onclick = async () => {
+    modal.style.display = "none";
+    try {
+      const res = await fetch(`/api/meetings/${meetingId}`, {
+        method: "DELETE",
+        headers: { "X-Auth-Token": token },
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.error || "Failed to cancel meeting.");
+        return;
+      }
+      loadMeetingHistory();
+    } catch (err) {
+      console.error("Delete error:", err);
+      alert("Something went wrong.");
+    }
+  };
+
+  document.getElementById("cancelDeleteMeeting").onclick = () => {
+    modal.style.display = "none";
+  };
+}
+
 // Run
-loadMeetingHistory();
+init();

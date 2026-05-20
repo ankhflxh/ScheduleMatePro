@@ -82,6 +82,67 @@
         </div>
       </div>
 
+      <!-- iCal Calendars -->
+      <div class="card ical-card">
+        <div class="card-section">
+          <div class="section-label">
+            <span class="material-icons">calendar_month</span> My Calendars
+          </div>
+          <p class="ical-hint">
+            Paste your timetable or work calendar iCal link to see your schedule
+            on the dashboard.
+          </p>
+          <div id="icalLinksList" class="ical-links-list"></div>
+          <button class="add-ical-btn" id="addIcalBtn">
+            <span class="material-icons">add</span> Add Calendar
+          </button>
+        </div>
+      </div>
+
+      <!-- Add iCal Modal -->
+      <div id="icalModal" class="modal-overlay" style="display: none">
+        <div class="modal-box">
+          <button
+            class="modal-close"
+            onclick="
+              document.getElementById('icalModal').style.display = 'none'
+            "
+          >
+            <span class="material-icons">close</span>
+          </button>
+          <h2>Add Calendar</h2>
+          <p style="font-size: 0.88rem; color: #64748b; margin-bottom: 1rem">
+            Give it a name and paste your iCal (.ics) link
+          </p>
+          <input
+            class="modal-input"
+            id="icalLabel"
+            type="text"
+            placeholder='e.g. "University Timetable"'
+            maxlength="40"
+          />
+          <input
+            class="modal-input"
+            id="icalUrl"
+            type="url"
+            placeholder="https://..."
+            style="margin-top: 0.6rem"
+          />
+          <div id="icalError" class="modal-error" style="display: none"></div>
+          <div class="modal-actions">
+            <button
+              class="btn secondary"
+              onclick="
+                document.getElementById('icalModal').style.display = 'none'
+              "
+            >
+              Cancel
+            </button>
+            <button class="btn primary" id="icalSaveBtn">Add</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Danger zone -->
       <div class="card danger-card">
         <button class="action-row logout" id="logoutBtn">

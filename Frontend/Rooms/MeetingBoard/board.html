@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -34,7 +34,10 @@
     <div class="board-container">
       <header class="board-header">
         <button
-          onclick="window.location.href='../EnterRooms/enterrooms.html' + window.location.search"
+          onclick="
+            window.location.href =
+              '../EnterRooms/enterrooms.html' + window.location.search
+          "
           class="back-pill"
         >
           <span class="material-icons">arrow_back</span> Back
@@ -67,5 +70,27 @@
     </div>
 
     <script src="board.js"></script>
+
+    <!-- Cancel Meeting Modal -->
+    <div id="deleteMeetingModal" class="modal-overlay" style="display: none">
+      <div class="modal-box">
+        <div class="modal-icon danger">
+          <span class="material-icons">cancel</span>
+        </div>
+        <h3>Cancel Meeting?</h3>
+        <p id="deleteMeetingMsg">Cancel this meeting?</p>
+        <p style="font-size: 0.85rem; color: #e53e3e; margin-top: 0.25rem">
+          All room members will be notified.
+        </p>
+        <div class="modal-actions">
+          <button id="cancelDeleteMeeting" class="modal-btn secondary">
+            Go Back
+          </button>
+          <button id="confirmDeleteMeeting" class="modal-btn danger-btn">
+            Yes, Cancel It
+          </button>
+        </div>
+      </div>
+    </div>
   </body>
 </html>
