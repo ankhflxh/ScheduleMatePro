@@ -217,6 +217,10 @@ router.get("/callback", async (req, res) => {
     console.error("Microsoft OAuth callback error:", err);
     res.redirect(`${appBase}/LoginPage/login.html?error=server_error`);
   }
+
+  console.log("CALLBACK HIT:", req.query);
+  const { code, state, error, error_description } = req.query;
+  console.log("Error from Microsoft:", error, error_description);
 });
 
 module.exports = router;
