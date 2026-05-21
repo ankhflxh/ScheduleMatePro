@@ -66,19 +66,14 @@ router.post("/:roomId", authenticateToken, async (req, res) => {
       )
       .join("\n");
 
-    const prompt = `You are a smart scheduling assistant for a university student group called "${room.name}".
+    const prompt = `You are a scheduling assistant for a university student group called "${room.name}". Meeting duration: ${room.meeting_interval} hour(s).
 
-The meeting duration is ${room.meeting_interval} hour(s).
-
-${submittedCount} out of ${totalMembers} members have submitted their availability:
+${submittedCount} of ${totalMembers} members submitted availability:
 ${availabilityText}
 
-Your task:
-1. Find the single best meeting time that works for the most members.
-2. If multiple slots work for everyone, prefer the earliest one.
-3. Explain your reasoning clearly in plain English, mentioning how many members are covered and any trade-offs.
+Find the best meeting time for the most members. If tied, pick the earliest.
 
-Respond ONLY with a valid JSON object in this exact format, no markdown, no extra text:
+Respond ONLY with valid JSON, no markdown:
 {
   "suggested_day": "Monday",
   "suggested_start_time": "14:00",
@@ -86,7 +81,7 @@ Respond ONLY with a valid JSON object in this exact format, no markdown, no extr
   "members_covered": 4,
   "total_members": 5,
   "preferred_location": "Library",
-  "reasoning": "Your plain English explanation here."
+  "reasoning": "One sentence max — e.g. Works for 4 of 5 members; only Alex unavailable."
 }`;
 
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });

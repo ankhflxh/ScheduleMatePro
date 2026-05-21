@@ -104,7 +104,7 @@ cron.schedule("* * * * *", async () => {
       await sendPushToRoomMembers(meeting.room_id, {
         title: "🚀 Meeting Starting Now!",
         body: `"${meeting.room_name}" is happening now — ${meeting.location}`,
-        url: `/Rooms/MeetingBoard/board.html`,
+        url: `/Rooms/MeetingBoard/board.html?roomId=${meeting.room_id}`,
       });
 
       console.log(`✅ Sent start push for meeting ${meeting.id}`);
@@ -115,11 +115,11 @@ cron.schedule("* * * * *", async () => {
 });
 
 // ----------------------------------------------------------------
-// ⏰ CRON JOB 2: Push 30 minutes before meeting
+// ⏰ CRON JOB 2: Push 1 hour before meeting
 // ----------------------------------------------------------------
 cron.schedule("* * * * *", async () => {
   const { currentDay } = getSystemTime();
-  const targetTime = getTimeOffsetMinutes(30);
+  const targetTime = getTimeOffsetMinutes(60);
 
   try {
     const result = await pool.query(
@@ -128,31 +128,68 @@ cron.schedule("* * * * *", async () => {
        JOIN rooms r ON m.room_id = r.id
        WHERE m.meeting_day = $1
          AND m.start_time = $2
-         AND m.reminder_30_sent = FALSE`,
+         AND m.reminder_60_sent = FALSE`,
       [currentDay, targetTime],
     );
 
     for (const meeting of result.rows) {
       await pool.query(
-        "UPDATE meetings SET reminder_30_sent = TRUE WHERE id = $1",
+        "UPDATE meetings SET reminder_60_sent = TRUE WHERE id = $1",
         [meeting.id],
       );
 
       await sendPushToRoomMembers(meeting.room_id, {
-        title: "⏰ Meeting in 30 Minutes",
+        title: "⏰ Meeting in 1 Hour",
         body: `"${meeting.room_name}" starts at ${meeting.start_time.substring(0, 5)} — ${meeting.location}`,
-        url: `/Rooms/MeetingBoard/board.html`,
+        url: `/Rooms/MeetingBoard/board.html?roomId=${meeting.room_id}`,
       });
 
-      console.log(`✅ Sent 30-min push for meeting ${meeting.id}`);
+      console.log(`✅ Sent 60-min push for meeting ${meeting.id}`);
     }
   } catch (err) {
-    console.error("❌ 30-min Push Cron Error:", err);
+    console.error("❌ 60-min Push Cron Error:", err);
   }
 });
 
 // ----------------------------------------------------------------
-// ⏰ CRON JOB 3: Push 5 minutes before meeting
+// ⏰ CRON JOB 3: Push 15 minutes before meeting
+// ----------------------------------------------------------------
+cron.schedule("* * * * *", async () => {
+  const { currentDay } = getSystemTime();
+  const targetTime = getTimeOffsetMinutes(15);
+
+  try {
+    const result = await pool.query(
+      `SELECT m.id, m.room_id, m.start_time, m.location, r.name as room_name
+       FROM meetings m
+       JOIN rooms r ON m.room_id = r.id
+       WHERE m.meeting_day = $1
+         AND m.start_time = $2
+         AND m.reminder_15_sent = FALSE`,
+      [currentDay, targetTime],
+    );
+
+    for (const meeting of result.rows) {
+      await pool.query(
+        "UPDATE meetings SET reminder_15_sent = TRUE WHERE id = $1",
+        [meeting.id],
+      );
+
+      await sendPushToRoomMembers(meeting.room_id, {
+        title: "⏰ Meeting in 15 Minutes",
+        body: `"${meeting.room_name}" starts at ${meeting.start_time.substring(0, 5)} — ${meeting.location}`,
+        url: `/Rooms/MeetingBoard/board.html?roomId=${meeting.room_id}`,
+      });
+
+      console.log(`✅ Sent 15-min push for meeting ${meeting.id}`);
+    }
+  } catch (err) {
+    console.error("❌ 15-min Push Cron Error:", err);
+  }
+});
+
+// ----------------------------------------------------------------
+// ⏰ CRON JOB 4: Push 5 minutes before meeting
 // ----------------------------------------------------------------
 cron.schedule("* * * * *", async () => {
   const { currentDay } = getSystemTime();
@@ -176,9 +213,9 @@ cron.schedule("* * * * *", async () => {
       );
 
       await sendPushToRoomMembers(meeting.room_id, {
-        title: "🚨 Meeting Starting Soon",
-        body: `"${meeting.room_name}" starts in 5 minutes — ${meeting.location}`,
-        url: `/Rooms/MeetingBoard/board.html`,
+        title: "🚨 Meeting in 5 Minutes",
+        body: `"${meeting.room_name}" starts at ${meeting.start_time.substring(0, 5)} — ${meeting.location}`,
+        url: `/Rooms/MeetingBoard/board.html?roomId=${meeting.room_id}`,
       });
 
       console.log(`✅ Sent 5-min push for meeting ${meeting.id}`);

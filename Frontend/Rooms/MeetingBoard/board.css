@@ -332,3 +332,62 @@ body {
 .join-call-btn .material-icons {
   font-size: 1.1rem;
 }
+
+/* ── RSVP Section on Meeting Card ────────────────────────────── */
+.rsvp-section {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 0.5px solid #e2e8f0;
+}
+.rsvp-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+.rsvp-btns {
+  display: flex;
+  gap: 5px;
+}
+.rsvp-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 4px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-family: "Outfit", sans-serif;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.rsvp-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.rsvp-btn .material-icons {
+  font-size: 0.95rem;
+}
+.rsvp-inperson {
+  background: #d1fae5;
+  color: #065f46;
+}
+.rsvp-online {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+.rsvp-cant {
+  background: #fee2e2;
+  color: #991b1b;
+}
+.rsvp-current {
+  font-size: 0.78rem;
+  color: #64748b;
+  margin-top: 5px;
+  font-style: italic;
+}

@@ -126,7 +126,7 @@ router.post("/:roomId", authenticateToken, async (req, res) => {
             JSON.stringify({
               title: "📋 Availability Update",
               body: `${submitterName} ${action} availability in "${roomName}"`,
-              url: `/Rooms/Availability/availability.html`,
+              url: `/Rooms/Availability/availability.html?roomId=${roomId}`,
             }),
           );
         }
@@ -194,7 +194,7 @@ router.delete("/:roomId", authenticateToken, async (req, res) => {
             JSON.stringify({
               title: "📋 Availability Withdrawn",
               body: `${submitterName} cancelled their availability in "${roomName}"`,
-              url: `/Rooms/MeetingScheduler/scheduler.html`,
+              url: `/Rooms/MeetingScheduler/scheduler.html?roomId=${roomId}`,
             }),
           )
           .catch((err) =>

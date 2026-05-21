@@ -2,6 +2,8 @@
 const express = require("express");
 const router = express.Router();
 const pool = require("../db");
+const { Resend } = require("resend");
+const resend = new Resend(process.env.RESEND_API_KEY);
 const { authenticateToken } = require("./auth");
 
 // ✅ Push only — Resend removed entirely from this file
@@ -101,10 +103,10 @@ router.post("/:roomId", authenticateToken, async (req, res) => {
         const meetingDate = new Date(today);
         meetingDate.setDate(today.getDate() + diff);
 
-        // nbf = meeting start time on that day (unix seconds)
+        // nbf = 30 minutes BEFORE meeting start so people can join early
         const [nbfH, nbfM] = start_time.split(":").map(Number);
         meetingDate.setHours(nbfH, nbfM, 0, 0);
-        const nbf = Math.floor(meetingDate.getTime() / 1000);
+        const nbf = Math.floor(meetingDate.getTime() / 1000) - 30 * 60;
 
         // exp = meeting end time + 30 min buffer
         const expDate = new Date(meetingDate);
@@ -166,11 +168,51 @@ router.post("/:roomId", authenticateToken, async (req, res) => {
     // 4. Clear availability so members can submit fresh for the next meeting
     await pool.query(`DELETE FROM availability WHERE room_id = $1`, [roomId]);
 
-    // 5. ✅ Push notification only — no email
+    // 5. Email all room members + push notification
+    try {
+      const membersRes = await pool.query(
+        `SELECT u.email, u.username
+         FROM room_members rm
+         JOIN users u ON rm.user_id = u.id
+         WHERE rm.room_id = $1`,
+        [roomId],
+      );
+
+      for (const member of membersRes.rows) {
+        resend.emails
+          .send({
+            from: process.env.EMAIL_USER,
+            to: member.email,
+            subject: `Meeting Confirmed — ${room.name}`,
+            html: `
+            <div style="font-family: Arial, sans-serif; max-width: 500px; margin: auto; color: #333;">
+              <div style="background: #6366f1; padding: 24px; border-radius: 12px 12px 0 0; text-align: center;">
+                <h1 style="color: white; margin: 0; font-size: 22px;">Meeting Confirmed!</h1>
+              </div>
+              <div style="background: #f9fafb; padding: 24px; border-radius: 0 0 12px 12px; border: 1px solid #e5e7eb;">
+                <p style="margin: 0 0 16px;">Hi <strong>${member.username}</strong>,</p>
+                <p style="margin: 0 0 16px;">A meeting has been confirmed in <strong>${room.name}</strong>.</p>
+                <div style="background: white; border-radius: 8px; padding: 16px; border: 1px solid #e5e7eb; margin-bottom: 16px;">
+                  <p style="margin: 0 0 8px;"><strong>Day:</strong> ${meeting_day}</p>
+                  <p style="margin: 0 0 8px;"><strong>Time:</strong> ${start_time.substring(0, 5)} — ${end_time.substring(0, 5)}</p>
+                  <p style="margin: 0;"><strong>Location:</strong> ${location}</p>
+                </div>
+                <p style="margin: 0; color: #6b7280; font-size: 13px;">Open ScheduleMate Pro to view details and RSVP.</p>
+              </div>
+            </div>
+          `,
+          })
+          .catch(console.error);
+      }
+    } catch (emailErr) {
+      console.error("Email send error:", emailErr);
+    }
+
+    // Also send push notification
     await sendPushToRoomMembers(roomId, {
       title: "✅ Meeting Confirmed!",
       body: `"${room.name}" is set for ${meeting_day} at ${start_time} — ${location}`,
-      url: `/Rooms/MeetingBoard/board.html`,
+      url: `/Rooms/MeetingBoard/board.html?roomId=${roomId}`,
     });
 
     res.json(newMeeting);
@@ -246,7 +288,7 @@ router.delete("/:meetingId", authenticateToken, async (req, res) => {
     await sendPushToRoomMembers(meeting.room_id, {
       title: "❌ Meeting Cancelled",
       body: `The meeting in "${meeting.room_name}" on ${meeting.meeting_day} at ${meeting.start_time} has been cancelled.`,
-      url: `/Rooms/MeetingBoard/board.html`,
+      url: `/Rooms/MeetingBoard/board.html?roomId=${meeting.room_id}`,
     });
 
     res.json({ success: true });

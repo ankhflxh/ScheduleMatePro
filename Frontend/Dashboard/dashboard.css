@@ -1037,3 +1037,76 @@ body {
   margin-top: 2px;
   font-weight: 500;
 }
+
+/* ── QR Scanner Button ───────────────────────────────────────── */
+.btn-scan-qr {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 0.6rem;
+  padding: 10px;
+  background: #eef2ff;
+  color: #4338ca;
+  border: 1.5px dashed #a5b4fc;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: "Outfit", sans-serif;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-scan-qr:hover {
+  background: #e0e7ff;
+}
+.btn-scan-qr .material-icons {
+  font-size: 1.1rem;
+}
+
+/* ── QR Scanner Modal ────────────────────────────────────────── */
+.qr-scanner-box {
+  max-width: 340px;
+  width: 92%;
+  padding: 1.5rem 1.25rem;
+  text-align: center;
+}
+.qr-scanner-header h3 {
+  font-size: 1.1rem;
+  margin: 0.4rem 0 0.25rem;
+  color: var(--text-main);
+}
+.qr-scanner-header p {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin: 0 0 1rem;
+}
+
+.qr-video-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000;
+  margin-bottom: 0.75rem;
+}
+.qr-video-wrap video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.qr-finder {
+  position: absolute;
+  inset: 18%;
+  border: 3px solid #6366f1;
+  border-radius: 10px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.35);
+}
+
+.qr-status {
+  font-size: 0.82rem;
+  color: #64748b;
+  min-height: 1.2rem;
+}

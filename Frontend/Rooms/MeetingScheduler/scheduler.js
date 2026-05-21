@@ -117,39 +117,45 @@ async function loadSharedSuggestion() {
     populateSuggestionModal(data.suggestion);
 
     if (isCreator) {
-      // Show creator actions in modal
+      // Show creator actions + their own RSVP buttons
       if (creatorModalActions) creatorModalActions.style.display = "flex";
-      if (memberModalActions) memberModalActions.style.display = "none";
-      if (memberAlreadyResponded) memberAlreadyResponded.style.display = "none";
+      if (memberModalActions) memberModalActions.style.display = "flex";
+      if (memberAlreadyResponded) {
+        const modeLabels = {
+          in_person: "🟢 In Person",
+          online: "🔵 Online",
+          cant_attend: "❌ Can't Attend",
+        };
+        const label = modeLabels[data.myAttendanceMode];
+        if (label) {
+          memberAlreadyResponded.textContent = `Your RSVP: ${label} — change below`;
+          memberAlreadyResponded.style.display = "block";
+        } else {
+          memberAlreadyResponded.style.display = "none";
+        }
+      }
       // Show responses panel
       if (responsesPanel) responsesPanel.style.display = "block";
       loadResponses();
       startResponsePolling();
-      // Auto-open modal if they just generated it (no fromNotification needed for creator)
     } else {
       // Member: show "View AI Suggestion" button
       if (viewSuggestionBtn) viewSuggestionBtn.style.display = "flex";
 
-      if (myResponse) {
-        // Already responded — show that state in modal
-        if (memberModalActions) memberModalActions.style.display = "none";
-        if (creatorModalActions) creatorModalActions.style.display = "none";
-        if (memberAlreadyResponded) {
-          const modeLabels = {
-            in_person: "🟢 In Person",
-            online: "🔵 Online",
-            cant_attend: "❌ Can't Attend",
-          };
-          const label = modeLabels[data.myAttendanceMode] || myResponse;
-          memberAlreadyResponded.textContent = `You responded: ${label}. Tap "View AI Suggestion" to change.`;
-          memberAlreadyResponded.style.display = "block";
-        }
-      } else {
-        // Has not responded yet
-        if (memberModalActions) memberModalActions.style.display = "flex";
-        if (creatorModalActions) creatorModalActions.style.display = "none";
-        if (memberAlreadyResponded)
-          memberAlreadyResponded.style.display = "none";
+      // Always show the RSVP buttons so members can change their response
+      if (memberModalActions) memberModalActions.style.display = "flex";
+      if (creatorModalActions) creatorModalActions.style.display = "none";
+      if (myResponse && memberAlreadyResponded) {
+        const modeLabels = {
+          in_person: "🟢 In Person",
+          online: "🔵 Online",
+          cant_attend: "❌ Can't Attend",
+        };
+        const label = modeLabels[data.myAttendanceMode] || myResponse;
+        memberAlreadyResponded.textContent = `Current: ${label} — change below`;
+        memberAlreadyResponded.style.display = "block";
+      } else if (memberAlreadyResponded) {
+        memberAlreadyResponded.style.display = "none";
       }
 
       // Show RSVP panel for members too
@@ -328,17 +334,23 @@ async function submitMemberResponse(response, attendance_mode) {
       return;
     }
 
-    // Swap action buttons for confirmation message
-    if (memberModalActions) memberModalActions.style.display = "none";
+    // Keep buttons visible, just update the current status label
     if (memberAlreadyResponded) {
       const modeLabels = {
         in_person: "🟢 In Person",
         online: "🔵 Online",
         cant_attend: "❌ Can't Attend",
       };
-      memberAlreadyResponded.textContent = `You responded: ${modeLabels[attendance_mode]}. You can change this anytime.`;
+      memberAlreadyResponded.textContent = `Current: ${modeLabels[attendance_mode]} — change below`;
       memberAlreadyResponded.style.display = "block";
     }
+    [
+      modalMemberInPersonBtn,
+      modalMemberOnlineBtn,
+      modalMemberDeclineBtn,
+    ].forEach((b) => {
+      if (b) b.disabled = false;
+    });
     loadResponses();
   } catch (err) {
     console.error("Response error:", err);

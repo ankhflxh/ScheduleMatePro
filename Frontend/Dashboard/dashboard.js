@@ -6,9 +6,7 @@ const publicVapidKey =
 
 // --- DOM ELEMENTS & MODALS ---
 const roomsContainer = document.querySelector("#my-rooms");
-const meetingsList = document.querySelector("#my-meetings");
 const noRoomsMsg = document.querySelector("#no-rooms-message");
-const noMeetingsMsg = document.querySelector("#no-meetings-message");
 const createForm = document.querySelector("#create-room-form");
 const joinForm = document.querySelector("#join-room-form");
 const roomNameError = document.getElementById("roomNameError");
@@ -67,7 +65,6 @@ if (!token) {
       TourManager.init(isFirstVisit, displayName);
 
       loadRooms(userId);
-      loadMeetings(userId);
       checkSubscriptionStatus();
       checkForJoinCode(); // Auto-detect join code from shared link
     })
@@ -81,31 +78,6 @@ if (!token) {
 }
 
 // --- CORE DASHBOARD FUNCTIONS ---
-function isUpcoming(dayName, endTimeStr) {
-  const days = [
-    "Sunday",
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-  ];
-  const now = new Date();
-  const currentDayIndex = now.getDay();
-  const meetingDayIndex = days.indexOf(dayName);
-
-  if (meetingDayIndex === -1) return true;
-  if (currentDayIndex === meetingDayIndex) {
-    const [hours, minutes] = endTimeStr.split(":");
-    const meetingEndTimeToday = new Date();
-    meetingEndTimeToday.setHours(hours, minutes, 0);
-    return now < meetingEndTimeToday;
-  }
-  if (meetingDayIndex > currentDayIndex) return true;
-  return false;
-}
-
 function loadRooms(userId) {
   fetch(`/api/rooms/me?userId=${userId}`, {
     headers: { "X-Auth-Token": token },
@@ -139,37 +111,6 @@ function loadRooms(userId) {
             </a>
           </div>`;
         if (roomsContainer) roomsContainer.appendChild(card);
-      });
-    })
-    .catch(console.error);
-}
-
-function loadMeetings(userId) {
-  fetch(`/api/meetings/me?userId=${userId}`, {
-    headers: { "X-Auth-Token": token },
-  })
-    .then((res) => res.json())
-    .then((meetings) => {
-      if (meetingsList) meetingsList.innerHTML = "";
-      const upcomingMeetings = meetings.filter(
-        (m) =>
-          m.meeting_day && m.end_time && isUpcoming(m.meeting_day, m.end_time),
-      );
-      if (!upcomingMeetings.length) {
-        if (noMeetingsMsg) noMeetingsMsg.style.display = "flex";
-        return;
-      }
-      if (noMeetingsMsg) noMeetingsMsg.style.display = "none";
-      upcomingMeetings.forEach((m) => {
-        const div = document.createElement("div");
-        div.className = "meeting-item";
-        const cleanStart = m.start_time ? m.start_time.substring(0, 5) : "";
-        div.innerHTML = `
-          <div class="meeting-time">${m.meeting_day} @ ${cleanStart}</div>
-          <div class="meeting-info">Room: ${m.room_name}</div>
-          <div class="meeting-loc"><span class="material-icons" style="font-size:1rem">place</span> ${m.location}</div>
-        `;
-        if (meetingsList) meetingsList.appendChild(div);
       });
     })
     .catch(console.error);
@@ -216,7 +157,7 @@ if (joinForm) {
       .then((res) => res.json())
       .then((data) => {
         if (data.error) throw new Error(data.error);
-        showModal("Joined!", "You have successfully joined the room.");
+        showModal("Joined!", `You have successfully joined "${data.name}"!`);
         codeInput.value = "";
         loadRooms(window.SLOTIFY_USER_ID);
       })
@@ -288,7 +229,10 @@ window.confirmJoinViaLink = async () => {
         showModal("Error", data.error);
       }
     } else {
-      showModal("Welcome! 🎉", `You have now joined "${pendingRoomName}"!`);
+      showModal(
+        "Welcome! 🎉",
+        `You have now joined "${data.name || pendingRoomName}"!`,
+      );
       loadRooms(window.SLOTIFY_USER_ID);
     }
   } catch (err) {
@@ -752,10 +696,15 @@ function urlBase64ToUint8Array(base64String) {
   function eventsOnDay(date) {
     const ical = icalEvents.filter((e) => sameDay(new Date(e.start), date));
     const app = appMeetings.filter((m) => {
-      // app meetings store meeting_day as "Monday" etc — match to date
-      const dayName = DAYS[date.getDay()];
-      // Only show if the meeting's stored week matches — compare by day name and created_at week
-      return m.meeting_day === dayName;
+      // Calculate the actual meeting date from created_at + day name
+      const confirmed = new Date(m.created_at);
+      const targetIdx = DAYS.indexOf(m.meeting_day);
+      const confirmedIdx = confirmed.getDay();
+      let diff = targetIdx - confirmedIdx;
+      if (diff < 0) diff += 7;
+      const meetingDate = new Date(confirmed);
+      meetingDate.setDate(confirmed.getDate() + diff);
+      return sameDay(meetingDate, date);
     });
     return { ical, app };
   }
@@ -911,4 +860,110 @@ function urlBase64ToUint8Array(base64String) {
 
   // Kick off
   loadAndRender();
+})();
+
+// ═══════════════════════════════════════════════════════════════════
+// QR CODE SCANNER
+// ═══════════════════════════════════════════════════════════════════
+(function () {
+  const scanBtn = document.getElementById("scanQrBtn");
+  const modal = document.getElementById("qrScannerModal");
+  const video = document.getElementById("qrVideo");
+  const cancelBtn = document.getElementById("qrCancelBtn");
+  const statusEl = document.getElementById("qrScanStatus");
+  const codeInput = document.getElementById("join-room-code");
+
+  if (!scanBtn || !modal) return;
+
+  let stream = null;
+  let animFrame = null;
+  let canvas, ctx;
+
+  function stopScanner() {
+    if (animFrame) {
+      cancelAnimationFrame(animFrame);
+      animFrame = null;
+    }
+    if (stream) {
+      stream.getTracks().forEach((t) => t.stop());
+      stream = null;
+    }
+    modal.style.display = "none";
+  }
+
+  async function startScanner() {
+    modal.style.display = "flex";
+    if (statusEl) statusEl.textContent = "Requesting camera access...";
+
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" },
+      });
+      video.srcObject = stream;
+      await video.play();
+
+      canvas = canvas || document.createElement("canvas");
+      ctx = ctx || canvas.getContext("2d");
+
+      if (statusEl) statusEl.textContent = "Scanning — hold steady...";
+      tick();
+    } catch (err) {
+      if (statusEl)
+        statusEl.textContent =
+          "Camera access denied. Please allow camera and try again.";
+      console.error("Camera error:", err);
+    }
+  }
+
+  function tick() {
+    if (!video.videoWidth) {
+      animFrame = requestAnimationFrame(tick);
+      return;
+    }
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+    // jsQR is loaded globally via the script tag
+    if (typeof jsQR !== "undefined") {
+      const code = jsQR(imageData.data, imageData.width, imageData.height, {
+        inversionAttempts: "dontInvert",
+      });
+
+      if (code && code.data) {
+        // Extract just the invite code — QR may contain a full URL or just the code
+        let raw = code.data.trim();
+        // If it's a URL, grab the joinCode param or last path segment
+        try {
+          const url = new URL(raw);
+          raw =
+            url.searchParams.get("joinCode") ||
+            url.pathname.split("/").pop() ||
+            raw;
+        } catch (_) {
+          /* not a URL, use as-is */
+        }
+
+        stopScanner();
+        codeInput.value = raw.toUpperCase();
+        if (statusEl) statusEl.textContent = `Code found: ${raw}`;
+
+        // Auto-submit the join form
+        const joinForm = document.getElementById("join-room-form");
+        if (joinForm)
+          joinForm.dispatchEvent(
+            new Event("submit", { bubbles: true, cancelable: true }),
+          );
+        return;
+      }
+    }
+
+    animFrame = requestAnimationFrame(tick);
+  }
+
+  scanBtn.addEventListener("click", startScanner);
+  cancelBtn?.addEventListener("click", stopScanner);
 })();

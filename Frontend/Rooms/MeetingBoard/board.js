@@ -133,9 +133,32 @@ function loadMeetingHistory() {
                 </a>`
                     : ""
                 }
+
+                ${
+                  status !== "past"
+                    ? `
+                <div class="rsvp-section">
+                  <div class="rsvp-label">Your attendance</div>
+                  <div class="rsvp-btns">
+                    <button class="rsvp-btn rsvp-inperson" data-mid="${m.id}" data-mode="in_person">
+                      <span class="material-icons">place</span> In Person
+                    </button>
+                    <button class="rsvp-btn rsvp-online" data-mid="${m.id}" data-mode="online">
+                      <span class="material-icons">videocam</span> Online
+                    </button>
+                    <button class="rsvp-btn rsvp-cant" data-mid="${m.id}" data-mode="cant_attend">
+                      <span class="material-icons">cancel</span> Can't Go
+                    </button>
+                  </div>
+                  <div class="rsvp-current" id="rsvp-status-${m.id}"></div>
+                </div>`
+                    : ""
+                }
+
                 ${
                   canDelete
-                    ? `<button class="delete-meeting-btn" data-id="${m.id}" data-day="${m.meeting_day}" data-time="${cleanStart}">
+                    ? `
+                <button class="delete-meeting-btn" data-id="${m.id}" data-day="${m.meeting_day}" data-time="${cleanStart}">
                   <span class="material-icons">cancel</span> Cancel Meeting
                 </button>`
                     : ""
@@ -146,6 +169,79 @@ function loadMeetingHistory() {
         else if (status === "past" && pastEl) pastEl.appendChild(card);
         else if (upcomingEl) upcomingEl.appendChild(card);
       });
+
+      // Attach RSVP handlers
+      document.querySelectorAll(".rsvp-btn").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const meetingId = btn.dataset.mid;
+          const mode = btn.dataset.mode;
+          const response = mode === "cant_attend" ? "cant_attend" : "accepted";
+
+          document
+            .querySelectorAll(`.rsvp-btn[data-mid="${meetingId}"]`)
+            .forEach((b) => (b.disabled = true));
+
+          try {
+            const res = await fetch(`/api/suggest/${roomId}/respond`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "X-Auth-Token": token,
+              },
+              body: JSON.stringify({ response, attendance_mode: mode }),
+            });
+
+            if (res.ok) {
+              const labels = {
+                in_person: "🟢 In Person",
+                online: "🔵 Online",
+                cant_attend: "❌ Can't Go",
+              };
+              const statusEl = document.getElementById(
+                `rsvp-status-${meetingId}`,
+              );
+              if (statusEl) statusEl.textContent = `Saved: ${labels[mode]}`;
+            }
+          } catch (e) {
+            console.error("RSVP error:", e);
+          }
+
+          document
+            .querySelectorAll(`.rsvp-btn[data-mid="${meetingId}"]`)
+            .forEach((b) => (b.disabled = false));
+        });
+      });
+
+      // Load existing attendance for this user
+      (async () => {
+        try {
+          const rsvpRes = await fetch(`/api/suggest/${roomId}/responses`, {
+            headers: { "X-Auth-Token": token },
+          });
+          const rsvpData = await rsvpRes.json();
+          if (rsvpData.responses) {
+            const meRes = await fetch("/api/users/me", {
+              headers: { "X-Auth-Token": token },
+            });
+            const me = await meRes.json();
+            const myRsvp = rsvpData.responses.find(
+              (r) => r.username === me.username,
+            );
+            if (myRsvp) {
+              const labels = {
+                in_person: "🟢 In Person",
+                online: "🔵 Online",
+                cant_attend: "❌ Can't Go",
+              };
+              document.querySelectorAll(".rsvp-current").forEach((el) => {
+                el.textContent = `Current: ${labels[myRsvp.attendance_mode] || myRsvp.attendance_mode}`;
+              });
+            }
+          }
+        } catch (e) {
+          console.error("Load RSVP error:", e);
+        }
+      })();
 
       // Attach delete handlers
       document.querySelectorAll(".delete-meeting-btn").forEach((btn) => {

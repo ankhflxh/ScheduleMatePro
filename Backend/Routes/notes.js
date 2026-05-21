@@ -29,7 +29,7 @@ const storage = multer.diskStorage({
 const fileFilter = (req, file, cb) => {
   const allowedTypes = /jpeg|jpg|png|gif|webp/;
   const extname = allowedTypes.test(
-    path.extname(file.originalname).toLowerCase()
+    path.extname(file.originalname).toLowerCase(),
   );
   const mimetype = allowedTypes.test(file.mimetype);
 
@@ -56,7 +56,7 @@ router.get("/:roomId", authenticateToken, async (req, res) => {
        JOIN users u ON n.user_id = u.id
        WHERE n.room_id = $1
        ORDER BY n.created_at DESC`,
-      [roomId]
+      [roomId],
     );
     res.json(result.rows);
   } catch (err) {
@@ -93,17 +93,23 @@ router.post(
         `INSERT INTO notes (room_id, user_id, title, content, color, image_path)
          VALUES ($1, $2, $3, $4, $5, $6)
          RETURNING *`,
-        [roomId, userId, title || "", content || "", color || "#ffffff", imagePath]
+        [
+          roomId,
+          userId,
+          title || "",
+          content || "",
+          color || "#ffffff",
+          imagePath,
+        ],
       );
 
       const newNote = result.rows[0];
       newNote.username = req.user.username;
 
       // ✅ Send push notification to all other room members
-      const roomRes = await pool.query(
-        "SELECT name FROM rooms WHERE id = $1",
-        [roomId]
-      );
+      const roomRes = await pool.query("SELECT name FROM rooms WHERE id = $1", [
+        roomId,
+      ]);
       const roomName = roomRes.rows[0]?.name || "your room";
 
       await sendPushToRoomMembers(
@@ -111,9 +117,9 @@ router.post(
         {
           title: "📝 New Note Added",
           body: `${req.user.username} added a note in "${roomName}"`,
-          url: `/Rooms/Notes/notes.html`,
+          url: `/Rooms/Notes/notes.html?roomId=${roomId}`,
         },
-        userId // exclude the person who posted it
+        userId, // exclude the person who posted it
       );
 
       res.json(newNote);
@@ -121,7 +127,7 @@ router.post(
       console.error(err);
       res.status(500).json({ error: "Failed to create note" });
     }
-  }
+  },
 );
 
 // PUT /api/notes/:noteId
@@ -143,7 +149,7 @@ router.put(
     try {
       const check = await pool.query(
         "SELECT user_id, room_id FROM notes WHERE id = $1",
-        [noteId]
+        [noteId],
       );
       if (check.rows.length === 0)
         return res.status(404).json({ error: "Note not found" });
@@ -165,7 +171,7 @@ router.put(
       console.error(err);
       res.status(500).json({ error: "Failed to update note" });
     }
-  }
+  },
 );
 
 // DELETE /api/notes/:noteId
@@ -198,7 +204,7 @@ router.get("/:roomId/unread-count", authenticateToken, async (req, res) => {
   try {
     const memberRes = await pool.query(
       "SELECT last_notes_viewed_at FROM room_members WHERE room_id = $1 AND user_id = $2",
-      [roomId, userId]
+      [roomId, userId],
     );
 
     if (memberRes.rows.length === 0) return res.json({ count: 0 });
@@ -207,7 +213,7 @@ router.get("/:roomId/unread-count", authenticateToken, async (req, res) => {
 
     const countRes = await pool.query(
       "SELECT COUNT(*) FROM notes WHERE room_id = $1 AND created_at > $2",
-      [roomId, lastViewed]
+      [roomId, lastViewed],
     );
 
     res.json({ count: parseInt(countRes.rows[0].count) });
@@ -225,7 +231,7 @@ router.post("/:roomId/mark-read", authenticateToken, async (req, res) => {
   try {
     await pool.query(
       "UPDATE room_members SET last_notes_viewed_at = CURRENT_TIMESTAMP WHERE room_id = $1 AND user_id = $2",
-      [roomId, userId]
+      [roomId, userId],
     );
     res.json({ success: true });
   } catch (err) {

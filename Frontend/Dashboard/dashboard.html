@@ -146,8 +146,38 @@
               Join Now <span class="material-icons">login</span>
             </button>
           </form>
+          <button class="btn-scan-qr" id="scanQrBtn">
+            <span class="material-icons">qr_code_scanner</span> Scan QR Code
+          </button>
         </div>
       </section>
+
+      <!-- QR Scanner Modal -->
+      <div id="qrScannerModal" class="modal-overlay" style="display: none">
+        <div class="modal-box qr-scanner-box">
+          <div class="qr-scanner-header">
+            <span
+              class="material-icons"
+              style="color: #6366f1; font-size: 1.8rem"
+              >qr_code_scanner</span
+            >
+            <h3>Scan Room QR Code</h3>
+            <p>Point your camera at the QR code</p>
+          </div>
+          <div class="qr-video-wrap">
+            <video id="qrVideo" autoplay playsinline muted></video>
+            <div class="qr-finder"></div>
+          </div>
+          <div id="qrScanStatus" class="qr-status">Initialising camera...</div>
+          <button
+            class="modal-btn secondary"
+            id="qrCancelBtn"
+            style="width: 100%; margin-top: 0.75rem; justify-content: center"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
 
       <main class="content-grid">
         <section class="glass-panel rooms-section">
@@ -175,29 +205,6 @@
               autoplay
             ></lottie-player>
             <p>You haven't joined any rooms yet.</p>
-          </div>
-        </section>
-        <section class="glass-panel meetings-section">
-          <div class="section-header">
-            <h3>
-              <span class="material-icons">event</span> Upcoming This Week
-            </h3>
-          </div>
-          <div id="my-meetings" class="meetings-list"></div>
-          <div
-            id="no-meetings-message"
-            class="empty-state"
-            style="display: none"
-          >
-            <lottie-player
-              src="../../Assets/NoMeetings.json"
-              background="transparent"
-              speed="1"
-              style="width: 120px; height: 120px"
-              loop
-              autoplay
-            ></lottie-player>
-            <p>No upcoming meetings.</p>
           </div>
         </section>
       </main>
@@ -457,6 +464,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <script src="dashboard.js"></script>
   </body>
 </html>
