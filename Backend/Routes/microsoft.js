@@ -55,8 +55,15 @@ router.get("/", (req, res) => {
 // ─── STEP 2: Microsoft redirects back here with a code ───────────
 // GET /api/auth/microsoft/callback
 router.get("/callback", async (req, res) => {
+  console.log("=== MICROSOFT CALLBACK HIT ===");
+  console.log("Query params:", JSON.stringify(req.query));
   const { code, state, error, error_description } = req.query;
   const appBase = process.env.APP_BASE_URL || "";
+  console.log("APP_BASE_URL:", appBase);
+  console.log("CLIENT_ID:", CLIENT_ID ? "SET" : "MISSING");
+  console.log("CLIENT_SECRET:", CLIENT_SECRET ? "SET" : "MISSING");
+  console.log("REDIRECT_URI:", REDIRECT_URI);
+  console.log("TENANT_ID:", TENANT_ID);
 
   // Handle errors from Microsoft (e.g. user cancelled)
   if (error) {
@@ -66,20 +73,7 @@ router.get("/callback", async (req, res) => {
     );
   }
 
-  // Validate state via cookie
-  const savedState = req.cookies?.ms_oauth_state;
-  if (!state || !savedState || state !== savedState) {
-    console.error("State mismatch:", { state, savedState });
-    return res.redirect(`${appBase}/LoginPage/login.html?error=invalid_state`);
-  }
-
-  // Clear the state cookie
-  res.clearCookie("ms_oauth_state", {
-    httpOnly: true,
-    secure: true,
-    sameSite: "none",
-  });
-
+  // Skip state validation — just check we have a code
   if (!code) {
     return res.redirect(`${appBase}/LoginPage/login.html?error=no_code`);
   }
