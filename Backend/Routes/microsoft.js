@@ -55,6 +55,7 @@ router.get("/", (req, res) => {
 // ─── STEP 2: Microsoft redirects back here with a code ───────────
 // GET /api/auth/microsoft/callback
 router.get("/callback", async (req, res) => {
+  console.log("CALLBACK:", JSON.stringify(req.query));
   const { code, state, error, error_description } = req.query;
   const appBase = process.env.APP_BASE_URL || "";
 
@@ -217,10 +218,6 @@ router.get("/callback", async (req, res) => {
     console.error("Microsoft OAuth callback error:", err);
     res.redirect(`${appBase}/LoginPage/login.html?error=server_error`);
   }
-
-  console.log("CALLBACK HIT:", req.query);
-  const { code, state, error, error_description } = req.query;
-  console.log("Error from Microsoft:", error, error_description);
 });
 
 module.exports = router;
