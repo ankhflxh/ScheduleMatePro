@@ -227,7 +227,7 @@ router.patch(
         {
           title: "📅 Meeting Schedule Updated",
           body: `The meeting day for "${room.name}" has been changed to ${day}. Please update your availability!`,
-          url: `/Rooms/Availability/availability.html`,
+          url: `/Rooms/Availability/availability.html?roomId=${roomId}`,
         },
         userId, // exclude the creator who made the change
       );
