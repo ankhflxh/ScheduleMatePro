@@ -54,25 +54,44 @@ app.get("/", (req, res) => {
 });
 
 // ----------------------------------------------------------------
-// HELPER: Get Consistent System Time
+// HELPER: Get Consistent System Time (always UK time)
 // ----------------------------------------------------------------
 function getSystemTime() {
   const now = new Date();
-  const currentDay = now.toLocaleDateString("en-US", { weekday: "long" });
-  const hours = String(now.getHours()).padStart(2, "0");
-  const minutes = String(now.getMinutes()).padStart(2, "0");
-  const currentTime = `${hours}:${minutes}:00`;
+  const ukFormatter = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/London",
+    weekday: "long",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+
+  const parts = ukFormatter.formatToParts(now);
+  const get = (type) => parts.find((p) => p.type === type)?.value || "00";
+
+  const currentDay = parts.find((p) => p.type === "weekday")?.value;
+  const currentTime = `${get("hour")}:${get("minute")}:${get("second")}`;
+
   return { now, currentDay, currentTime };
 }
 
 // ----------------------------------------------------------------
-// HELPER: Get a time string X minutes from now (HH:MM:00)
+// HELPER: Get a time string X minutes from now in UK time (HH:MM:00)
 // ----------------------------------------------------------------
 function getTimeOffsetMinutes(minutesFromNow) {
   const future = new Date(Date.now() + minutesFromNow * 60 * 1000);
-  const h = String(future.getHours()).padStart(2, "0");
-  const m = String(future.getMinutes()).padStart(2, "0");
-  return `${h}:${m}:00`;
+  const ukFormatter = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/London",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+
+  const parts = ukFormatter.formatToParts(future);
+  const get = (type) => parts.find((p) => p.type === type)?.value || "00";
+  return `${get("hour")}:${get("minute")}:00`;
 }
 
 // ----------------------------------------------------------------
