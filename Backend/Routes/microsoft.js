@@ -17,10 +17,6 @@ const REDIRECT_URI = process.env.MICROSOFT_REDIRECT_URI; // e.g. https://yourapp
 const generateToken = (id) =>
   jwt.sign({ userId: id }, JWT_SECRET, { expiresIn: "7d" });
 
-// ─── In-memory state store (prevents CSRF) ───────────────────────
-// In production with multiple instances you'd use Redis, but this is fine for a single server
-const stateStore = new Map();
-
 // ─── STEP 1: Redirect user to Microsoft login ────────────────────
 // GET /api/auth/microsoft
 router.get("/", (req, res) => {
@@ -31,9 +27,14 @@ router.get("/", (req, res) => {
   }
 
   const state = crypto.randomBytes(16).toString("hex");
-  // Store state for 10 minutes
-  stateStore.set(state, Date.now());
-  setTimeout(() => stateStore.delete(state), 10 * 60 * 1000);
+
+  // Store state in a cookie instead of memory (survives server restarts)
+  res.cookie("ms_oauth_state", state, {
+    httpOnly: true,
+    secure: true,
+    sameSite: "lax",
+    maxAge: 10 * 60 * 1000, // 10 minutes
+  });
 
   const params = new URLSearchParams({
     client_id: CLIENT_ID,
@@ -44,7 +45,6 @@ router.get("/", (req, res) => {
       " ",
     ),
     state,
-    // Prompt 'select_account' lets users switch accounts easily
     prompt: "select_account",
   });
 
@@ -55,7 +55,6 @@ router.get("/", (req, res) => {
 // ─── STEP 2: Microsoft redirects back here with a code ───────────
 // GET /api/auth/microsoft/callback
 router.get("/callback", async (req, res) => {
-  console.log("CALLBACK:", JSON.stringify(req.query));
   const { code, state, error, error_description } = req.query;
   const appBase = process.env.APP_BASE_URL || "";
 
@@ -67,11 +66,15 @@ router.get("/callback", async (req, res) => {
     );
   }
 
-  // Validate state (CSRF protection)
-  if (!state || !stateStore.has(state)) {
+  // Validate state via cookie
+  const savedState = req.cookies?.ms_oauth_state;
+  if (!state || !savedState || state !== savedState) {
+    console.error("State mismatch:", { state, savedState });
     return res.redirect(`${appBase}/LoginPage/login.html?error=invalid_state`);
   }
-  stateStore.delete(state);
+
+  // Clear the state cookie
+  res.clearCookie("ms_oauth_state");
 
   if (!code) {
     return res.redirect(`${appBase}/LoginPage/login.html?error=no_code`);

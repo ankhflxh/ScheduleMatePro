@@ -1,6 +1,7 @@
 // File: Backend/server.js
 const path = require("path");
 const express = require("express");
+const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const cron = require("node-cron");
@@ -34,6 +35,7 @@ app.use(
   }),
 );
 app.use(express.json());
+app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "..", "Frontend")));
 app.use(cookieParser());
 
