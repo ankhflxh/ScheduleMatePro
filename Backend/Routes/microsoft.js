@@ -32,8 +32,8 @@ router.get("/", (req, res) => {
   res.cookie("ms_oauth_state", state, {
     httpOnly: true,
     secure: true,
-    sameSite: "lax",
-    maxAge: 10 * 60 * 1000, // 10 minutes
+    sameSite: "none",
+    maxAge: 10 * 60 * 1000,
   });
 
   const params = new URLSearchParams({
@@ -74,7 +74,11 @@ router.get("/callback", async (req, res) => {
   }
 
   // Clear the state cookie
-  res.clearCookie("ms_oauth_state");
+  res.clearCookie("ms_oauth_state", {
+    httpOnly: true,
+    secure: true,
+    sameSite: "none",
+  });
 
   if (!code) {
     return res.redirect(`${appBase}/LoginPage/login.html?error=no_code`);

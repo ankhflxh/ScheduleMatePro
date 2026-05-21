@@ -36,7 +36,6 @@ app.use(
 app.use(express.json());
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "..", "Frontend")));
-app.use(cookieParser());
 
 // API Routes
 app.use("/api/auth", authRoutes);
